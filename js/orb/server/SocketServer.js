@@ -8,15 +8,21 @@ const ws = require('ws'),
 
 module.exports = {
     startup: callback => {
+        console.log('Socket Server Starting Up...');
+        
         if (socketServer) {
             console.warn('Attempt to start socket server again.');
+            callback?.(false);
             return;
         }
         
         socketServer = new ws.WebSocketServer({
             port:socketPort,
             maxPayload:1<<20 // Approx 1MB
-        }, callback);
+        }, () => {
+            console.log('  Oroboros Socket Server listening on port: ' + socketPort);
+            callback?.(true);
+        });
         
         socketServer.on('connection', (ws, req) => {
             accessLog.info('Socket Opened for IP:' + req.socket.remoteAddress);
@@ -55,7 +61,7 @@ module.exports = {
     
     shutdown: callback => {
         if (!socketServer) {
-            console.warn('No socket server to shutdown.');
+            console.warn('  No socket server to shutdown.');
             callback?.(false);
             return;
         }

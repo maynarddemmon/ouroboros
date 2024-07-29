@@ -6,11 +6,16 @@ const path = require('path'),
     
     PATH_PREFIX = '../../../',
     
+    HTTP_PORT = 8080,
     SOCKET_PORT = 8081,
     
     makePath = suffix => path.join(__dirname, PATH_PREFIX + suffix);
 
 module.exports = {
+    IS_PROD: false,
+    CACHE_BUST: '',
+    
+    httpPort: HTTP_PORT,
     socketPort: SOCKET_PORT,
     socketUrl: 'ws://localhost:' + SOCKET_PORT,
     authFailLimit: 12, // The maximum number of failed auth attempts

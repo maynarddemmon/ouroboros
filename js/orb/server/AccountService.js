@@ -1,9 +1,6 @@
 let accountUnlockerIntervalId = null;
 
-const crypto = require('crypto'),
-    pino = require('pino'),
-    
-    {JS, tym} = require('../../../lib/tym.js'),
+const {createHash} = require('crypto'),
     orb = require('./orb.js'),
     authFailLimit = orb.authFailLimit,
     
@@ -53,7 +50,7 @@ const crypto = require('crypto'),
     },
     
     hashSecret = 'This should probably not be in the source code.',
-    makeHash = value => crypto.createHash('sha512', hashSecret).update(value).digest('hex'),
+    makeHash = value => createHash('sha512', hashSecret).update(value).digest('hex'),
     
     makeAccountObject = (username, password) => {
         const emptyAccount = makeEmptyAccount();
@@ -125,6 +122,7 @@ const crypto = require('crypto'),
     },
     
     // Logging
+    pino = require('pino'),
     accessLog = pino(
         {
             base:undefined,
@@ -207,7 +205,6 @@ module.exports = {
         return retval;
     },
     
-    
     deauthenticate: session => {
         const username = session[FIELD_USERNAME],
             retval = {success:false};
@@ -232,9 +229,11 @@ module.exports = {
         return retval;
     },
     
-    startup: () => {
+    startup: callback => {
         console.log('Restoring User Accounts...');
         loadAccountsOnStartup();
+        
+        callback?.(true);
     },
     
     shutdown: callback => {
