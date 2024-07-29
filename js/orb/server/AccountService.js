@@ -1,5 +1,6 @@
 const crypto = require('crypto'),
     pino = require('pino'),
+    fs = require('fs'),
     
     {JS, tym} = require('../../../lib/tym.js'),
     orb = require('./orb.js'),
@@ -10,15 +11,22 @@ const crypto = require('crypto'),
     hashSecret = 'This should probably not be in the source code.',
     makeHash = value => crypto.createHash('sha512', hashSecret).update(value).digest('hex'),
     
-    makeAccountObject = (username, password) => {
-        return accountsByUsername[username] = {
-            username:username,
-            password:makeHash(password),
+    makeEmptyAccount = () => {
+        return {
+            username:null,
+            password:null,
             socketToken:null,
             websocket:null,
             authenticated:false,
             lastLogin:-1
         };
+    },
+    
+    makeAccountObject = (username, password) => {
+        const emptyAccount = makeEmptyAccount();
+        emptyAccount.username = username;
+        emptyAccount.password = makeHash(password);
+        return accountsByUsername[username] = emptyAccount;
     },
     
     getAccountByUsername = username => accountsByUsername[username],
@@ -31,6 +39,47 @@ const crypto = require('crypto'),
             websocket.close();
             existingAccount.websocket = null;
             accessLog.info('Closing Websocket');
+        }
+    },
+    
+    saveAccountsOnShutdown = () => {
+        const dataToSave = [];
+        for (const key in accountsByUsername) {
+            const {username, password, lastLogin} = accountsByUsername[key];
+            dataToSave.push({username:username, password:password, lastLogin:lastLogin});
+        }
+        
+        try {
+            fs.writeFileSync(orb.makePath('data/accounts.js'), JSON.stringify(dataToSave, null, 4));
+            console.log('Saved ' + dataToSave.length + ' Account(s)');
+        } catch (err) {
+            console.error('Error Saving Accounts.', err);
+        }
+    },
+    
+    loadAccountsOnStartup = () => {
+        const strData = fs.readFileSync(orb.makePath('data/accounts.js')).toString();
+        if (strData) {
+            const jsonData = JSON.parse(strData);
+            if (jsonData) {
+                let count = 0;
+                for (const datum of jsonData) {
+                    const {username, password, lastLogin} = datum;
+                    if (username && password) {
+                        const account = makeEmptyAccount();
+                        account.username = username;
+                        account.password = password;
+                        account.lastLogin = lastLogin;
+                        accountsByUsername[username] = account;
+                        count++;
+                    } else {
+                        console.error('Failed to restore account: ', datum);
+                    }
+                }
+                console.log('Restored ' + count + ' user account(s).');
+            }
+        } else {
+            console.log('No user account data to load.');
         }
     },
     
@@ -127,8 +176,16 @@ module.exports = {
         return retval;
     },
     
+    startup: () => {
+        console.log('Restoring User Accounts...');
+        loadAccountsOnStartup();
+    },
+    
     shutdown: callback => {
         console.log('Flush Logs');
         accessLog.flush(callback);
+        
+        console.log('Save Accounts');
+        saveAccountsOnShutdown();
     }
 };

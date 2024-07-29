@@ -4,20 +4,18 @@ const ARGS = process.argv,
     IS_PROD = ARGS[2] ?? false,
     CACHE_BUST = ARGS[3] ?? '',
     
-    path = require('path'),
     fs = require('fs'),
     express = require('express'),
     session = require('express-session'),
     
-    PATH_PREFIX = '../../../',
     PORT_HTTP = 8080,
     
     orb = require('./orb.js'),
+    makePath = orb.makePath,
+    
     accountService = require('./AccountService.js'),
     accessLog = accountService.accessLog,
     socketMessageHandler = require('./SocketMessageHandler.js'),
-    
-    makePath = suffix => path.join(__dirname, PATH_PREFIX + suffix),
     
     sendJSONResponse = (res, success, message, data) => {
         message ??= success ? 'success' : 'failure';
@@ -162,6 +160,10 @@ const shutdownSocketServer = callback => {
     });
     callback?.();
 };
+
+
+// Load Data
+accountService.startup();
 
 
 // Start HTTP Server
