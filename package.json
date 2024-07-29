@@ -1,0 +1,25 @@
+{
+    "name": "Oroboros",
+    "version": "1.0",
+    "author": "Maynard Demmon",
+    "description": "A game world toy.",
+    "license": "MIT",
+    "engines": {
+        "npm": ">=10.8.2",
+        "node": ">=22.5.1"
+    },
+    "dependencies": {
+        "express": "4.19.2",
+        "express-session": "1.18.0",
+        "ws" : "8.18.0",
+        "pino": "9.3.1"
+    },
+    "devDependencies": {
+        "google-closure-compiler": "^20230802.0.0"
+    },
+    "scripts": {
+        "server-start": "node ./js/orb/server/Start.js",
+        "server-stop": "pkill -15 node",
+        "build-client": "./bin/build ./js/orb/client/manifest.js ./lib/oroboros-client.js ./js/orb/client true true orb.all && stat -f%z ./lib/oroboros-client.min.js"
+    }
+}

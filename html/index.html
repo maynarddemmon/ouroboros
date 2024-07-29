@@ -1,0 +1,41 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<title>Oroboros</title>
+<link rel="stylesheet" type="text/css" href="./css/style.css"/>
+<script>
+const getElem = id => document.getElementById(id),
+	writeScript = src => document.write('<script src="./'+src+'.js?_cb={{CACHE_BUST}}">\x3C/script>');
+function hideSpinner(){
+	getElem('spinner').className = 'nospin';
+	getElem('loader').style.display = 'none';
+}
+function showSpinner(){
+	getElem('loader').style.display = 'block';
+	getElem('loader').className = 'fadein';
+	getElem('spinner').className = 'spin';
+}
+const _startup = () => {
+		orb.IMAGE_ROOT = './img/';
+		orb.socketToken = {{SOCKET_TOKEN}};
+		orb.socketUrl = {{SOCKET_URL}};
+		orb.username = {{USERNAME}};
+		orb.authenticated = orb.username ? true : false;
+		new orb.App(getElem('appDiv'));
+	},
+	global = window,
+	LOCALE = 'en';
+let _ready,
+	LOCALE_JSON;
+writeScript('i18n/client-'+LOCALE);
+if ({{IS_PROD}}) {
+	writeScript('lib/oroboros-client.min');
+	_ready = _startup;
+} else {
+	global.ORB_ROOT = './js/orb/client/';
+	writeScript('lib/loader-browser.min');
+	writeScript('js/orb/client/manifest');
+	_ready = () => {JS.require('orb.all', _startup)};
+}
+</script>
+</head><body></div><div id="appDiv"></div><div id="loader"><div id="spinner"></div></div>
+<script>showSpinner();_ready();</script>
+</body></html>

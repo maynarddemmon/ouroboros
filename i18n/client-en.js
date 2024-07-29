@@ -1,0 +1,15 @@
+LOCALE_JSON = {
+    'create':'Create',
+    'login':'Login',
+    'logout':'Logout',
+    'enterPassword':'Enter Password',
+    'enterUsername':'Enter Username',
+    'err-passwordStrength':'Passwords must be at least 7 characters.',
+    'password':'Password',
+    'passwordAgain':'Password Again',
+    'showHideValue':'Click to show/hide the obscured value.',
+    'title':'Oroboros',
+    'title-auth':'Login',
+    'title-reg':'Create Account',
+    'username':'Username',
+};
