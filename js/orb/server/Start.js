@@ -1,4 +1,5 @@
-let shuttingDown = false;
+let httpServer,
+    shuttingDown = false;
 
 const ARGS = process.argv,
     IS_PROD = ARGS[2] ?? false,
@@ -10,12 +11,13 @@ const ARGS = process.argv,
     
     PORT_HTTP = 8080,
     
+    socketServer = require('./SocketServer.js'),
+    
     orb = require('./orb.js'),
     makePath = orb.makePath,
     
     accountService = require('./AccountService.js'),
     accessLog = accountService.accessLog,
-    socketMessageHandler = require('./SocketMessageHandler.js'),
     
     sendJSONResponse = (res, success, message, data) => {
         message ??= success ? 'success' : 'failure';
@@ -108,84 +110,34 @@ app.post('/deauth', (req, res) => {
     }
 });
 
-
-// Start Socket Server
-const ws = require('ws'),
-    socketServer = new ws.WebSocketServer({
-        port:orb.socketPort,
-        maxPayload:1<<20 // Approx 1MB
-    });
-
-socketServer.on('connection', (ws, req) => {
-    accessLog.info('Socket Opened for IP:' + req.socket.remoteAddress);
+// Startup
+console.log('Socket Server Starting Up...');
+socketServer.startup(() => {
+    console.log('  Oroboros Socket Server listening on port: ' + orb.socketPort);
     
-    ws.on('error', console.error);
-    ws.on('message', data => {
-        const strData = data.toString();
-        if (strData) {
-            let jsonData;
-            try {
-                jsonData = JSON.parse(strData);
-            } catch (err) {
-                console.error('Socket Message could not be parsed as JSON', err);
-                return;
-            }
-            
-            // Build a scope for further message processing.
-            const socketToken = jsonData.token;
-            if (socketToken) {
-                const account = accountService.getAccountBySocketToken(socketToken);
-                if (account) {
-                    account.websocket = ws;
-                    socketMessageHandler.handleMessage({account:account, data:jsonData});
-                } else {
-                    console.warn('Socket Message without associated account');
-                }
-            } else {
-                console.warn('Socket Message without token');
-            }
-        } else {
-            console.warn('Socket Message without string data');
-        }
+    accountService.startup();
+    
+    console.log('HTTP Server Starting Up...');
+    httpServer = app.listen(PORT_HTTP, () => {
+        console.log(
+            '  Oroboros HTTP Server listening on port: ' + PORT_HTTP + '\n' +
+            '       IS_PROD: ' + IS_PROD + '\n' + 
+            '    CACHE_BUST: ' + CACHE_BUST + '\n'
+        );
     });
 });
 
-// Shutdown Socket Server
-const shutdownSocketServer = callback => {
-    console.log('Closing Socket Server...');
-    socketServer.close();
-    socketServer.clients.forEach(ws => {
-        console.log('  Terminating WebSocket');
-        ws.close();
-    });
-    callback?.();
-};
-
-
-// Load Data
-accountService.startup();
-
-
-// Start HTTP Server
-const server = app.listen(PORT_HTTP, () => {
-    console.log(
-        'Oroboros Server listening on port: ' + PORT_HTTP + '\n' +
-        '     IS_PROD: ' + IS_PROD + '\n' + 
-        '  CACHE_BUST: ' + CACHE_BUST + '\n'
-    );
-});
-
-// Shutdown HTTP Server
+// Graceful Shutdown
 process.on('SIGTERM', () => {
     shuttingDown = true;
     
     console.log('SIGTERM signal received. Starting Shutdown...');
-    shutdownSocketServer(() => {
+    socketServer.shutdown(success => {
         accountService.shutdown(() => {
             console.log('Closing HTTP Server');
-            server.close(() => {
-                console.log('HTTP Server Closed');
+            httpServer.close(() => {
+                console.log('  HTTP Server Closed');
             });
         });
     });
-})
+});

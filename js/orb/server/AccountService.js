@@ -2,11 +2,20 @@ let accountUnlockerIntervalId = null;
 
 const crypto = require('crypto'),
     pino = require('pino'),
-    fs = require('fs'),
     
     {JS, tym} = require('../../../lib/tym.js'),
     orb = require('./orb.js'),
     authFailLimit = orb.authFailLimit,
+    
+    FILENAME_ACCOUNTS = 'accounts',
+    
+    FIELD_USERNAME = 'username',
+    FIELD_PASSWORD = 'password',
+    FIELD_LAST_LOGIN = 'lastLogin',
+    FIELD_AUTH_FAIL_COUNT = 'authFailCount',
+    FIELD_AUTHENTICATED = 'authenticated',
+    FIELD_WEBSOCKET = 'websocket',
+    FIELD_SOCKET_TOKEN = 'socketToken',
     
     accountsByUsername = {},
     accountsBySocketToken = {},
@@ -20,7 +29,7 @@ const crypto = require('crypto'),
                 // but on average accounts will be locked out for the accountUnlockerInterval time.
                 let count = 0;
                 while (lockedAccounts.length) {
-                    lockedAccounts.pop().authFailCount = 0;
+                    lockedAccounts.pop()[FIELD_AUTH_FAIL_COUNT] = 0;
                     count++;
                 }
                 if (count) console.log('Unlocked Accounts:' + count);
@@ -33,13 +42,13 @@ const crypto = require('crypto'),
     
     makeEmptyAccount = () => {
         return {
-            username:null,
-            password:null,
-            socketToken:null,
-            websocket:null,
-            authenticated:false,
-            lastLogin:-1,
-            authFailCount:0
+            [FIELD_USERNAME]:null,
+            [FIELD_PASSWORD]:null,
+            [FIELD_SOCKET_TOKEN]:null,
+            [FIELD_WEBSOCKET]:null,
+            [FIELD_AUTHENTICATED]:false,
+            [FIELD_LAST_LOGIN]:-1,
+            [FIELD_AUTH_FAIL_COUNT]:0
         };
     },
     
@@ -48,8 +57,8 @@ const crypto = require('crypto'),
     
     makeAccountObject = (username, password) => {
         const emptyAccount = makeEmptyAccount();
-        emptyAccount.username = username;
-        emptyAccount.password = makeHash(password);
+        emptyAccount[FIELD_USERNAME] = username;
+        emptyAccount[FIELD_PASSWORD] = makeHash(password);
         return accountsByUsername[username] = emptyAccount;
     },
     
@@ -57,11 +66,12 @@ const crypto = require('crypto'),
     getAccountBySocketToken = socketToken => accountsBySocketToken[socketToken],
     
     closeSocketForAccount = existingAccount => {
-        const {socketToken, websocket} = existingAccount;
+        const websocket = existingAccount[FIELD_WEBSOCKET],
+            socketToken = existingAccount[FIELD_SOCKET_TOKEN];
         if (socketToken) delete accountsBySocketToken[socketToken];
         if (websocket) {
             websocket.close();
-            existingAccount.websocket = null;
+            existingAccount[FIELD_WEBSOCKET] = null;
             accessLog.info('Closing Websocket');
         }
     },
@@ -69,56 +79,48 @@ const crypto = require('crypto'),
     saveAccountsOnShutdown = () => {
         const dataToSave = [];
         for (const key in accountsByUsername) {
-            const {username, password, lastLogin, authFailCount} = accountsByUsername[key],
+            const account = accountsByUsername[key],
+                authFailCount = account[FIELD_AUTH_FAIL_COUNT],
                 datum = {
-                    username:username, 
-                    password:password, 
-                    lastLogin:lastLogin
+                    [FIELD_USERNAME]:account[FIELD_USERNAME], 
+                    [FIELD_PASSWORD]:account[FIELD_PASSWORD], 
+                    [FIELD_LAST_LOGIN]:account[FIELD_LAST_LOGIN]
                 };
-            if (authFailCount > 0) datum.authFailCount = authFailCount;
+            if (authFailCount > 0) datum[FIELD_AUTH_FAIL_COUNT] = authFailCount;
             dataToSave.push(datum);
         }
-        
-        try {
-            fs.writeFileSync(orb.makePath('data/accounts.js'), JSON.stringify(dataToSave, null, 4));
-            console.log('Saved ' + dataToSave.length + ' Account(s)');
-        } catch (err) {
-            console.error('Error Saving Accounts.', err);
-        }
+        orb.saveDataToFile(FILENAME_ACCOUNTS, dataToSave);
     },
     
     loadAccountsOnStartup = () => {
-        const strData = fs.readFileSync(orb.makePath('data/accounts.js')).toString();
-        if (strData) {
-            const jsonData = JSON.parse(strData);
-            if (jsonData) {
-                let count = 0,
-                    needsAccountUnlocker = false;
-                for (const datum of jsonData) {
-                    const {username, password, lastLogin, authFailCount} = datum;
-                    if (username && password) {
-                        const account = makeEmptyAccount();
-                        account.username = username;
-                        account.password = password;
-                        account.lastLogin = lastLogin;
-                        account.authFailCount = authFailCount || 0;
-                        accountsByUsername[username] = account;
-                        
-                        if (authFailCount >= authFailLimit) {
-                            lockedAccounts.push(account);
-                            needsAccountUnlocker = true;
-                        }
-                        
-                        count++;
-                    } else {
-                        console.error('Failed to restore account: ', datum);
+        const jsonData = orb.readDataFromFile(FILENAME_ACCOUNTS);
+        if (jsonData) {
+            let count = 0,
+                needsAccountUnlocker = false;
+            for (const datum of jsonData) {
+                const username = datum[FIELD_USERNAME],
+                    password = datum[FIELD_PASSWORD];
+                if (username && password) {
+                    const authFailCount = datum[FIELD_AUTH_FAIL_COUNT],
+                        account = makeEmptyAccount();
+                    account[FIELD_USERNAME] = username;
+                    account[FIELD_PASSWORD] = password;
+                    account[FIELD_LAST_LOGIN] = datum[FIELD_LAST_LOGIN];
+                    account[FIELD_AUTH_FAIL_COUNT] = authFailCount || 0;
+                    accountsByUsername[username] = account;
+                    
+                    if (authFailCount >= authFailLimit) {
+                        lockedAccounts.push(account);
+                        needsAccountUnlocker = true;
                     }
+                    
+                    count++;
+                } else {
+                    console.error('  Failed to restore account: ', datum);
                 }
-                if (needsAccountUnlocker) startAccountUnlocker();
-                console.log('Restored ' + count + ' user account(s).');
             }
-        } else {
-            console.log('No user account data to load.');
+            if (needsAccountUnlocker) startAccountUnlocker();
+            console.log('  Restored ' + count + ' user account(s).');
         }
     },
     
@@ -137,12 +139,55 @@ const crypto = require('crypto'),
             maxWrite:1<<16, // 64k Must be larger than minLength
             sync:false
         })
-    );
+    ),
+    
+    authenticate = (session, username, password) => {
+        const existingAccount = getAccountByUsername(username),
+            retval = {success:false};
+        if (existingAccount) {
+            if (existingAccount[FIELD_AUTH_FAIL_COUNT] >= authFailLimit) {
+                // Catch accounts locked for excessive fail counts before we try to authenticate.
+                retval.message = 'Account temporarily locked.';
+            } else if (makeHash(password) === existingAccount[FIELD_PASSWORD]) {
+                // Auth Success
+                session[FIELD_USERNAME] = username;
+                accessLog.info('Authenticate:' + username);
+                
+                closeSocketForAccount(existingAccount);
+                
+                retval.success = true;
+                existingAccount[FIELD_LAST_LOGIN] = Date.now();
+                existingAccount[FIELD_AUTH_FAIL_COUNT] = 0;
+                const newSocketToken = retval[FIELD_SOCKET_TOKEN] = existingAccount[FIELD_SOCKET_TOKEN] = orb.generateSecret();
+                retval.socketUrl = orb.socketUrl;
+                
+                accountsBySocketToken[newSocketToken] = existingAccount;
+            } else {
+                // Auth Failed
+                retval.message = 'Authentication failed.';
+                accessLog.warn('Authenticate failed. Password mismatch:' + username);
+                
+                // Lock account if necessary
+                if (++existingAccount[FIELD_AUTH_FAIL_COUNT] >= authFailLimit) {
+                    lockedAccounts.push(existingAccount);
+                    startAccountUnlocker();
+                    retval.message += ' Account temporarily locked.';
+                    accessLog.warn('Temporarily locking account:' + username);
+                }
+            }
+        } else {
+            // No account for username
+            retval.message = 'Authentication failed.';
+            accessLog.warn('Authenticate failed. No account:' + username);
+        }
+        return retval;
+    };
 
 module.exports = {
     accessLog:accessLog,
     getAccountByUsername:getAccountByUsername,
     getAccountBySocketToken:getAccountBySocketToken,
+    authenticate:authenticate,
     
     createAccount: (session, username, password) => {
         const retval = {success:false};
@@ -157,65 +202,25 @@ module.exports = {
         } else {
             const account = makeAccountObject(username, password);
             accessLog.info('Create Account:' + username);
-            return module.exports.authenticate(session, username, password);
+            return authenticate(session, username, password);
         }
         return retval;
     },
     
-    authenticate: (session, username, password) => {
-        const existingAccount = getAccountByUsername(username),
-            retval = {success:false};
-        if (existingAccount) {
-            if (existingAccount.authFailCount >= authFailLimit) {
-                // Catch accounts locked for excessive fail counts.
-                retval.message = 'Account temporarily locked.';
-            } else if (makeHash(password) === existingAccount.password) {
-                // Auth Success
-                session.username = username;
-                accessLog.info('Authenticate:' + username);
-                
-                closeSocketForAccount(existingAccount);
-                
-                retval.success = true;
-                existingAccount.lastLogin = Date.now();
-                existingAccount.authFailCount = 0;
-                const newSocketToken = retval.socketToken = existingAccount.socketToken = orb.generateSecret();
-                retval.socketUrl = orb.socketUrl;
-                
-                accountsBySocketToken[newSocketToken] = existingAccount;
-            } else {
-                // Auth Failed
-                retval.message = 'Authentication failed.';
-                accessLog.warn('Authenticate failed. Password mismatch:' + username);
-                
-                if (++existingAccount.authFailCount >= authFailLimit) {
-                    lockedAccounts.push(existingAccount);
-                    startAccountUnlocker();
-                    retval.message += ' Account temporarily locked.';
-                    accessLog.warn('Temporarily locking account:' + username);
-                }
-            }
-        } else {
-            // No account for username
-            retval.message = 'Authentication failed.';
-            accessLog.warn('Authenticate failed. No account:' + username);
-        }
-        return retval;
-    },
     
     deauthenticate: session => {
-        const username = session.username,
+        const username = session[FIELD_USERNAME],
             retval = {success:false};
         if (username) {
             const existingAccount = getAccountByUsername(username);
             if (existingAccount) {
-                delete session.username;
+                delete session[FIELD_USERNAME];
                 accessLog.info('Deauthenticate:' + username);
                 
                 closeSocketForAccount(existingAccount);
                 
-                existingAccount.socketToken = null;
-                existingAccount.authenticated = false;
+                existingAccount[FIELD_SOCKET_TOKEN] = null;
+                existingAccount[FIELD_AUTHENTICATED] = false;
                 retval.success = true;
             } else {
                 retval.message = 'Logout failed.';
@@ -230,17 +235,15 @@ module.exports = {
     startup: () => {
         console.log('Restoring User Accounts...');
         loadAccountsOnStartup();
-        
-        // 
     },
     
     shutdown: callback => {
         if (accountUnlockerIntervalId) clearInterval(accountUnlockerIntervalId);
         
-        console.log('Flush Logs');
-        accessLog.flush(callback);
-        
         console.log('Save Accounts');
         saveAccountsOnShutdown();
+        
+        console.log('  Flush Logs');
+        accessLog.flush(callback);
     }
 };

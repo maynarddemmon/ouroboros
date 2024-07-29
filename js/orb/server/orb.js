@@ -1,11 +1,14 @@
 const path = require('path'),
+    fs = require('fs'),
     
     {JS, tym} = require('../../../lib/tym.js'),
     {getRandomInt} = tym,
     
     PATH_PREFIX = '../../../',
     
-    SOCKET_PORT = 8081;
+    SOCKET_PORT = 8081,
+    
+    makePath = suffix => path.join(__dirname, PATH_PREFIX + suffix);
 
 module.exports = {
     socketPort: SOCKET_PORT,
@@ -19,5 +22,32 @@ module.exports = {
         return secret;
     },
     
-    makePath: suffix => path.join(__dirname, PATH_PREFIX + suffix),
+    makePath:makePath,
+    
+    saveDataToFile: (filename, data) => {
+        try {
+            const path = makePath('data/' + filename + '.js');
+            fs.writeFileSync(path, JSON.stringify(data, null, 4));
+            console.log('  Saved ' + path + (Array.isArray(data) ? ' with ' + data.length + ' elements.' : ''));
+        } catch (err) {
+            console.error('Error Saving ' + filename + '.', err);
+            return false;
+        }
+        return true;
+    },
+    
+    readDataFromFile: filename => {
+        const path = makePath('data/' + filename + '.js'),
+            strData = fs.readFileSync(path).toString();
+        if (strData) {
+            try {
+                return JSON.parse(strData);
+            } catch (err) {
+                console.error('Error Parsing JSON for ' + filename + '.', err);
+            }
+        } else {
+            console.log('No ' + filename + ' data to load.', strData);
+        }
+        return null;
+    }
 };
