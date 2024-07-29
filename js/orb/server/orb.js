@@ -10,6 +10,8 @@ const path = require('path'),
 module.exports = {
     socketPort: SOCKET_PORT,
     socketUrl: 'ws://localhost:' + SOCKET_PORT,
+    authFailLimit: 12, // The maximum number of failed auth attempts
+    accountUnlockerInterval: 30 * 60 * 1000, // 30 minutes
     
     generateSecret: () => {
         let secret = '';

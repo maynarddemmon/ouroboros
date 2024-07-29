@@ -1,15 +1,35 @@
+let accountUnlockerIntervalId = null;
+
 const crypto = require('crypto'),
     pino = require('pino'),
     fs = require('fs'),
     
     {JS, tym} = require('../../../lib/tym.js'),
     orb = require('./orb.js'),
+    authFailLimit = orb.authFailLimit,
     
     accountsByUsername = {},
     accountsBySocketToken = {},
     
-    hashSecret = 'This should probably not be in the source code.',
-    makeHash = value => crypto.createHash('sha512', hashSecret).update(value).digest('hex'),
+    // Start:Account Locking
+    lockedAccounts = [],
+    startAccountUnlocker = () => {
+        if (!accountUnlockerIntervalId) {
+            accountUnlockerIntervalId = setInterval(() => {
+                // Unlock all locked accounts. This may mean some accounts get unlocked quickly,
+                // but on average accounts will be locked out for the accountUnlockerInterval time.
+                let count = 0;
+                while (lockedAccounts.length) {
+                    lockedAccounts.pop().authFailCount = 0;
+                    count++;
+                }
+                if (count) console.log('Unlocked Accounts:' + count);
+                clearInterval(accountUnlockerIntervalId);
+                accountUnlockerIntervalId = null;
+            }, orb.accountUnlockerInterval);
+        }
+    },
+    // End:Account Locking
     
     makeEmptyAccount = () => {
         return {
@@ -18,9 +38,13 @@ const crypto = require('crypto'),
             socketToken:null,
             websocket:null,
             authenticated:false,
-            lastLogin:-1
+            lastLogin:-1,
+            authFailCount:0
         };
     },
+    
+    hashSecret = 'This should probably not be in the source code.',
+    makeHash = value => crypto.createHash('sha512', hashSecret).update(value).digest('hex'),
     
     makeAccountObject = (username, password) => {
         const emptyAccount = makeEmptyAccount();
@@ -45,8 +69,14 @@ const crypto = require('crypto'),
     saveAccountsOnShutdown = () => {
         const dataToSave = [];
         for (const key in accountsByUsername) {
-            const {username, password, lastLogin} = accountsByUsername[key];
-            dataToSave.push({username:username, password:password, lastLogin:lastLogin});
+            const {username, password, lastLogin, authFailCount} = accountsByUsername[key],
+                datum = {
+                    username:username, 
+                    password:password, 
+                    lastLogin:lastLogin
+                };
+            if (authFailCount > 0) datum.authFailCount = authFailCount;
+            dataToSave.push(datum);
         }
         
         try {
@@ -62,20 +92,29 @@ const crypto = require('crypto'),
         if (strData) {
             const jsonData = JSON.parse(strData);
             if (jsonData) {
-                let count = 0;
+                let count = 0,
+                    needsAccountUnlocker = false;
                 for (const datum of jsonData) {
-                    const {username, password, lastLogin} = datum;
+                    const {username, password, lastLogin, authFailCount} = datum;
                     if (username && password) {
                         const account = makeEmptyAccount();
                         account.username = username;
                         account.password = password;
                         account.lastLogin = lastLogin;
+                        account.authFailCount = authFailCount || 0;
                         accountsByUsername[username] = account;
+                        
+                        if (authFailCount >= authFailLimit) {
+                            lockedAccounts.push(account);
+                            needsAccountUnlocker = true;
+                        }
+                        
                         count++;
                     } else {
                         console.error('Failed to restore account: ', datum);
                     }
                 }
+                if (needsAccountUnlocker) startAccountUnlocker();
                 console.log('Restored ' + count + ' user account(s).');
             }
         } else {
@@ -127,7 +166,11 @@ module.exports = {
         const existingAccount = getAccountByUsername(username),
             retval = {success:false};
         if (existingAccount) {
-            if (makeHash(password) === existingAccount.password) {
+            if (existingAccount.authFailCount >= authFailLimit) {
+                // Catch accounts locked for excessive fail counts.
+                retval.message = 'Account temporarily locked.';
+            } else if (makeHash(password) === existingAccount.password) {
+                // Auth Success
                 session.username = username;
                 accessLog.info('Authenticate:' + username);
                 
@@ -135,17 +178,25 @@ module.exports = {
                 
                 retval.success = true;
                 existingAccount.lastLogin = Date.now();
+                existingAccount.authFailCount = 0;
                 const newSocketToken = retval.socketToken = existingAccount.socketToken = orb.generateSecret();
                 retval.socketUrl = orb.socketUrl;
                 
                 accountsBySocketToken[newSocketToken] = existingAccount;
             } else {
+                // Auth Failed
                 retval.message = 'Authentication failed.';
                 accessLog.warn('Authenticate failed. Password mismatch:' + username);
                 
-                // FIXME: count failures and temporarily lock account
+                if (++existingAccount.authFailCount >= authFailLimit) {
+                    lockedAccounts.push(existingAccount);
+                    startAccountUnlocker();
+                    retval.message += ' Account temporarily locked.';
+                    accessLog.warn('Temporarily locking account:' + username);
+                }
             }
         } else {
+            // No account for username
             retval.message = 'Authentication failed.';
             accessLog.warn('Authenticate failed. No account:' + username);
         }
@@ -179,9 +230,13 @@ module.exports = {
     startup: () => {
         console.log('Restoring User Accounts...');
         loadAccountsOnStartup();
+        
+        // 
     },
     
     shutdown: callback => {
+        if (accountUnlockerIntervalId) clearInterval(accountUnlockerIntervalId);
+        
         console.log('Flush Logs');
         accessLog.flush(callback);
         
