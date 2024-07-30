@@ -43,6 +43,7 @@ module.exports = {
     socketUrl: null,
     authFailLimit: -1, // -1 is no limit.
     accountUnlockerInterval: -1, // -1 is never unlock.
+    maxCharactersPerUser:1,
     
     // Set in this file only
     generateSecret: () => {

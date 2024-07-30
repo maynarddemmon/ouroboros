@@ -4,7 +4,7 @@ orb = (() => {
     const I18N = BABEL.get,
         
         {
-            FontAwesome, Validator, NumericRangeValidator, RegexValidator,
+            Text, FontAwesome, Validator, NumericRangeValidator, RegexValidator,
             global:{
                 validators:{
                     register:registerValidator
@@ -14,14 +14,80 @@ orb = (() => {
         makeTagFunc = FontAwesome.makeTag.bind(FontAwesome),
         
         pkg = {
+            app:null,
+            websocket:null,
+            model:null,
+            
             authenticated:false,
             username:null,
             socketToken:null,
             socketUrl:null,
             
-            PANEL_ID_GAME:'game',
-            PANEL_ID_AUTH:'auth',
+            connectToWebsocket: () => {
+                let websocket = pkg.websocket;
+                if (!websocket) {
+                    websocket = pkg.websocket = new pkg.MessageTypeWebSocket({url:pkg.socketUrl}, [{
+                        setStatus:function(v) {
+                            this.callSuper(v);
+                            if (this.status === 'open') websocket.sendTypedMessage('lobby');
+                        }
+                    }]);
+                    
+                    websocket.registerListener(response => {
+                        const model = pkg.model,
+                            msg = response.msg;
+                        model.setMaxCharacters(msg.maxCharacters);
+                        model.setCharacters(msg.characters);
+                    }, 'lobby');
+                }
+                
+                // Open Socket Connection
+                if (websocket.status === 'closed') websocket.connect();
+            },
+            
+            doDeathRequest: () => {
+                pkg.app.doDeauthRequest({username:pkg.username}, (success, dataOrError) => {
+                    if (success) {
+                        // Close WebSocket if necessary
+                        const websocket = pkg.websocket;
+                        if (websocket && websocket.status !== 'closed') websocket.close();
+                        
+                        pkg.authenticated = false;
+                        pkg.username = null;
+                        pkg.socketToken = null;
+                        pkg.socketUrl = null;
+                        pkg.app.selectPanel(pkg.PANEL_ID_AUTH);
+                    } else {
+                        // FIXME: Show error in UI somehow.
+                    }
+                });
+            },
+            
+            makeSocketStatusIndicator: parent => {
+                const socketConnectedTxt = new Text(parent, {valign:'middle', text:pkg.FA_PLUG, fontSize:'18px'}, [{
+                    onWebsocketStatus: function(event) {
+                        const status = event.value;
+                        
+                        if (status === 'open') {
+                            this.setOpacity(1);
+                            this.setTooltip('Socket connected.');
+                            this.setTextColor(pkg.theme.colorFgSuccess);
+                        } else {
+                            this.setOpacity(0.25);
+                            this.setTooltip('Socket not connected.');
+                            this.setTextColor(pkg.theme.colorFgError);
+                        }
+                    }
+                }]);
+                FontAwesome.registerForNotification(socketConnectedTxt);
+                socketConnectedTxt.onWebsocketStatus({value:false});
+                return socketConnectedTxt;
+            },
+            
             PANEL_ID_REG:'reg',
+            PANEL_ID_AUTH:'auth',
+            PANEL_ID_LOBBY:'lobby',
+            PANEL_ID_GAME:'game',
             
             FA_ARROW_DOUBLE_DOWN:  makeTagFunc(['angle-double-down', 1]),
             FA_ARROW_DOUBLE_LEFT:  makeTagFunc(['angle-double-left', 1]),
@@ -58,8 +124,8 @@ orb = (() => {
             FA_WARNING:            makeTagFunc(['exclamation-triangle']),
             
             theme:{
-                padding:10,
-                spacing:4,
+                padding:12,
+                spacing:6,
                 cornerRadius:3,
                 
                 headerHeight:48,
@@ -68,11 +134,15 @@ orb = (() => {
                 inputHeight:28,
                 
                 fontSizeSmall:'12px',
+                fontSizeMedium:'14px',
+                fontSizeLarge:'16px',
+                fontSizeHuge:'20px',
                 
                 colorFgError:'#c00',
                 colorFgWarning:'#f80',
                 colorFgSuccess:'#090',
                 
+                colorBgRow:'#ddd',
                 colorBgHeader:'#ccc',
                 colorBgPanel:'#000',
                 colorBgMiddleComp:'#eee',
@@ -86,6 +156,7 @@ orb = (() => {
             cfg:{
                 
             },
+            
             elements:{
                 
             }

@@ -21,12 +21,17 @@ JS.Packages(file => {
         'orb.FormInputText', 'orb.FormInputTextArea'
     ).requires('orb');
     
+    file(MODEL_ROOT + 'Model.js').provides('orb.model').requires('orb');
     
     file(VIEW_ROOT + 'RegPanel.js').provides('orb.RegPanel').requires('orb.BaseStackablePanel','orb.FormInputText');
     file(VIEW_ROOT + 'AuthPanel.js').provides('orb.AuthPanel').requires('orb.BaseStackablePanel','orb.FormInputText');
+    file(VIEW_ROOT + 'LobbyPanel.js').provides('orb.LobbyPanel').requires('orb.BaseStackablePanel','orb.MessageTypeWebSocket');
     file(VIEW_ROOT + 'GamePanel.js').provides('orb.GamePanel').requires('orb.BaseStackablePanel','orb.MessageTypeWebSocket');
     
-    file(ORB_ROOT + 'App.js').provides('orb.App').requires('orb.RegPanel','orb.AuthPanel','orb.GamePanel');
+    file(ORB_ROOT + 'App.js').provides('orb.App').requires(
+        'orb.model',
+        'orb.RegPanel','orb.AuthPanel','orb.LobbyPanel','orb.GamePanel'
+    );
     
     // Include Everything
     file(ORB_ROOT + 'all.js').provides('orb.all').requires('orb.App');

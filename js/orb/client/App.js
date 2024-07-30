@@ -13,7 +13,7 @@
         {mouse:GlobalMouse} = G,
         
         {
-            PANEL_ID_GAME, PANEL_ID_AUTH, PANEL_ID_REG,
+            PANEL_ID_REG, PANEL_ID_AUTH, PANEL_ID_LOBBY, PANEL_ID_GAME,
         
             theme:{
                 padding, spacing, cornerRadius
@@ -41,7 +41,7 @@
         
         // Life Cycle //////////////////////////////////////////////////////////
         initNode: function(parent, attrs) {
-            appView = this;
+            appView = pkg.app = this;
             G.register('app', appView);
             
             attrs.minWidth = attrs.minHeight = 600;
@@ -51,11 +51,12 @@
             
             new pkg.RegPanel(appView, {panelId:PANEL_ID_REG});
             new pkg.AuthPanel(appView, {panelId:PANEL_ID_AUTH});
+            new pkg.LobbyPanel(appView, {panelId:PANEL_ID_LOBBY});
             new pkg.GamePanel(appView, {panelId:PANEL_ID_GAME});
             
             global.hideSpinner();
             
-            appView.selectPanel(orb.authenticated ? PANEL_ID_GAME : PANEL_ID_AUTH);
+            appView.selectPanel(orb.authenticated ? PANEL_ID_LOBBY : PANEL_ID_AUTH);
         },
         
         

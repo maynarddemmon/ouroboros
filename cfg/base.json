@@ -8,4 +8,6 @@
     
     /* The interval in milliseconds between user account unlock events. */
     "accountUnlockerInterval":1800000, // 30 * 60 * 1000 which is 30 minutes.
+    
+    "maxCharactersPerUser":3,
 }

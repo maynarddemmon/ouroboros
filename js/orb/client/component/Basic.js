@@ -8,11 +8,12 @@
         {
             theme:{
                 padding, spacing, headerHeight, footerHeight, inputHeight,
+                fontSizeHuge,
                 colorBgHeader, colorBgPanel, colorBgMiddleComp
             }
         } = pkg,
         
-        WideFlowComponent = new JSClass('WideFlowComponent', View, {
+        WideFlowComponent = pkg.WideFlowComponent = new JSClass('WideFlowComponent', View, {
             include: [SizeToParent],
             
             
@@ -53,7 +54,7 @@
             
             self.callSuper(parent, attrs);
             
-            self.titleView = new Text(self, {valign:'middle', text:self.title});
+            self.titleView = new Text(self, {valign:'middle', text:self.title, fontSize:fontSizeHuge});
         },
         
         setTitle: function(v) {

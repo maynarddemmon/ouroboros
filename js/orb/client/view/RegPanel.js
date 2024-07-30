@@ -47,7 +47,7 @@
                         pkg.username = formValues.username;
                         pkg.socketToken = dataOrError.socketToken;
                         pkg.socketUrl = dataOrError.socketUrl;
-                        G.app.selectPanel(pkg.PANEL_ID_GAME);
+                        G.app.selectPanel(pkg.PANEL_ID_LOBBY);
                     } else {
                         setMessage(dataOrError.message);
                         passwordField.setValue('');

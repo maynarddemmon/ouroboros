@@ -102,7 +102,7 @@ const {scryptSync} = require('crypto'),
         orb.saveDataToFile(FILENAME_ACCOUNTS, dataToSave);
     },
     
-    loadAccountsOnStartup = () => {
+    restoreAccountsOnStartup = () => {
         const jsonData = orb.readDataFile(FILENAME_ACCOUNTS);
         if (jsonData) {
             let count = 0,
@@ -244,8 +244,7 @@ module.exports = {
     
     startup: callback => {
         console.log('Restoring User Accounts...');
-        loadAccountsOnStartup();
-        
+        restoreAccountsOnStartup();
         callback?.(true);
     },
     
