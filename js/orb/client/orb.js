@@ -4,7 +4,8 @@ orb = (() => {
     const I18N = BABEL.get,
         
         {
-            Text, FontAwesome, Validator, NumericRangeValidator, RegexValidator,
+            Text, Dialog, ModalPanel, FontAwesome, Validator, NumericRangeValidator, RegexValidator,
+            memoize,
             global:{
                 validators:{
                     register:registerValidator
@@ -45,9 +46,9 @@ orb = (() => {
                             {success, message, character} = response.msg;
                         if (success) {
                             model.addCharacter(character);
-                            // FIXME: notify UI of success
+                            pkg.growl('success', 'Character Created', message);
                         } else {
-                            // FIXME: notify UI of error
+                            pkg.growl('failure', 'Character Creation Failed', message);
                         }
                         pkg.app.unlockUI();
                     }, 'createCharacter');
@@ -57,9 +58,9 @@ orb = (() => {
                             {success, message, id} = response.msg;
                         if (success) {
                             model.removeCharacterById(id);
-                            // FIXME: notify UI of success
+                            pkg.growl('success', 'Character Deleted', message);
                         } else {
-                            // FIXME: notify UI of error
+                            pkg.growl('failure', 'Character Deletion Failed', message);
                         }
                         pkg.app.unlockUI();
                     }, 'deleteCharacter');
@@ -85,7 +86,7 @@ orb = (() => {
                         pkg.socketUrl = null;
                         pkg.app.selectPanel(pkg.PANEL_ID_AUTH);
                     } else {
-                        // FIXME: Show error in UI somehow.
+                        pkg.growl('failure', 'Logout Failed', dataOrError.message);
                     }
                 });
             },
@@ -109,6 +110,44 @@ orb = (() => {
                 FontAwesome.registerForNotification(socketConnectedTxt);
                 socketConnectedTxt.onWebsocketStatus({value:false});
                 return socketConnectedTxt;
+            },
+            
+            // Growls
+            growl: (type, title, msg) => {
+                console.log(type, title, msg);
+                // FIXME: implement
+            },
+            
+            // Dialogs
+            getDialog: memoize(() => {
+                const dialog = new Dialog(pkg.app);
+                dialog.content.setOverflow('hidden');
+                return dialog;
+            }),
+            showConfirmDialog: (msg, title, confirmTxt, confirmFunc, cancelFunc, closeFunc) => {
+                pkg.getDialog().showConfirm(
+                    msg,
+                    action => {
+                        switch (action) {
+                            case 'confirmBtn':
+                                confirmFunc?.();
+                                break;
+                            case 'cancelBtn':
+                                cancelFunc?.();
+                                break;
+                            case 'closeBtn':
+                                closeFunc?.();
+                                break;
+                        }
+                    },{
+                        width:350,
+                        titleText:title || ' ',
+                        confirmTxt:confirmTxt
+                    }
+                );
+            },
+            showDeleteDialog: (msg, title, confirmFunc, cancelFunc, closeFunc) => {
+                pkg.showConfirmDialog(msg, title, I18N('delete'), confirmFunc, cancelFunc, closeFunc);
             },
             
             PANEL_ID_REG:'reg',
@@ -174,6 +213,7 @@ orb = (() => {
                 colorBgPanel:'#000',
                 colorBgMiddleComp:'#eee',
                 colorBgInput:'#fff',
+                colorBgF:'#fff',
                 
                 colorBgError:'#fcc',
                 
@@ -190,6 +230,14 @@ orb = (() => {
         };
     
     registerValidator(new RegexValidator('passwordStrength', '(?=^.{7,}$)', I18N('err-passwordStrength')));
+    
+    // Fixup look of default myt dialogs
+    const THEME = pkg.theme;
+    Dialog.RADIUS = THEME.cornerRadius;
+    Dialog.BGCOLOR = THEME.colorBgF;
+    Dialog.BORDER = null;
+    
+    ModalPanel.PADDING_Y = ModalPanel.MARGIN_LEFT = ModalPanel.MARGIN_TOP = THEME.padding;
     
     return pkg;
 })();

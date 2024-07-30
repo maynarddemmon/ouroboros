@@ -1,5 +1,6 @@
 (pkg => {
     let socketConnectedTxt,
+        titleHeader,
         characterContainer,
         newCharNameField;
     
@@ -20,7 +21,9 @@
         
         FIELD_WIDTH = 300,
         
-        refreshCharacterContainer = () => {
+        refreshLobby = () => {
+            titleHeader?.setTitle(I18N('title-lobby', pkg.username));
+            
             if (characterContainer) {
                 const {maxCharacters, characters} = pkg.model;
                 
@@ -47,20 +50,26 @@
                 if (character) {
                     self.playBtn = new TextBtn(self, {valign:'middle', text:'Play Character', width:150}, [{
                         doActivated:() => {
-                            console.log('FIXME')
+                            console.log('FIXME');
                         }
                     }]);
                     self.detailsBtn = new TextBtn(self, {valign:'middle', text:'View Details', width:150}, [{
                         doActivated:() => {
-                            console.log('FIXME')
+                            console.log('FIXME');
                         }
                     }]);
                     new Text(self, {valign:'middle', text:character.name, layoutHint:1});
                     self.deleteBtn = new TextBtn(self, {valign:'middle', text:'Delete Character', width:150}, [{
                         doActivated:() => {
-                            // FIXME: confirm dialog
-                            pkg.app.lockUI('Deleting Character...', true);
-                            pkg.websocket.sendTypedMessage('deleteCharacter', {id:self.character.id});
+                            pkg.showDeleteDialog(
+                                'Are you sure you want to delete the character named "' + self.character.name + '"',
+                                'Delete Character',
+                                () => {
+                                    pkg.app.lockUI('Deleting Character...', true);
+                                    pkg.websocket.sendTypedMessage('deleteCharacter', {id:self.character.id});
+                                }
+                            );
+                            
                         }
                     }]);
                 } else {
@@ -170,7 +179,7 @@
             this.callSuper(v);
             if (this.visible) {
                 // Clean out any existing data.
-                refreshCharacterContainer();
+                refreshLobby();
                 
                 pkg.connectToWebsocket();
                 socketConnectedTxt?.syncTo(pkg.websocket, 'onWebsocketStatus', 'status');
@@ -183,7 +192,7 @@
         // Methods /////////////////////////////////////////////////////////////
         buildUI: function() {
             const self = this;
-            self.buildHeader(self.header = new pkg.TitleHeader(self, {title:'Lobby'}));
+            self.buildHeader(titleHeader = new pkg.TitleHeader(self, {title:I18N('title-lobby')}));
             const wrapper = self.middle = new pkg.WideMiddle(self, {overflow:'autoy'});
             characterContainer = new View(wrapper, {
                 x:padding, y:padding, percentOfParentWidth:100, percentOfParentWidthOffset:-2*padding
@@ -202,6 +211,6 @@
             }]);
         },
         
-        _updateCharacterContainer: M.debounce(refreshCharacterContainer, 100)
+        _updateCharacterContainer: M.debounce(refreshLobby, 100)
     });
 })(orb);
