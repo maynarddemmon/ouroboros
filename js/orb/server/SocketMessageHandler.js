@@ -22,6 +22,18 @@ module.exports = {
                 };
                 break;
             case 'createCharacter':
+                const id = 'c-' + Date.now(); // FIXME: need guid service
+                const {success, message, character} = characterService.createCharacter(id, account.username, msg);
+                
+                response = {
+                    type:'createCharacter',
+                    msg:{
+                        success:success,
+                        message:message
+                    }
+                };
+                if (success) response.msg.character = character;
+                
                 break;
             case 'deleteCharacter':
                 break;

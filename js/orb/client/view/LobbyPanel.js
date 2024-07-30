@@ -1,5 +1,6 @@
 (pkg => {
-    let socketConnectedTxt;
+    let socketConnectedTxt,
+        characterContainer;
     
     const I18N = BABEL.get,
         M = myt,
@@ -9,9 +10,14 @@
         } = M,
         
         {
-            TextBtn,
-            theme:{padding, spacing, cornerRadius, headerHeight, colorBgRow}
+            TextBtn, FormInputText, FieldErrorTextMixin,
+            theme:{
+                padding, spacing, cornerRadius, headerHeight, 
+                colorBgHeader, colorBgRow
+            }
         } = pkg,
+        
+        FIELD_WIDTH = 300,
         
         CharacterRow = new JS.Class('CharacterRow', pkg.WideFlowComponent, {
             initNode: function(parent, attrs) {
@@ -27,24 +33,110 @@
                 
                 const character = self.character;
                 if (character) {
-                    new TextBtn(self, {valign:'middle', text:'Play Character', width:150}, [{
+                    self.playBtn = new TextBtn(self, {valign:'middle', text:'Play Character', width:150}, [{
+                        doActivated:() => {
+                            console.log('FIXME')
+                        }
+                    }]);
+                    self.detailsBtn = new TextBtn(self, {valign:'middle', text:'View Details', width:150}, [{
                         doActivated:() => {
                             console.log('FIXME')
                         }
                     }]);
                     new Text(self, {valign:'middle', text:character.name, layoutHint:1});
-                    new TextBtn(self, {valign:'middle', text:'Delete Character', width:150}, [{
+                    self.deleteBtn = new TextBtn(self, {valign:'middle', text:'Delete Character', width:150}, [{
                         doActivated:() => {
                             console.log('FIXME')
                         }
                     }]);
                 } else {
-                    new TextBtn(self, {valign:'middle', text:'New Character', width:150}, [{
-                        doActivated:() => {
-                            console.log('FIXME')
-                        }
+                    self.newBtn = new TextBtn(self, {valign:'middle', text:'New Character', width:150}, [{
+                        doActivated:self.enterCharacterCreator.bind(self)
                     }]);
                 }
+            },
+            
+            setDisabled: function(v) {
+                const self = this;
+                self.playBtn?.setDisabled(v);
+                self.detailsBtn?.setDisabled(v);
+                self.deleteBtn?.setDisabled(v);
+                self.newBtn?.setDisabled(v);
+            },
+            
+            enterCharacterCreator: function() {
+                const self = this;
+                
+                for (const sv of characterContainer.getSubviews()) {
+                    if (sv !== self) sv.setDisabled(true);
+                }
+                
+                self.stopActiveAnimators();
+                self.newBtn.setVisible(false);
+                self.buildFormContainer();
+                const value = {name:''};
+                self.formContainer.setup(value, value, value);
+                self.animate({attribute:'height', to:300, duration:350}).next(success => {
+                    const cancelBtn = self.cancelBtn;
+                    if (cancelBtn) {
+                        cancelBtn.setVisible(true);
+                    } else {
+                        self.cancelBtn = new TextBtn(self, {y:padding, text:pkg.FA_CLOSE + ' Cancel', width:150}, [{
+                            doActivated:self.exitCharacterCreator.bind(self)
+                        }]);
+                    }
+                });
+            },
+            
+            buildFormContainer: function() {
+                const self = this;
+                let formWrapper = self.formWrapper;
+                if (formWrapper) {
+                    formWrapper.setVisible(true);
+                } else {
+                    formWrapper = self.formWrapper = new View(self, {
+                        x:padding, y:headerHeight, 
+                        percentOfParentWidth:100, percentOfParentWidthOffset:-2*padding,
+                        percentOfParentHeight:100, percentOfParentHeightOffset:-(headerHeight + padding),
+                        bgColor:colorBgHeader, roundedCorners:cornerRadius, ignoreLayout:true,
+                        overflow:'autoy'
+                    }, [SizeToParent]);
+                    
+                    const formContainer = self.formContainer = new View(formWrapper, {x:padding, y:padding}, [M.RootForm]);
+                    
+                    new Text(formContainer, {text:'New Character Name'});
+                    new FormInputText(formContainer, {
+                        id:'name', form:formContainer, width:FIELD_WIDTH,
+                        maxLength:256, validators:['required'], placeholder:'Enter name',
+                        errorTxtHeight:20
+                    }, [FieldErrorTextMixin]);
+                    
+                    new TextBtn(formContainer, {text:'Create', width:150}, [{
+                        doActivated:() => {
+                            if (formContainer.isValid) {
+                                pkg.app.lockUI('Creating Character...', true);
+                                pkg.websocket.sendTypedMessage('createCharacter', formContainer.getValue());
+                            }
+                        }
+                    }]);
+                    
+                    new SpacedLayout(formContainer, {axis:'y', spacing:spacing, outset:padding, collapseParent:true});
+                }
+            },
+            
+            exitCharacterCreator: function() {
+                const self = this;
+                
+                for (const sv of characterContainer.getSubviews()) {
+                    if (sv !== self) sv.setDisabled(false);
+                }
+                
+                self.stopActiveAnimators();
+                self.cancelBtn.setVisible(false);
+                self.animate({attribute:'height', to:headerHeight, duration:350}).next(success => {
+                    self.formWrapper.setVisible(false);
+                    self.newBtn.setVisible(true);
+                });
             }
         });
     
@@ -75,7 +167,7 @@
             const self = this;
             self.buildHeader(self.header = new pkg.TitleHeader(self, {title:'Lobby'}));
             const wrapper = self.middle = new pkg.WideMiddle(self, {overflow:'autoy'});
-            const characterContainer = self.characterContainer = new View(wrapper, {
+            characterContainer = new View(wrapper, {
                 x:padding, y:padding, percentOfParentWidth:100, percentOfParentWidthOffset:-2*padding
             }, [SizeToParent]);
             new SpacedLayout(characterContainer, {axis:'y', spacing:spacing, outset:padding, collapseParent:true});
@@ -93,12 +185,13 @@
         },
         
         _updateCharacterContainer: M.debounce(function(ignoredEvent) {
-            const {maxCharacters, characters} = pkg.model,
-                characterContainer = this.characterContainer;
-            
-            characterContainer.destroyAllSubviews();
-            for (let i = 0; i < maxCharacters; i++) {
-                new CharacterRow(characterContainer, {character:characters[i]});
+            if (characterContainer) {
+                const {maxCharacters, characters} = pkg.model;
+                
+                characterContainer.destroyAllSubviews();
+                for (let i = 0; i < maxCharacters; i++) {
+                    new CharacterRow(characterContainer, {character:characters[i]});
+                }
             }
         }, 100)
     });

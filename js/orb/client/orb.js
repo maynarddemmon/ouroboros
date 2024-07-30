@@ -39,6 +39,18 @@ orb = (() => {
                         model.setMaxCharacters(msg.maxCharacters);
                         model.setCharacters(msg.characters);
                     }, 'lobby');
+                    
+                    websocket.registerListener(response => {
+                        const model = pkg.model,
+                            {success, message, character} = response.msg;
+                        if (success) {
+                            model.addCharacter(character);
+                            // FIXME: notify UI of success
+                        } else {
+                            // FIXME: notify UI of error
+                        }
+                        pkg.app.unlockUI();
+                    }, 'createCharacter');
                 }
                 
                 // Open Socket Connection
@@ -128,8 +140,8 @@ orb = (() => {
                 spacing:6,
                 cornerRadius:3,
                 
-                headerHeight:48,
-                footerHeight:48,
+                headerHeight:52,
+                footerHeight:52,
                 
                 inputHeight:28,
                 

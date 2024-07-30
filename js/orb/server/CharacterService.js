@@ -104,6 +104,7 @@ module.exports = {
             const character = makeCharacterObject(id, userId, data, retval);
             if (character) {
                 retval.message = 'Character created successfully.';
+                retval.character = character;
                 retval.success = true;
             }
         }

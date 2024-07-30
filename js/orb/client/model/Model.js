@@ -6,6 +6,14 @@
         },
         setCharacters: function(v) {
             this.set('characters', v, true);
+        },
+        addCharacter: function(character) {
+            if (this.characters) {
+                this.characters.push(character);
+            } else {
+                this.characters = [character];
+            }
+            this.fireEvent('characters', this.characters);
         }
     });
 })(orb);
