@@ -1,6 +1,7 @@
 (pkg => {
     let socketConnectedTxt,
-        characterContainer;
+        characterContainer,
+        newCharNameField;
     
     const I18N = BABEL.get,
         M = myt,
@@ -18,6 +19,17 @@
         } = pkg,
         
         FIELD_WIDTH = 300,
+        
+        refreshCharacterContainer = () => {
+            if (characterContainer) {
+                const {maxCharacters, characters} = pkg.model;
+                
+                characterContainer.destroyAllSubviews();
+                for (let i = 0; i < maxCharacters; i++) {
+                    new CharacterRow(characterContainer, {character:characters[i]});
+                }
+            }
+        },
         
         CharacterRow = new JS.Class('CharacterRow', pkg.WideFlowComponent, {
             initNode: function(parent, attrs) {
@@ -46,7 +58,9 @@
                     new Text(self, {valign:'middle', text:character.name, layoutHint:1});
                     self.deleteBtn = new TextBtn(self, {valign:'middle', text:'Delete Character', width:150}, [{
                         doActivated:() => {
-                            console.log('FIXME')
+                            // FIXME: confirm dialog
+                            pkg.app.lockUI('Deleting Character...', true);
+                            pkg.websocket.sendTypedMessage('deleteCharacter', {id:self.character.id});
                         }
                     }]);
                 } else {
@@ -77,6 +91,7 @@
                 const value = {name:''};
                 self.formContainer.setup(value, value, value);
                 self.animate({attribute:'height', to:300, duration:350}).next(success => {
+                    newCharNameField.focus();
                     const cancelBtn = self.cancelBtn;
                     if (cancelBtn) {
                         cancelBtn.setVisible(true);
@@ -105,7 +120,7 @@
                     const formContainer = self.formContainer = new View(formWrapper, {x:padding, y:padding}, [M.RootForm]);
                     
                     new Text(formContainer, {text:'New Character Name'});
-                    new FormInputText(formContainer, {
+                    newCharNameField = new FormInputText(formContainer, {
                         id:'name', form:formContainer, width:FIELD_WIDTH,
                         maxLength:256, validators:['required'], placeholder:'Enter name',
                         errorTxtHeight:20
@@ -154,6 +169,9 @@
         setVisible: function(v) {
             this.callSuper(v);
             if (this.visible) {
+                // Clean out any existing data.
+                refreshCharacterContainer();
+                
                 pkg.connectToWebsocket();
                 socketConnectedTxt?.syncTo(pkg.websocket, 'onWebsocketStatus', 'status');
             } else {
@@ -184,15 +202,6 @@
             }]);
         },
         
-        _updateCharacterContainer: M.debounce(function(ignoredEvent) {
-            if (characterContainer) {
-                const {maxCharacters, characters} = pkg.model;
-                
-                characterContainer.destroyAllSubviews();
-                for (let i = 0; i < maxCharacters; i++) {
-                    new CharacterRow(characterContainer, {character:characters[i]});
-                }
-            }
-        }, 100)
+        _updateCharacterContainer: M.debounce(refreshCharacterContainer, 100)
     });
 })(orb);

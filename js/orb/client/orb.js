@@ -51,6 +51,18 @@ orb = (() => {
                         }
                         pkg.app.unlockUI();
                     }, 'createCharacter');
+                    
+                    websocket.registerListener(response => {
+                        const model = pkg.model,
+                            {success, message, id} = response.msg;
+                        if (success) {
+                            model.removeCharacterById(id);
+                            // FIXME: notify UI of success
+                        } else {
+                            // FIXME: notify UI of error
+                        }
+                        pkg.app.unlockUI();
+                    }, 'deleteCharacter');
                 }
                 
                 // Open Socket Connection
@@ -60,6 +72,9 @@ orb = (() => {
             doDeathRequest: () => {
                 pkg.app.doDeauthRequest({username:pkg.username}, (success, dataOrError) => {
                     if (success) {
+                        // Wipe Model
+                        pkg.model.wipeClean();
+                        
                         // Close WebSocket if necessary
                         const websocket = pkg.websocket;
                         if (websocket && websocket.status !== 'closed') websocket.close();

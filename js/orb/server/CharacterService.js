@@ -28,6 +28,22 @@ const orb = require('./orb.js'),
         return true;
     },
     
+    removeCharacterFromRepo = character => {
+        const {id, name, userId} = character,
+            existingCharacters = getCharactersByUserId(userId);
+        let i = existingCharacters.length;
+        while (i) {
+            const existingCharacter = existingCharacters[--i];
+            if (existingCharacter.id === id) {
+                existingCharacters.splice(i, 1);
+                break;
+            }
+        }
+        delete charactersById[id];
+        delete charactersByName[name];
+        return true;
+    },
+    
     /** Makes an empty character object with nulls and/or default values. */
     makeEmptyCharacter = () => {
         return {
@@ -35,21 +51,6 @@ const orb = require('./orb.js'),
             userId:null,
             name:''
         };
-    },
-    
-    makeCharacterObject = (id, userId, data, retval) => {
-        const character = makeEmptyCharacter(),
-            name = data.name;
-        character.id = id;
-        character.userId = userId;
-        character.name = name;
-        
-        if (storeCharacterInRepo(character)) {
-            return character;
-        } else {
-            retval.message = 'Character creation failed because account limit would be exceeded.';
-            return null;
-        }
     },
     
     getCharacterById = id => charactersById[id],
@@ -90,22 +91,52 @@ module.exports = {
     getCharacterByName:getCharacterByName,
     getCharactersByUserId:getCharactersByUserId,
     
-    createCharacter: (id, userId, data) => {
-        const retval = {success:false};
-        if (!id) {
-            retval.message = 'No id provided.';
-        } else if (!userId) {
+    createCharacter: (userId, data) => {
+        const name = data.name,
+            retval = {success:false};
+        if (!userId) {
             retval.message = 'No userId provided.';
-        } else if (getCharacterById(id)) {
-            retval.message = 'Character already exists.';
-        } else if (getCharacterByName(data.name)) {
+        } else if (getCharacterByName(name)) {
             retval.message = 'Character name already exists.';
         } else {
-            const character = makeCharacterObject(id, userId, data, retval);
-            if (character) {
+            const character = makeEmptyCharacter();
+            character.id = orb.getGuidString('c');
+            character.userId = userId;
+            character.name = name;
+            
+            if (storeCharacterInRepo(character)) {
                 retval.message = 'Character created successfully.';
                 retval.character = character;
                 retval.success = true;
+            } else {
+                retval.message = 'Character creation failed because account limit would be exceeded.';
+            }
+        }
+        return retval;
+    },
+    
+    deleteCharacter: (userId, id) => {
+        const retval = {success:false};
+        if (!userId) {
+            retval.message = 'No userId provided.';
+        } else if (!id) {
+            retval.message = 'No id provided.';
+        } else {
+            const character = getCharacterById(id);
+            if (character) {
+                if (character.userId === userId) {
+                    if (removeCharacterFromRepo(character)) {
+                        retval.message = 'Character removed successfully.';
+                        retval.id = id;
+                        retval.success = true;
+                    } else {
+                        retval.message = 'Character deletion failed.';
+                    }
+                } else {
+                    retval.message = 'Character does not belong to the user.';
+                }
+            } else {
+                retval.message = 'Character not found.';
             }
         }
         return retval;

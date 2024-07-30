@@ -1,19 +1,40 @@
 (pkg => {
     pkg.model = new JS.Singleton('Model', myt.Node, {
         // Accessors ///////////////////////////////////////////////////////////
+        
+        // Characters:start
         setMaxCharacters: function(v) {
             this.set('maxCharacters', v, true);
         },
         setCharacters: function(v) {
             this.set('characters', v, true);
         },
+        getCharacters: function() {
+            return this.characters ?? (this.characters = []);
+        },
         addCharacter: function(character) {
-            if (this.characters) {
-                this.characters.push(character);
-            } else {
-                this.characters = [character];
+            const characters = this.getCharacters();
+            characters.push(character);
+            this.fireEvent('characters', characters);
+        },
+        removeCharacterById: function(id) {
+            const characters = this.getCharacters();
+            let i = characters.length;
+            while (i) {
+                if (characters[--i].id === id) {
+                    characters.splice(i, 1);
+                    break;
+                }
             }
-            this.fireEvent('characters', this.characters);
+            this.fireEvent('characters', characters);
+        },
+        // Characters:end
+        
+        
+        // Methods /////////////////////////////////////////////////////////////
+        wipeClean: function() {
+            this.maxCharacters = 0;
+            this.characters = [];
         }
     });
 })(orb);

@@ -15,36 +15,41 @@ const socketServer = require('./SocketServer.js'),
     httpServer = require('./HTTPServer.js'),
     accountService = require('./AccountService.js'),
     characterService = require('./CharacterService.js');
-socketServer.startup(success => {
-    if (success) {
-        accountService.startup(success => {
-            if (success) {
-                characterService.startup(success => {
-                    if (success) {
-                        httpServer.startup(success => {
-                            if (success) {
-                                console.log('READY!!!\n');
-                            }
-                        });
-                    }
-                });
-            }
-        });
-    }
+
+orb.startup(success => {
+    socketServer.startup(success => {
+        if (success) {
+            accountService.startup(success => {
+                if (success) {
+                    characterService.startup(success => {
+                        if (success) {
+                            httpServer.startup(success => {
+                                if (success) {
+                                    console.log('READY!!!\n');
+                                }
+                            });
+                        }
+                    });
+                }
+            });
+        }
+    });
 });
 
 // Graceful Shutdown
 process.on('SIGTERM', () => {
     console.log('SIGTERM signal received. Starting Shutdown...');
     httpServer.notifyShuttingDown();
-    socketServer.shutdown(success => {
-        accountService.shutdown(() => {
-            characterService.shutdown(success => {
-                console.log('Closing HTTP Server');
-                httpServer.shutdown(success => {
-                    if (success) {
-                        console.log('\nSHUTDOWN COMPLETE!!!\n');
-                    }
+    orb.shutdown(success => {
+        socketServer.shutdown(success => {
+            accountService.shutdown(() => {
+                characterService.shutdown(success => {
+                    console.log('Closing HTTP Server');
+                    httpServer.shutdown(success => {
+                        if (success) {
+                            console.log('\nSHUTDOWN COMPLETE!!!\n');
+                        }
+                    });
                 });
             });
         });

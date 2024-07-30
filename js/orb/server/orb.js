@@ -1,3 +1,5 @@
+let GUID_COUNTER = -1;
+
 const path = require('path'),
     fs = require('fs'),
     JSON5 = require('json5'),
@@ -6,6 +8,9 @@ const path = require('path'),
     {getRandomInt} = tym,
     
     PATH_PREFIX = '../../../',
+    FILENAME_PACKAGE_STATE = 'pkg_state',
+    
+    getGuid = () => ++GUID_COUNTER,
     
     makePath = suffix => path.join(__dirname, PATH_PREFIX + suffix),
     
@@ -27,7 +32,22 @@ const path = require('path'),
         }
         return null;
     },
-    readConfigFile = filename => readJSONFile('cfg', filename, true);
+    
+    readConfigFile = filename => readJSONFile('cfg', filename, true),
+    
+    readDataFile = filename => readJSONFile('data', filename, false),
+    
+    saveDataToFile = (filename, data) => {
+        try {
+            const path = makePath('data/' + filename + '.json');
+            fs.writeFileSync(path, JSON.stringify(data, null, 4));
+            console.log('  Saved ' + path + (Array.isArray(data) ? ' with ' + data.length + ' elements.' : ''));
+        } catch (err) {
+            console.error('Error Saving ' + filename + '.', err);
+            return false;
+        }
+        return true;
+    };
 
 module.exports = {
     // Set from startup args
@@ -46,6 +66,8 @@ module.exports = {
     maxCharactersPerUser:1,
     
     // Set in this file only
+    
+    // Functions
     generateSecret: () => {
         let secret = '';
         for (let i = 0; i < 8; i++) secret += getRandomInt(0,99999999).toString(36);
@@ -53,22 +75,10 @@ module.exports = {
     },
     
     makePath:makePath,
-    
-    readDataFile: filename => readJSONFile('data', filename, false),
-    saveDataToFile: (filename, data) => {
-        try {
-            const path = makePath('data/' + filename + '.json');
-            fs.writeFileSync(path, JSON.stringify(data, null, 4));
-            console.log('  Saved ' + path + (Array.isArray(data) ? ' with ' + data.length + ' elements.' : ''));
-        } catch (err) {
-            console.error('Error Saving ' + filename + '.', err);
-            return false;
-        }
-        return true;
-    },
-    
     readJSONFile:readJSONFile,
     readConfigFile:readConfigFile,
+    readDataFile:readDataFile,
+    saveDataToFile:saveDataToFile,
     
     readAndApplyConfigFile: (filename, scope) => {
         if (scope) {
@@ -78,5 +88,25 @@ module.exports = {
                 for (const key in cfgData) scope[key] = cfgData[key];
             }
         }
+    },
+    
+    getGuidString: prefix => (prefix ? prefix : '') + getGuid(),
+    
+    // Lifecycle
+    startup: callback => {
+        console.log('Restoring Package State...');
+        const jsonData = readDataFile(FILENAME_PACKAGE_STATE);
+        if (jsonData) {
+            GUID_COUNTER = jsonData.guidCounter
+        }
+        callback?.(true);
+    },
+    
+    shutdown: callback => {
+        console.log('Save Package State');
+        saveDataToFile(FILENAME_PACKAGE_STATE, {
+            guidCounter:GUID_COUNTER
+        });
+        callback?.(true);
     }
 };
