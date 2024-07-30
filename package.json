@@ -12,7 +12,8 @@
         "express": "4.19.2",
         "express-session": "1.18.0",
         "ws" : "8.18.0",
-        "pino": "9.3.1"
+        "pino": "9.3.1",
+        "json5": "2.2.3"
     },
     "devDependencies": {
         "google-closure-compiler": "^20230802.0.0"

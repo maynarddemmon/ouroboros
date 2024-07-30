@@ -1,8 +1,8 @@
 let accountUnlockerIntervalId = null;
 
-const {createHash} = require('crypto'),
+const {scryptSync} = require('crypto'),
     orb = require('./orb.js'),
-    authFailLimit = orb.authFailLimit,
+    {salt, authFailLimit, accountUnlockerInterval} = orb,
     
     FILENAME_ACCOUNTS = 'accounts',
     
@@ -14,13 +14,26 @@ const {createHash} = require('crypto'),
     FIELD_WEBSOCKET = 'websocket',
     FIELD_SOCKET_TOKEN = 'socketToken',
     
+    // An object holding all user accounts.
     accountsByUsername = {},
+    
+    // An object only holding user accounts that currently have a socketToken.
     accountsBySocketToken = {},
     
-    // Start:Account Locking
+    // An array of user accounts that are currently locked out. These will gets unlocked on
+    // a regular interval.
     lockedAccounts = [],
+    
+    isAuthFailLimitExceeded = authFailCount => {
+        if (authFailCount >= 0) {
+            return authFailCount >= authFailLimit;
+        } else {
+            return false;
+        }
+    },
+    
     startAccountUnlocker = () => {
-        if (!accountUnlockerIntervalId) {
+        if (!accountUnlockerIntervalId && accountUnlockerInterval > 0) {
             accountUnlockerIntervalId = setInterval(() => {
                 // Unlock all locked accounts. This may mean some accounts get unlocked quickly,
                 // but on average accounts will be locked out for the accountUnlockerInterval time.
@@ -32,11 +45,11 @@ const {createHash} = require('crypto'),
                 if (count) console.log('Unlocked Accounts:' + count);
                 clearInterval(accountUnlockerIntervalId);
                 accountUnlockerIntervalId = null;
-            }, orb.accountUnlockerInterval);
+            }, accountUnlockerInterval);
         }
     },
-    // End:Account Locking
     
+    /** Makes an empty user account object with nulls and/or default values. */
     makeEmptyAccount = () => {
         return {
             [FIELD_USERNAME]:null,
@@ -49,8 +62,8 @@ const {createHash} = require('crypto'),
         };
     },
     
-    hashSecret = 'This should probably not be in the source code.',
-    makeHash = value => createHash('sha512', hashSecret).update(value).digest('hex'),
+    /** Cryptographically hashes a value. Used to hash passwords. */
+    makeHash = value => scryptSync(value, salt, 64).toString('base64'),
     
     makeAccountObject = (username, password) => {
         const emptyAccount = makeEmptyAccount();
@@ -90,7 +103,7 @@ const {createHash} = require('crypto'),
     },
     
     loadAccountsOnStartup = () => {
-        const jsonData = orb.readDataFromFile(FILENAME_ACCOUNTS);
+        const jsonData = orb.readDataFile(FILENAME_ACCOUNTS);
         if (jsonData) {
             let count = 0,
                 needsAccountUnlocker = false;
@@ -106,7 +119,7 @@ const {createHash} = require('crypto'),
                     account[FIELD_AUTH_FAIL_COUNT] = authFailCount || 0;
                     accountsByUsername[username] = account;
                     
-                    if (authFailCount >= authFailLimit) {
+                    if (isAuthFailLimitExceeded(authFailCount)) {
                         lockedAccounts.push(account);
                         needsAccountUnlocker = true;
                     }
@@ -143,7 +156,7 @@ const {createHash} = require('crypto'),
         const existingAccount = getAccountByUsername(username),
             retval = {success:false};
         if (existingAccount) {
-            if (existingAccount[FIELD_AUTH_FAIL_COUNT] >= authFailLimit) {
+            if (isAuthFailLimitExceeded(existingAccount[FIELD_AUTH_FAIL_COUNT])) {
                 // Catch accounts locked for excessive fail counts before we try to authenticate.
                 retval.message = 'Account temporarily locked.';
             } else if (makeHash(password) === existingAccount[FIELD_PASSWORD]) {
@@ -166,7 +179,7 @@ const {createHash} = require('crypto'),
                 accessLog.warn('Authenticate failed. Password mismatch:' + username);
                 
                 // Lock account if necessary
-                if (++existingAccount[FIELD_AUTH_FAIL_COUNT] >= authFailLimit) {
+                if (isAuthFailLimitExceeded(++existingAccount[FIELD_AUTH_FAIL_COUNT])) {
                     lockedAccounts.push(existingAccount);
                     startAccountUnlocker();
                     retval.message += ' Account temporarily locked.';

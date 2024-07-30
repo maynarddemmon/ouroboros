@@ -5,12 +5,14 @@ const ARGS = process.argv,
 orb.IS_PROD = ARGS[2] ?? false;
 orb.CACHE_BUST = ARGS[3] ?? '';
 
+// Load Config Files before anything else is required.
+orb.readAndApplyConfigFile('base', orb);
+orb.readAndApplyConfigFile('override', orb);
+
+// Startup
 const socketServer = require('./SocketServer.js'),
     httpServer = require('./HTTPServer.js'),
     accountService = require('./AccountService.js');
-
-
-// Startup
 socketServer.startup(success => {
     if (success) {
         accountService.startup(success => {

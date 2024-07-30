@@ -1,26 +1,50 @@
 const path = require('path'),
     fs = require('fs'),
+    JSON5 = require('json5'),
     
     {JS, tym} = require('../../../lib/tym.js'),
     {getRandomInt} = tym,
     
     PATH_PREFIX = '../../../',
     
-    HTTP_PORT = 8080,
-    SOCKET_PORT = 8081,
+    makePath = suffix => path.join(__dirname, PATH_PREFIX + suffix),
     
-    makePath = suffix => path.join(__dirname, PATH_PREFIX + suffix);
+    readJSONFile = (path, filename, useJSON5) => {
+        const fullPath = makePath(path + '/' + filename + '.json');
+        try {
+            const strData = fs.readFileSync(fullPath).toString();
+            if (strData) {
+                try {
+                    return (useJSON5 ? JSON5 : JSON).parse(strData);
+                } catch (err) {
+                    console.error('Error Parsing JSON for ' + fullPath + '.', err);
+                }
+            } else {
+                console.log('No ' + fullPath + ' data to load.', strData);
+            }
+        } catch (err) {
+            console.error('Could not read file: ' + fullPath + ' because:', err.message);
+        }
+        return null;
+    },
+    readConfigFile = filename => readJSONFile('cfg', filename, true);
 
 module.exports = {
+    // Set from startup args
     IS_PROD: false,
     CACHE_BUST: '',
     
-    httpPort: HTTP_PORT,
-    socketPort: SOCKET_PORT,
-    socketUrl: 'ws://localhost:' + SOCKET_PORT,
-    authFailLimit: 12, // The maximum number of failed auth attempts
-    accountUnlockerInterval: 30 * 60 * 1000, // 30 minutes
+    // Set from cfg/override.json
+    salt:'',
     
+    // Set from cfg/base.json
+    httpPort: null,
+    socketPort: null,
+    socketUrl: null,
+    authFailLimit: -1, // -1 is no limit.
+    accountUnlockerInterval: -1, // -1 is never unlock.
+    
+    // Set in this file only
     generateSecret: () => {
         let secret = '';
         for (let i = 0; i < 8; i++) secret += getRandomInt(0,99999999).toString(36);
@@ -29,9 +53,10 @@ module.exports = {
     
     makePath:makePath,
     
+    readDataFile: filename => readJSONFile('data', filename, false),
     saveDataToFile: (filename, data) => {
         try {
-            const path = makePath('data/' + filename + '.js');
+            const path = makePath('data/' + filename + '.json');
             fs.writeFileSync(path, JSON.stringify(data, null, 4));
             console.log('  Saved ' + path + (Array.isArray(data) ? ' with ' + data.length + ' elements.' : ''));
         } catch (err) {
@@ -41,18 +66,16 @@ module.exports = {
         return true;
     },
     
-    readDataFromFile: filename => {
-        const path = makePath('data/' + filename + '.js'),
-            strData = fs.readFileSync(path).toString();
-        if (strData) {
-            try {
-                return JSON.parse(strData);
-            } catch (err) {
-                console.error('Error Parsing JSON for ' + filename + '.', err);
+    readJSONFile:readJSONFile,
+    readConfigFile:readConfigFile,
+    
+    readAndApplyConfigFile: (filename, scope) => {
+        if (scope) {
+            const cfgData = readConfigFile(filename);
+            if (cfgData) {
+                console.log('Applying data from ' + filename + ' to scope object.');
+                for (const key in cfgData) scope[key] = cfgData[key];
             }
-        } else {
-            console.log('No ' + filename + ' data to load.', strData);
         }
-        return null;
     }
 };
