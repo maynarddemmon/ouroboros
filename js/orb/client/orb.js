@@ -18,6 +18,7 @@ orb = (() => {
             app:null,
             websocket:null,
             model:null,
+            growlManager:null,
             
             authenticated:false,
             username:null,
@@ -114,8 +115,30 @@ orb = (() => {
             
             // Growls
             growl: (type, title, msg) => {
-                console.log(type, title, msg);
-                // FIXME: implement
+                const growlManager = pkg.growlManager ?? (pkg.growlManager = new myt.GrowlManager());
+                
+                const attrs = {},
+                    THEME = pkg.theme;
+                switch (type) {
+                    case 'success':
+                        attrs.textColor = THEME.colorFgSuccess;
+                        attrs.icon = pkg.FA_SUCCESS;
+                        attrs.initialKeepDuration = 2000;
+                        break;
+                    case 'failure':
+                        attrs.textColor = THEME.colorFgError;
+                        attrs.icon = pkg.FA_ERROR;
+                        attrs.showCloseButton = true;
+                        attrs.closeOnly = true;
+                        break;
+                    case 'warning':
+                        attrs.textColor = THEME.colorFgWarning;
+                        attrs.icon = pkg.FA_WARNING;
+                        break;
+                    case 'info':
+                        break;
+                }
+                growlManager.addSimpleGrowl('<b>' + title + '</b><br>' + msg, attrs);
             },
             
             // Dialogs
@@ -187,6 +210,7 @@ orb = (() => {
             FA_PLUS_SQUARE:        makeTagFunc(['plus-square']),
             FA_SAVE:               makeTagFunc(['save']),
             FA_SEARCH:             makeTagFunc(['search']),
+            FA_SUCCESS:            makeTagFunc(['smile']),
             FA_WARNING:            makeTagFunc(['exclamation-triangle']),
             
             theme:{
