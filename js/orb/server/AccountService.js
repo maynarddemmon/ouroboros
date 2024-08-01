@@ -4,6 +4,8 @@ const {scryptSync} = require('crypto'),
     orb = require('./orb.js'),
     {salt, authFailLimit, accountUnlockerInterval} = orb,
     
+    characterService = require('./CharacterService.js'),
+    
     FILENAME_ACCOUNTS = 'accounts',
     
     FIELD_USERNAME = 'username',
@@ -238,6 +240,42 @@ module.exports = {
             }
         } else {
             retval.message = 'Logout failed because session was already unauthenticated.';
+        }
+        return retval;
+    },
+    
+    deleteAccount: (session, username, password) => {
+        const existingAccount = getAccountByUsername(username),
+            retval = {success:false};
+        if (existingAccount) {
+            if (isAuthFailLimitExceeded(existingAccount[FIELD_AUTH_FAIL_COUNT])) {
+                // Catch accounts locked for excessive fail counts before we try to authenticate.
+                retval.message = 'Account authentication temporarily locked.';
+            } else if (makeHash(password) === existingAccount[FIELD_PASSWORD]) {
+                accessLog.info('Deleting Account:' + username);
+                
+                closeSocketForAccount(existingAccount);
+                characterService.convertAllCharactersToZombiesForAccount(username);
+                delete accountsByUsername[username];
+                
+                retval.success = true;
+            } else {
+                // Auth Failed
+                retval.message = 'Account Deletion failed.';
+                accessLog.warn('Account Deletion failed. Password mismatch:' + username);
+                
+                // Lock account if necessary
+                if (isAuthFailLimitExceeded(++existingAccount[FIELD_AUTH_FAIL_COUNT])) {
+                    lockedAccounts.push(existingAccount);
+                    startAccountUnlocker();
+                    retval.message += ' Account temporarily locked.';
+                    accessLog.warn('Temporarily locking account:' + username);
+                }
+            }
+        } else {
+            // No account for username
+            retval.message = 'Account Deletion failed.';
+            accessLog.warn('Account Deletion failed. No account:' + username);
         }
         return retval;
     },

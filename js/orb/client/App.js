@@ -78,6 +78,11 @@
             doPost('/deauth', formValues, callback);
         },
         
+        doDeleteAccountRequest: (formValues, callback) => {
+            appView.lockUI('Deleting Account...', true);
+            doPost('/deleteAccount', formValues, callback);
+        },
+        
         // UI Locking
         lockUI: (msg, showSpinner) => {
             if (++lockCount > 0) {

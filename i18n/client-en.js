@@ -1,6 +1,7 @@
 LOCALE_JSON = {
     'create':'Create',
     'delete':'Delete',
+    'deleteAccount':'Delete Account',
     'enterPassword':'Enter Password',
     'enterUsername':'Enter Username',
     'err-passwordStrength':'Passwords must be at least 7 characters.',

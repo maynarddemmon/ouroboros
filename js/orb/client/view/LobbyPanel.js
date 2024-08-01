@@ -69,7 +69,6 @@
                                     pkg.websocket.sendTypedMessage('deleteCharacter', {id:self.character.id});
                                 }
                             );
-                            
                         }
                     }]);
                 } else {
@@ -199,6 +198,7 @@
             }, [SizeToParent]);
             new SpacedLayout(characterContainer, {axis:'y', spacing:spacing, outset:padding, collapseParent:true});
             
+            self.buildFooter(footer = new pkg.Footer(self, {}));
             new ResizeLayout(self, {axis:'y'});
         },
         
@@ -208,6 +208,70 @@
             socketConnectedTxt = pkg.makeSocketStatusIndicator(header);
             new TextBtn(header, {valign:'middle', text:pkg.FA_LOGOUT + ' ' + I18N('logout')}, [{
                 doActivated:pkg.doDeathRequest
+            }]);
+        },
+        
+        buildFooter: header => {
+            new View(header, {layoutHint:1});
+            
+            new TextBtn(header, {valign:'middle', text:pkg.FA_CLOSE + ' ' + I18N('deleteAccount')}, [{
+                doActivated:() => {
+                    let form,
+                        passwordField;
+                    pkg.getDialog().showContentConfirm(
+                        container => {
+                            const FIELD_WIDTH = 350;
+                            
+                            form = new M.Node(container, {}, [M.RootForm]);
+                            
+                            new Text(container, {
+                                x:padding, width:300, whiteSpace:'normal',
+                                text:'Are you sure you want to DELETE YOUR ACCOUNT?'
+                            });
+                            
+                            new View(container, {width:FIELD_WIDTH + 2*padding, height:padding});
+                            
+                            // Password
+                            new Text(container, {x:padding, text:I18N('password')});
+                            container.initialFocus = passwordField = new FormInputText(container, {
+                                id:'password', form:form, x:padding, width:FIELD_WIDTH,
+                                maxLength:256, validators:['required'], placeholder:I18N('enterPassword'),
+                                password:true,
+                                errorTxtHeight:20
+                            }, [pkg.FieldErrorTextMixin]);
+                            new pkg.RevealPasswordBtn(container, {target:passwordField});
+                            
+                            new SpacedLayout(container, {axis:'y', inset:padding, spacing:spacing});
+                            
+                            const value = {password:''};
+                            form.setup(value, value, value);
+                        },
+                        action => {
+                            if (action === 'confirmBtn') {
+                                if (form.isValid) {
+                                    const formValues = form.getValue();
+                                    formValues.username = pkg.username;
+                                    G.app.doDeleteAccountRequest(formValues, (success, dataOrError) => {
+                                        if (success) {
+                                            pkg.cleanUpForDeath();
+                                            pkg.app.selectPanel(pkg.PANEL_ID_AUTH);
+                                            pkg.growl('success', 'Account Deletion Succeeded');
+                                        } else {
+                                            pkg.growl('failure', 'Account Deletion Failed', dataOrError.message);
+                                        }
+                                    });
+                                    passwordField.setValue('');
+                                    return false;
+                                }
+                                return true;
+                            }
+                        },{
+                            showClose:false,
+                            confirmTxt:I18N('deleteAccount'),
+                            titleText:I18N('deleteAccount')
+                        }
+                    );
+                }
             }]);
         },
         

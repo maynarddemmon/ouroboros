@@ -109,6 +109,19 @@ module.exports = {
             }
         });
         
+        // Serve Account Deletion Path
+        app.post('/deleteAccount', (req, res) => {
+            if (shuttingDown) return;
+            
+            const {username, password} = req.body,
+                result = accountService.deleteAccount(req.session, username, password);
+            if (result.success) {
+                sendJSONResponse(res, true);
+            } else {
+                sendJSONResponse(res, false, result.message);
+            }
+        });
+        
         console.log('HTTP Server Starting Up...');
         httpServer = app.listen(httpPort, () => {
             console.log(

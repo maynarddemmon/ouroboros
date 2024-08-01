@@ -71,20 +71,24 @@ orb = (() => {
                 if (websocket.status === 'closed') websocket.connect();
             },
             
+            cleanUpForDeath: () => {
+                // Wipe Model
+                pkg.model.wipeClean();
+                
+                // Close WebSocket if necessary
+                const websocket = pkg.websocket;
+                if (websocket && websocket.status !== 'closed') websocket.close();
+                
+                pkg.authenticated = false;
+                pkg.username = null;
+                pkg.socketToken = null;
+                pkg.socketUrl = null;
+            },
+            
             doDeathRequest: () => {
                 pkg.app.doDeauthRequest({username:pkg.username}, (success, dataOrError) => {
                     if (success) {
-                        // Wipe Model
-                        pkg.model.wipeClean();
-                        
-                        // Close WebSocket if necessary
-                        const websocket = pkg.websocket;
-                        if (websocket && websocket.status !== 'closed') websocket.close();
-                        
-                        pkg.authenticated = false;
-                        pkg.username = null;
-                        pkg.socketToken = null;
-                        pkg.socketUrl = null;
+                        pkg.cleanUpForDeath();
                         pkg.app.selectPanel(pkg.PANEL_ID_AUTH);
                     } else {
                         pkg.growl('failure', 'Logout Failed', dataOrError.message);
@@ -138,7 +142,7 @@ orb = (() => {
                     case 'info':
                         break;
                 }
-                growlManager.addSimpleGrowl('<b>' + title + '</b><br>' + msg, attrs);
+                growlManager.addSimpleGrowl('<b>' + (title || '') + '</b><br>' + (msg || ''), attrs);
             },
             
             // Dialogs

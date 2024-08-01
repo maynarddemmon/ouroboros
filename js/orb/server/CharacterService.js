@@ -15,16 +15,19 @@ const orb = require('./orb.js'),
     charactersByUserId = {},
     
     storeCharacterInRepo = character => {
-        const {id, name, userId} = character,
-            existingCharacters = getCharactersByUserId(userId);
+        const {id, name, userId, isZombie} = character;
         
-        if (existingCharacters.length + 1 > orb.maxCharactersPerUser) {
-            console.warn('Max character limit exceeded for user:', userId);
-            return false;
+        // Zombie characters are no longer managed by the User with their userId.
+        if (!isZombie) {
+            const existingCharacters = getCharactersByUserId(userId);
+            if (existingCharacters.length + 1 > orb.maxCharactersPerUser) {
+                console.warn('Max character limit exceeded for user:', userId);
+                return false;
+            }
+            existingCharacters.push(character);
         }
         
         charactersById[id] = charactersByName[name] = character;
-        existingCharacters.push(character);
         return true;
     },
     
@@ -49,7 +52,8 @@ const orb = require('./orb.js'),
         return {
             id:null,
             userId:null,
-            name:''
+            name:'',
+            isZombie:false
         };
     },
     
@@ -71,12 +75,13 @@ const orb = require('./orb.js'),
         if (jsonData) {
             let count = 0;
             for (const datum of jsonData) {
-                const {id, userId, name} = datum;
+                const {id, userId, name, isZombie} = datum;
                 if (id && userId && name) {
                     const character = makeEmptyCharacter();
                     character.id = id;
                     character.userId = userId;
                     character.name = name;
+                    character.isZombie = isZombie || false;
                     if (storeCharacterInRepo(character)) count++;
                 } else {
                     console.error('  Failed to restore character: ', datum);
@@ -140,6 +145,13 @@ module.exports = {
             }
         }
         return retval;
+    },
+    
+    convertAllCharactersToZombiesForAccount: userId => {
+        const existingCharacters = getCharactersByUserId(userId);
+        let i = existingCharacters.length;
+        while (i) existingCharacters[--i].isZombie = true;
+        return true;
     },
     
     startup: callback => {
