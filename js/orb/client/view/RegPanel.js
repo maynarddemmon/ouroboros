@@ -13,7 +13,7 @@
         } = M,
         
         {
-            TextBtn, FormInputText, FieldErrorTextMixin,
+            TextBtn, FormInputText, FieldErrorTextMixin, RevealPasswordBtn,
             formUtil:{
                 makeRootForm, makeFormMessageHeader
             },
@@ -110,7 +110,7 @@
                 password:true,
                 errorTxtHeight:20
             }, [FieldErrorTextMixin, {doAccept:doReg}]);
-            new pkg.RevealPasswordBtn(container, {target:passwordField});
+            new RevealPasswordBtn(container, {target:passwordField});
             
             // Password Again
             new Text(container, {x:padding, text:I18N('passwordAgain')});
@@ -121,7 +121,7 @@
                 password:true,
                 errorTxtHeight:20
             }, [FieldErrorTextMixin, {doAccept:doReg}]);
-            new pkg.RevealPasswordBtn(container, {target:passwordAgainField});
+            new RevealPasswordBtn(container, {target:passwordAgainField});
             
             regForm.addValidator(new EqualFieldsValidator('passwordsMustMatch', passwordField, passwordAgainField));
             

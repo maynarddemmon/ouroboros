@@ -7,19 +7,22 @@
     const I18N = BABEL.get,
         M = myt,
         {
-            View, Text, SpacedLayout, ResizeLayout, SizeToParent, 
+            View, Text, SpacedLayout, ResizeLayout, SizeToParent, EqualFieldsValidator,
             global:G
         } = M,
         
         {
-            TextBtn, FormInputText, FieldErrorTextMixin,
+            TextBtn, FormInputText, FieldErrorTextMixin, RevealPasswordBtn,
+            formUtil:{
+                makeRootForm, makeFormMessageHeader
+            },
             theme:{
                 padding, spacing, cornerRadius, headerHeight, 
                 colorBgHeader, colorBgRow
             }
         } = pkg,
         
-        FIELD_WIDTH = 300,
+        FIELD_WIDTH = 350,
         
         refreshLobby = () => {
             titleHeader?.setTitle(I18N('title-lobby', pkg.username));
@@ -204,14 +207,100 @@
         
         buildHeader: header => {
             new View(header, {layoutHint:1});
-            
             socketConnectedTxt = pkg.makeSocketStatusIndicator(header);
-            new TextBtn(header, {valign:'middle', text:pkg.FA_LOGOUT + ' ' + I18N('logout')}, [{
-                doActivated:pkg.doDeathRequest
-            }]);
         },
         
         buildFooter: header => {
+            new TextBtn(header, {valign:'middle', text:pkg.FA_LOGOUT + ' ' + I18N('logout')}, [{
+                doActivated:pkg.doDeathRequest
+            }]);
+            
+            new TextBtn(header, {valign:'middle', text:I18N('changePassword')}, [{
+                doActivated:() => {
+                    let form,
+                        passwordField,
+                        newPasswordField,
+                        newPasswordAgainField;
+                    pkg.getDialog().showContentConfirm(
+                        container => {
+                            const wrapper = new View(container, {width:FIELD_WIDTH + 2*padding, height:340});
+                            
+                            new Text(wrapper, {
+                                x:padding, width:FIELD_WIDTH, whiteSpace:'normal',
+                                text:'Enter you existing password and the new password you would like to use.'
+                            });
+                            
+                            form = makeRootForm(wrapper, msgTxt = makeFormMessageHeader(wrapper, FIELD_WIDTH));
+                            
+                            // Password
+                            new Text(wrapper, {x:padding, text:I18N('password')});
+                            container.initialFocus = passwordField = new FormInputText(wrapper, {
+                                id:'password', form:form, x:padding, width:FIELD_WIDTH,
+                                maxLength:256, validators:['required'], placeholder:I18N('enterPassword'),
+                                password:true,
+                                errorTxtHeight:20
+                            }, [FieldErrorTextMixin]);
+                            new RevealPasswordBtn(wrapper, {target:passwordField});
+                            
+                            // New Password
+                            new Text(wrapper, {x:padding, text:I18N('newPassword')});
+                            newPasswordField = new FormInputText(wrapper, {
+                                id:'newPassword', form:form, x:padding, width:FIELD_WIDTH,
+                                key:I18N('newPassword'),
+                                maxLength:256, validators:['passwordStrength'], placeholder:I18N('enterPassword'),
+                                password:true,
+                                errorTxtHeight:20
+                            }, [FieldErrorTextMixin]);
+                            new RevealPasswordBtn(wrapper, {target:newPasswordField});
+                            
+                            // New Password Again
+                            new Text(wrapper, {x:padding, text:I18N('newPasswordAgain')});
+                            newPasswordAgainField = new FormInputText(wrapper, {
+                                id:'newPasswordAgain', form:form, x:padding, width:FIELD_WIDTH,
+                                key:I18N('newPasswordAgain'),
+                                maxLength:256, validators:['passwordStrength'], placeholder:I18N('enterPassword'),
+                                password:true,
+                                errorTxtHeight:20
+                            }, [FieldErrorTextMixin]);
+                            new RevealPasswordBtn(wrapper, {target:newPasswordAgainField});
+                            
+                            form.addValidator(new EqualFieldsValidator('passwordsMustMatch', newPasswordField, newPasswordAgainField));
+                            
+                            new SpacedLayout(wrapper, {axis:'y', inset:padding, spacing:spacing});
+                            
+                            const value = {password:'', newPassword:'', newPasswordAgain:''};
+                            form.setup(value, value, value);
+                        },
+                        action => {
+                            if (action === 'confirmBtn') {
+                                if (form.isValid) {
+                                    const formValues = form.getValue();
+                                    formValues.username = pkg.username;
+                                    G.app.doChangePasswordRequest(formValues, (success, dataOrError) => {
+                                        if (success) {
+                                            pkg.growl('success', 'Your password was updated successfully.');
+                                        } else {
+                                            pkg.growl('failure', 'Passowrd updated Failed', dataOrError.message);
+                                        }
+                                    });
+                                    passwordField.setValue('');
+                                    newPasswordField.setValue('');
+                                    newPasswordAgainField.setValue('');
+                                    form.destroy();
+                                    return false;
+                                }
+                                return true;
+                            }
+                        },{
+                            showClose:false,
+                            maxContainerHeight:550,
+                            confirmTxt:I18N('changePassword'),
+                            titleText:I18N('changePassword')
+                        }
+                    );
+                }
+            }]);
+            
             new View(header, {layoutHint:1});
             
             new TextBtn(header, {valign:'middle', text:pkg.FA_CLOSE + ' ' + I18N('deleteAccount')}, [{
@@ -220,12 +309,10 @@
                         passwordField;
                     pkg.getDialog().showContentConfirm(
                         container => {
-                            const FIELD_WIDTH = 350;
-                            
-                            form = new M.Node(container, {}, [M.RootForm]);
+                            form = makeRootForm(container, msgTxt = makeFormMessageHeader(container, FIELD_WIDTH));
                             
                             new Text(container, {
-                                x:padding, width:300, whiteSpace:'normal',
+                                x:padding, width:FIELD_WIDTH, whiteSpace:'normal',
                                 text:'Are you sure you want to DELETE YOUR ACCOUNT?'
                             });
                             
@@ -238,8 +325,8 @@
                                 maxLength:256, validators:['required'], placeholder:I18N('enterPassword'),
                                 password:true,
                                 errorTxtHeight:20
-                            }, [pkg.FieldErrorTextMixin]);
-                            new pkg.RevealPasswordBtn(container, {target:passwordField});
+                            }, [FieldErrorTextMixin]);
+                            new RevealPasswordBtn(container, {target:passwordField});
                             
                             new SpacedLayout(container, {axis:'y', inset:padding, spacing:spacing});
                             
@@ -261,6 +348,7 @@
                                         }
                                     });
                                     passwordField.setValue('');
+                                    form.destroy();
                                     return false;
                                 }
                                 return true;

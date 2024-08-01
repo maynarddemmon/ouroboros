@@ -4,7 +4,7 @@ orb = (() => {
     const I18N = BABEL.get,
         
         {
-            Text, Dialog, ModalPanel, FontAwesome, Validator, NumericRangeValidator, RegexValidator,
+            View, Text, Dialog, ModalPanel, FontAwesome, Validator, NumericRangeValidator, RegexValidator,
             memoize,
             global:{
                 validators:{

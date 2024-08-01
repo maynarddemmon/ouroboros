@@ -39,9 +39,6 @@
             new View(header, {layoutHint:1});
             
             socketConnectedTxt = pkg.makeSocketStatusIndicator(header);
-            new TextBtn(header, {valign:'middle', text:pkg.FA_LOGOUT + ' ' + I18N('logout')}, [{
-                doActivated:pkg.doDeathRequest
-            }]);
         },
         
         buildFooter: footer => {}

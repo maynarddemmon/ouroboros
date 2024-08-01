@@ -109,6 +109,19 @@ module.exports = {
             }
         });
         
+        // Serve Change Password Path
+        app.post('/changePassword', (req, res) => {
+            if (shuttingDown) return;
+            
+            const {username, password, newPassword} = req.body,
+                result = accountService.changePassword(req.session, username, password, newPassword);
+            if (result.success) {
+                sendJSONResponse(res, true);
+            } else {
+                sendJSONResponse(res, false, result.message);
+            }
+        });
+        
         // Serve Account Deletion Path
         app.post('/deleteAccount', (req, res) => {
             if (shuttingDown) return;

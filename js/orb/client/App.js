@@ -78,6 +78,11 @@
             doPost('/deauth', formValues, callback);
         },
         
+        doChangePasswordRequest: (formValues, callback) => {
+            appView.lockUI('Updating Password...', true);
+            doPost('/changePassword', formValues, callback);
+        },
+        
         doDeleteAccountRequest: (formValues, callback) => {
             appView.lockUI('Deleting Account...', true);
             doPost('/deleteAccount', formValues, callback);

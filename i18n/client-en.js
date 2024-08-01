@@ -1,4 +1,5 @@
 LOCALE_JSON = {
+    'changePassword':'Change Password',
     'create':'Create',
     'delete':'Delete',
     'deleteAccount':'Delete Account',
@@ -7,6 +8,8 @@ LOCALE_JSON = {
     'err-passwordStrength':'Passwords must be at least 7 characters.',
     'login':'Login',
     'logout':'Logout',
+    'newPassword':'New Password',
+    'newPasswordAgain':'New Password Again',
     'password':'Password',
     'passwordAgain':'Password Again',
     'showHideValue':'Click to show/hide the obscured value.',

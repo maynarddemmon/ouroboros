@@ -244,6 +244,46 @@ module.exports = {
         return retval;
     },
     
+    changePassword: (session, username, password, newPassword) => {
+        const existingAccount = getAccountByUsername(username),
+            retval = {success:false};
+        if (existingAccount) {
+            if (!username) {
+                retval.message = 'No username provided.';
+            } else if (!password) {
+                retval.message = 'No password provided.';
+            } else if (!newPassword) {
+                retval.message = 'No new password provided.';
+            } else if (newPassword.length < 7) {
+                retval.message = 'New password not suitable.';
+            } else if (isAuthFailLimitExceeded(existingAccount[FIELD_AUTH_FAIL_COUNT])) {
+                // Catch accounts locked for excessive fail counts before we try to authenticate.
+                retval.message = 'Account authentication temporarily locked.';
+            } else if (makeHash(password) === existingAccount[FIELD_PASSWORD]) {
+                accessLog.info('Updating Password:' + username);
+                existingAccount[FIELD_PASSWORD] = makeHash(newPassword);
+                retval.success = true;
+            } else {
+                // Auth Failed
+                retval.message = 'Update Password failed.';
+                accessLog.warn('Update Password failed. Password mismatch:' + username);
+                
+                // Lock account if necessary
+                if (isAuthFailLimitExceeded(++existingAccount[FIELD_AUTH_FAIL_COUNT])) {
+                    lockedAccounts.push(existingAccount);
+                    startAccountUnlocker();
+                    retval.message += ' Account temporarily locked.';
+                    accessLog.warn('Temporarily locking account:' + username);
+                }
+            }
+        } else {
+            // No account for username
+            retval.message = 'Update Password failed.';
+            accessLog.warn('Update Password failed. No account:' + username);
+        }
+        return retval;
+    },
+    
     deleteAccount: (session, username, password) => {
         const existingAccount = getAccountByUsername(username),
             retval = {success:false};
