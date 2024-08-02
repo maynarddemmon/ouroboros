@@ -38,7 +38,7 @@ module.exports = {
         app.use(session({secret:generateSecret(), resave:false, saveUninitialized:false}));
         
         // Serve Static files
-        for (const dirName of ['lib','css','img','i18n', IS_PROD ? null : 'js/orb/client']) {
+        for (const dirName of ['lib','css','img','i18n', IS_PROD ? null : 'js/orb/client', IS_PROD ? null : 'js/orb/common']) {
             if (dirName) app.use('/' + dirName, express.static(makePath(dirName)));
         }
         
@@ -138,7 +138,7 @@ module.exports = {
         console.log('HTTP Server Starting Up...');
         httpServer = app.listen(httpPort, () => {
             console.log(
-                '  Oroboros HTTP Server listening on port: ' + httpPort + '\n' +
+                '  Ouroboros HTTP Server listening on port: ' + httpPort + '\n' +
                 '       IS_PROD: ' + IS_PROD + '\n' + 
                 '    CACHE_BUST: ' + CACHE_BUST + '\n'
             );

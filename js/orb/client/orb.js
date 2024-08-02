@@ -14,6 +14,8 @@ orb = (() => {
         } = myt,
         makeTagFunc = FontAwesome.makeTag.bind(FontAwesome),
         
+        {TYPE_LOBBY, TYPE_CREATE_CHARACTER, TYPE_DELETE_CHARACTER} = greek,
+        
         pkg = {
             app:null,
             websocket:null,
@@ -31,7 +33,7 @@ orb = (() => {
                     websocket = pkg.websocket = new pkg.MessageTypeWebSocket({url:pkg.socketUrl}, [{
                         setStatus:function(v) {
                             this.callSuper(v);
-                            if (this.status === 'open') websocket.sendTypedMessage('lobby');
+                            if (this.status === 'open') websocket.sendTypedMessage(TYPE_LOBBY);
                         }
                     }]);
                     
@@ -40,7 +42,7 @@ orb = (() => {
                             msg = response.msg;
                         model.setMaxCharacters(msg.maxCharacters);
                         model.setCharacters(msg.characters);
-                    }, 'lobby');
+                    }, TYPE_LOBBY);
                     
                     websocket.registerListener(response => {
                         const model = pkg.model,
@@ -52,7 +54,7 @@ orb = (() => {
                             pkg.growl('failure', 'Character Creation Failed', message);
                         }
                         pkg.app.unlockUI();
-                    }, 'createCharacter');
+                    }, TYPE_CREATE_CHARACTER);
                     
                     websocket.registerListener(response => {
                         const model = pkg.model,
@@ -64,7 +66,7 @@ orb = (() => {
                             pkg.growl('failure', 'Character Deletion Failed', message);
                         }
                         pkg.app.unlockUI();
-                    }, 'deleteCharacter');
+                    }, TYPE_DELETE_CHARACTER);
                 }
                 
                 // Open Socket Connection

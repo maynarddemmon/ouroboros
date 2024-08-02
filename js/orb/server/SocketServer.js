@@ -20,7 +20,7 @@ module.exports = {
             port:socketPort,
             maxPayload:1<<20 // Approx 1MB
         }, () => {
-            console.log('  Oroboros Socket Server listening on port: ' + socketPort);
+            console.log('  Ouroboros Socket Server listening on port: ' + socketPort);
             callback?.(true);
         });
         

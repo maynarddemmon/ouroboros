@@ -1,5 +1,5 @@
 <!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
-<title>Oroboros</title>
+<title>Ouroboros</title>
 <link rel="stylesheet" type="text/css" href="./css/style.css"/>
 <script>
 const getElem = id => document.getElementById(id),
@@ -27,7 +27,7 @@ let _ready,
 	LOCALE_JSON;
 writeScript('i18n/client-'+LOCALE);
 if ({{IS_PROD}}) {
-	writeScript('lib/oroboros-client.min');
+	writeScript('lib/ouroboros-client.min');
 	_ready = _startup;
 } else {
 	global.ORB_ROOT = './js/orb/client/';

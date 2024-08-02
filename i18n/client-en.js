@@ -13,7 +13,7 @@ LOCALE_JSON = {
     'password':'Password',
     'passwordAgain':'Password Again',
     'showHideValue':'Click to show/hide the obscured value.',
-    'title':'Oroboros',
+    'title':'Ouroboros',
     'title-auth':'Login',
     'title-lobby':'Logged in as <b>$0</b>',
     'title-reg':'Create Account',

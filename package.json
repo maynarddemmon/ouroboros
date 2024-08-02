@@ -1,5 +1,5 @@
 {
-    "name": "Oroboros",
+    "name": "Ouroboros",
     "version": "1.0",
     "author": "Maynard Demmon",
     "description": "A game world toy.",
@@ -21,6 +21,6 @@
     "scripts": {
         "server-start": "node ./js/orb/server/Start.js",
         "server-stop": "pkill -15 node",
-        "build-client": "./bin/build ./js/orb/client/manifest.js ./lib/oroboros-client.js ./js/orb/client true true orb.all && stat -f%z ./lib/oroboros-client.min.js"
+        "build-client": "./bin/build ./js/orb/client/manifest.js ./lib/ouroboros-client.js ./js/orb/client true true orb.all && stat -f%z ./lib/ouroboros-client.min.js"
     }
 }

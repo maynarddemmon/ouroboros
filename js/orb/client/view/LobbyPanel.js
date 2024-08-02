@@ -69,7 +69,7 @@
                                 'Delete Character',
                                 () => {
                                     pkg.app.lockUI('Deleting Character...', true);
-                                    pkg.websocket.sendTypedMessage('deleteCharacter', {id:self.character.id});
+                                    pkg.websocket.sendTypedMessage(greek.TYPE_DELETE_CHARACTER, {id:self.character.id});
                                 }
                             );
                         }
@@ -141,7 +141,7 @@
                         doActivated:() => {
                             if (formContainer.isValid) {
                                 pkg.app.lockUI('Creating Character...', true);
-                                pkg.websocket.sendTypedMessage('createCharacter', formContainer.getValue());
+                                pkg.websocket.sendTypedMessage(greek.TYPE_CREATE_CHARACTER, formContainer.getValue());
                             }
                         }
                     }]);

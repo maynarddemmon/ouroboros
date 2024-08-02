@@ -1,4 +1,4 @@
-oroboros: A persistent world toy.
+Ouroboros: A persistent world toy.
 Copyright (c) 2024 Maynard Demmon
 
 Permission is hereby granted, free of charge, to any person obtaining a copy

@@ -6,8 +6,11 @@ JS.Packages(file => {
     
     file(ORB_ROOT + '../../../lib/myt.js').provides('myt.all');
     
+    // Common
+    file(ORB_ROOT + '../common/SocketProtocol.js').provides('greek');
+    
     // Package:orb
-    file(ORB_ROOT + 'orb.js').provides('orb').requires('myt.all');
+    file(ORB_ROOT + 'orb.js').provides('orb').requires('myt.all','greek');
     
     file(COMPONENT_ROOT + 'WebSocket.js').provides('orb.MessageTypeWebSocket').requires('orb');
     file(COMPONENT_ROOT + 'Basic.js').provides(
