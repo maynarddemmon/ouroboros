@@ -20,6 +20,7 @@
     },
     "scripts": {
         "server-start": "node ./js/orb/server/Start.js",
+        "server-start-debug": "node  --inspect-brk ./js/orb/server/Start.js",
         "server-stop": "pkill -15 node",
         "build-client": "./bin/build ./js/orb/client/manifest.js ./lib/ouroboros-client.js ./js/orb/client true true orb.all && stat -f%z ./lib/ouroboros-client.min.js"
     }

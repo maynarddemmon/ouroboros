@@ -4,15 +4,14 @@ const ws = require('ws'),
     {socketPort} = require('./orb.js'),
     accountService = require('./AccountService.js'),
     accessLog = accountService.accessLog,
-    socketMessageHandler = require('./SocketMessageHandler.js');
-
-module.exports = {
-    startup: callback => {
+    socketMessageHandler = require('./SocketMessageHandler.js'),
+    
+    live = (resolve, reject) => {
         console.log('Socket Server Starting Up...');
         
         if (socketServer) {
             console.warn('Attempt to start socket server again.');
-            callback?.(false);
+            reject();
             return;
         }
         
@@ -21,7 +20,7 @@ module.exports = {
             maxPayload:1<<20 // Approx 1MB
         }, () => {
             console.log('  Ouroboros Socket Server listening on port: ' + socketPort);
-            callback?.(true);
+            resolve();
         });
         
         socketServer.on('connection', (ws, req) => {
@@ -59,19 +58,27 @@ module.exports = {
         });
     },
     
-    shutdown: callback => {
+    die = (resolve, reject) => {
         if (!socketServer) {
             console.warn('  No socket server to shutdown.');
-            callback?.(false);
-            return;
+            reject();
+        } else {
+            console.log('Closing Socket Server...');
+            socketServer.close();
+            socketServer.clients.forEach(ws => {
+                console.log('  Terminating WebSocket');
+                ws.close();
+            });
+            resolve();
         }
-        
-        console.log('Closing Socket Server...');
-        socketServer.close();
-        socketServer.clients.forEach(ws => {
-            console.log('  Terminating WebSocket');
-            ws.close();
-        });
-        callback?.(true);
-    }
+    };
+
+module.exports = {
+    lifeCycle: isBirth => new Promise((resolve, reject) => {
+        if (isBirth) {
+            live(resolve, reject);
+        } else {
+            die(resolve, reject);
+        }
+    })
 };

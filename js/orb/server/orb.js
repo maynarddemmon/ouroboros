@@ -47,66 +47,73 @@ const path = require('path'),
             return false;
         }
         return true;
-    };
-
-module.exports = {
-    // Set from startup args
-    IS_PROD: false,
-    CACHE_BUST: '',
-    
-    // Set from cfg/override.json
-    salt:'',
-    
-    // Set from cfg/base.json
-    httpPort: null,
-    socketPort: null,
-    socketUrl: null,
-    authFailLimit: -1, // -1 is no limit.
-    accountUnlockerInterval: -1, // -1 is never unlock.
-    maxCharactersPerUser:1,
-    
-    // Set in this file only
-    
-    // Functions
-    generateSecret: () => {
-        let secret = '';
-        for (let i = 0; i < 8; i++) secret += getRandomInt(0,99999999).toString(36);
-        return secret;
     },
     
-    makePath:makePath,
-    readJSONFile:readJSONFile,
-    readConfigFile:readConfigFile,
-    readDataFile:readDataFile,
-    saveDataToFile:saveDataToFile,
-    
-    readAndApplyConfigFile: (filename, scope) => {
-        if (scope) {
-            const cfgData = readConfigFile(filename);
-            if (cfgData) {
-                console.log('Applying data from ' + filename + ' to scope object.');
-                for (const key in cfgData) scope[key] = cfgData[key];
-            }
-        }
-    },
-    
-    getGuidString: prefix => (prefix ? prefix : '') + getGuid(),
-    
-    // Lifecycle
-    startup: callback => {
+    live = (resolve, reject) => {
         console.log('Restoring Package State...');
         const jsonData = readDataFile(FILENAME_PACKAGE_STATE);
         if (jsonData) {
-            GUID_COUNTER = jsonData.guidCounter
+            GUID_COUNTER = jsonData.guidCounter ?? -1;
         }
-        callback?.(true);
+        resolve();
     },
     
-    shutdown: callback => {
+    die = (resolve, reject) => {
         console.log('Save Package State');
         saveDataToFile(FILENAME_PACKAGE_STATE, {
             guidCounter:GUID_COUNTER
         });
-        callback?.(true);
-    }
-};
+        resolve();
+    },
+    
+    orb = module.exports = {
+        lifeCycle: isBirth => new Promise((resolve, reject) => {
+            if (isBirth) {
+                live(resolve, reject);
+            } else {
+                die(resolve, reject);
+            }
+        }),
+        
+        // Set from startup args
+        IS_PROD: false,
+        CACHE_BUST: '',
+        
+        // Set from cfg/override.json
+        salt:'',
+        
+        // Set from cfg/base.json
+        httpPort: null,
+        socketPort: null,
+        socketUrl: null,
+        authFailLimit: -1, // -1 is no limit.
+        accountUnlockerInterval: -1, // -1 is never unlock.
+        maxCharactersPerUser:1,
+        
+        worldClockTick:-1, // -1 is a nonsensical value.
+        
+        // Functions
+        generateSecret: () => {
+            let secret = '';
+            for (let i = 0; i < 8; i++) secret += getRandomInt(0,99999999).toString(36);
+            return secret;
+        },
+        
+        makePath:makePath,
+        readJSONFile:readJSONFile,
+        readConfigFile:readConfigFile,
+        readDataFile:readDataFile,
+        saveDataToFile:saveDataToFile,
+        
+        readAndApplyConfigFile: (filename, scope) => {
+            if (scope) {
+                const cfgData = readConfigFile(filename);
+                if (cfgData) {
+                    console.log('Applying data from ' + filename + ' to scope object.');
+                    for (const key in cfgData) scope[key] = cfgData[key];
+                }
+            }
+        },
+        
+        getGuidString: prefix => (prefix ? prefix : '') + getGuid()
+    };

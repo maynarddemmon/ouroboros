@@ -14,44 +14,36 @@ orb.CACHE_BUST = ARGS[3] ?? '';
 const socketServer = require('./SocketServer.js'),
     httpServer = require('./HTTPServer.js'),
     accountService = require('./AccountService.js'),
-    characterService = require('./CharacterService.js');
-
-orb.startup(success => {
-    socketServer.startup(success => {
-        if (success) {
-            accountService.startup(success => {
-                if (success) {
-                    characterService.startup(success => {
-                        if (success) {
-                            httpServer.startup(success => {
-                                if (success) {
-                                    console.log('READY!!!\n');
-                                }
-                            });
-                        }
-                    });
-                }
-            });
+    characterService = require('./CharacterService.js'),
+    worldClock = require('./WorldClock.js'),
+    
+    lifeCycle = isBirth => {
+        if (!isBirth) {
+            // Block or Disable some functionality immediately
+            worldClock.stopClock();
+            httpServer.notifyShuttingDown();
         }
-    });
-});
+        
+        orb.lifeCycle(isBirth).then(
+            () =>     socketServer.lifeCycle(isBirth)).then(
+            () =>   accountService.lifeCycle(isBirth)).then(
+            () => characterService.lifeCycle(isBirth)).then(
+            () =>       worldClock.lifeCycle(isBirth)).then(
+            () =>       httpServer.lifeCycle(isBirth)).then(
+            () => {
+                if (isBirth) {
+                    worldClock.startClock();
+                    console.log('\nREADY!!!\n');
+                } else {
+                    console.log('\nSHUTDOWN COMPLETE!!!\n');}
+                }
+            );
+    };
+
+lifeCycle(true);
 
 // Graceful Shutdown
 process.on('SIGTERM', () => {
     console.log('SIGTERM signal received. Starting Shutdown...');
-    httpServer.notifyShuttingDown();
-    orb.shutdown(success => {
-        socketServer.shutdown(success => {
-            accountService.shutdown(() => {
-                characterService.shutdown(success => {
-                    console.log('Closing HTTP Server');
-                    httpServer.shutdown(success => {
-                        if (success) {
-                            console.log('\nSHUTDOWN COMPLETE!!!\n');
-                        }
-                    });
-                });
-            });
-        });
-    });
+    lifeCycle(false);
 });

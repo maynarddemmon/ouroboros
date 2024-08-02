@@ -10,4 +10,7 @@
     "accountUnlockerInterval":1800000, // 30 * 60 * 1000 which is 30 minutes.
     
     "maxCharactersPerUser":3,
+    
+    /* The length of real world time in millis for a single clock tick in the game world. */
+    "worldClockTick":1000,
 }

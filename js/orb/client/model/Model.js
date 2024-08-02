@@ -30,6 +30,10 @@
         },
         // Characters:end
         
+        setWorldClockTick: function(v) {
+            this.set('worldClockTick', v, true);
+        },
+        
         
         // Methods /////////////////////////////////////////////////////////////
         wipeClean: function() {

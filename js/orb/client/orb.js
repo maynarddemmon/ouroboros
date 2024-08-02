@@ -40,6 +40,7 @@ orb = (() => {
                     websocket.registerListener(response => {
                         const model = pkg.model,
                             msg = response.msg;
+                        model.setWorldClockTick(msg.worldClockTick);
                         model.setMaxCharacters(msg.maxCharacters);
                         model.setCharacters(msg.characters);
                     }, TYPE_LOBBY);

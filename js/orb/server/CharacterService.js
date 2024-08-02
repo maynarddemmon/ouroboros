@@ -89,9 +89,29 @@ const orb = require('./orb.js'),
             }
             console.log('  Restored ' + count + ' character(s).');
         }
+    },
+    
+    live = (resolve, reject) => {
+        console.log('Restoring Characters...');
+        restoreCharactersOnStartup();
+        resolve();
+    },
+    
+    die = (resolve, reject) => {
+        console.log('Save Characters');
+        saveCharactersOnShutdown();
+        resolve();
     };
 
 module.exports = {
+    lifeCycle: isBirth => new Promise((resolve, reject) => {
+        if (isBirth) {
+            live(resolve, reject);
+        } else {
+            die(resolve, reject);
+        }
+    }),
+    
     getCharacterById:getCharacterById,
     getCharacterByName:getCharacterByName,
     getCharactersByUserId:getCharactersByUserId,
@@ -152,17 +172,5 @@ module.exports = {
         let i = existingCharacters.length;
         while (i) existingCharacters[--i].isZombie = true;
         return true;
-    },
-    
-    startup: callback => {
-        console.log('Restoring Characters...');
-        restoreCharactersOnStartup();
-        callback?.(true);
-    },
-    
-    shutdown: callback => {
-        console.log('Save Characters');
-        saveCharactersOnShutdown();
-        callback?.(true);
     }
 };

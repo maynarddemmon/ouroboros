@@ -18,13 +18,12 @@ const fs = require('fs'),
         res.end(JSON.stringify({success:success, message:message, data:data}));
     },
     
-    escapeStringForResponse = str => str ? '"' + str.replaceAll('"','\\"') + '"' : str;
-
-module.exports = {
-    startup: callback => {
+    escapeStringForResponse = str => str ? '"' + str.replaceAll('"','\\"') + '"' : str,
+    
+    live = (resolve, reject) => {
         if (httpServer) {
             console.warn('Attempt to start HTTP server again.');
-            callback?.(false);
+            reject();
             return;
         }
         
@@ -140,26 +139,37 @@ module.exports = {
             console.log(
                 '  Ouroboros HTTP Server listening on port: ' + httpPort + '\n' +
                 '       IS_PROD: ' + IS_PROD + '\n' + 
-                '    CACHE_BUST: ' + CACHE_BUST + '\n'
+                '    CACHE_BUST: ' + CACHE_BUST
             );
-            callback?.(true);
+            resolve();
         });
     },
     
-    notifyShuttingDown: () => {
-        shuttingDown = true;
-    },
-    
-    shutdown: callback => {
+    die = (resolve, reject) => {
+        console.log('Closing HTTP Server');
+        
         if (!httpServer) {
             console.warn('  No HTTP server to shutdown.');
-            callback?.(false);
+            reject();
             return;
         }
         
         httpServer.close(() => {
             console.log('  HTTP Server Closed');
-            callback?.(true);
+            resolve();
         });
+    };
+
+module.exports = {
+    lifeCycle: isBirth => new Promise((resolve, reject) => {
+        if (isBirth) {
+            live(resolve, reject);
+        } else {
+            die(resolve, reject);
+        }
+    }),
+    
+    notifyShuttingDown: () => {
+        shuttingDown = true;
     }
 };

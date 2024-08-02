@@ -194,9 +194,39 @@ const {scryptSync} = require('crypto'),
             accessLog.warn('Authenticate failed. No account:' + username);
         }
         return retval;
+    },
+    
+    live = (resolve, reject) => {
+        console.log('Restoring User Accounts...');
+        restoreAccountsOnStartup();
+        resolve();
+    },
+    
+    die = (resolve, reject) => {
+        if (accountUnlockerIntervalId) clearInterval(accountUnlockerIntervalId);
+        
+        console.log('Save Accounts');
+        saveAccountsOnShutdown();
+        
+        console.log('  Flush Logs');
+        accessLog.flush(err => {
+            if (err) {
+                reject();
+            } else {
+                resolve();
+            }
+        });
     };
 
 module.exports = {
+    lifeCycle: isBirth => new Promise((resolve, reject) => {
+        if (isBirth) {
+            live(resolve, reject);
+        } else {
+            die(resolve, reject);
+        }
+    }),
+    
     accessLog:accessLog,
     getAccountByUsername:getAccountByUsername,
     getAccountBySocketToken:getAccountBySocketToken,
@@ -318,21 +348,5 @@ module.exports = {
             accessLog.warn('Account Deletion failed. No account:' + username);
         }
         return retval;
-    },
-    
-    startup: callback => {
-        console.log('Restoring User Accounts...');
-        restoreAccountsOnStartup();
-        callback?.(true);
-    },
-    
-    shutdown: callback => {
-        if (accountUnlockerIntervalId) clearInterval(accountUnlockerIntervalId);
-        
-        console.log('Save Accounts');
-        saveAccountsOnShutdown();
-        
-        console.log('  Flush Logs');
-        accessLog.flush(callback);
     }
 };

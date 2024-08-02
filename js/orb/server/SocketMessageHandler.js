@@ -1,42 +1,37 @@
 const {JS, tym} = require('../../../lib/tym.js'),
     orb = require('./orb.js'),
     characterService = require('./CharacterService.js'),
+    worldClock = require('./WorldClock.js'),
     greek = require('../common/SocketProtocol.js'),
     
-    lobby = (username, msg) => {
-        return {
-            type:'lobby', 
-            msg:{
+    {
+        TYPE_LOBBY, TYPE_CREATE_CHARACTER, TYPE_DELETE_CHARACTER,
+        TYPE_ENTER_WORLD, TYPE_EXIT_WORLD
+    } = greek,
+    
+    HANDLERS = {
+        [TYPE_LOBBY]: (username, msg) => {
+            const msgObj = {
                 characters:characterService.getCharactersByUserId(username),
-                maxCharacters:orb.maxCharactersPerUser
-            }
-        };
-    },
-    
-    createCharacter = (username, msg) => {
-        const {success, message, character} = characterService.createCharacter(username, msg),
-            response = {
-                type:'createCharacter',
-                msg:{
-                    success:success,
-                    message:message
-                }
+                maxCharacters:orb.maxCharactersPerUser,
+                worldClockTick:worldClock.getWorldClockTick()
             };
-        if (success) response.msg.character = character;
-        return response;
-    },
-    
-    deleteCharacter = (username, msg) => {
-        const {success, message, id} = characterService.deleteCharacter(username, msg.id),
-            response = {
-                type:'deleteCharacter',
-                msg:{
-                    success:success,
-                    message:message
-                }
-            };
-        if (success) response.msg.id = id;
-        return response;
+            return {type:TYPE_LOBBY, msg:msgObj};
+        },
+        
+        [TYPE_CREATE_CHARACTER]: (username, msg) => {
+            const {success, message, character} = characterService.createCharacter(username, msg),
+                msgObj = {success:success, message:message};
+            if (success) msgObj.character = character;
+            return {type:TYPE_CREATE_CHARACTER, msg:msgObj};
+        },
+        
+        [TYPE_DELETE_CHARACTER]: (username, msg) => {
+            const {success, message, id} = characterService.deleteCharacter(username, msg.id),
+                msgObj = {success:success, message:message};
+            if (success) msgObj.id = id;
+            return {type:TYPE_DELETE_CHARACTER, msg:msgObj};
+        }
     };
 
 module.exports = {
@@ -44,20 +39,14 @@ module.exports = {
         const {
                 account:{username, websocket}, 
                 data:{time, type, msg}
-            } = scope;
-        
-        let response;
-        switch (type) {
-            case 'lobby':           response = lobby(username, msg); break;
-            case 'createCharacter': response = createCharacter(username, msg); break;
-            case 'deleteCharacter': response = deleteCharacter(username, msg); break;
-        }
+            } = scope,
+            response = HANDLERS[type](username, msg);
         
         if (response) {
             try {
                 websocket.send(JSON.stringify(response));
             } catch (err) {
-                console.error('Failed to send response', response, err);
+                console.error('Failed to send response', type, response, err);
             }
         }
     }
