@@ -8,29 +8,37 @@ const {maxCharactersPerUser} = require('./orb.js'),
         TYPE_ENTER_WORLD, TYPE_EXIT_WORLD
     } = greek,
     
+    doEventNextHandler = (username, type, msg) => {
+        worldClock.doEventNext({type:type, msg:msg});
+        return null;
+    },
+    
     HANDLERS = {
-        [TYPE_LOBBY]: (username, msg) => {
+        [TYPE_LOBBY]: (username, type, msg) => {
             const msgObj = {
                 characters:characterService.getCharactersByUserId(username),
                 maxCharacters:maxCharactersPerUser,
                 worldClockTick:worldClock.getTick()
             };
-            return {type:TYPE_LOBBY, msg:msgObj};
+            return {type:type, msg:msgObj};
         },
         
-        [TYPE_CREATE_CHARACTER]: (username, msg) => {
+        [TYPE_CREATE_CHARACTER]: (username, type, msg) => {
             const {success, message, character} = characterService.createCharacter(username, msg),
                 msgObj = {success:success, message:message};
             if (success) msgObj.character = character;
-            return {type:TYPE_CREATE_CHARACTER, msg:msgObj};
+            return {type:type, msg:msgObj};
         },
         
-        [TYPE_DELETE_CHARACTER]: (username, msg) => {
+        [TYPE_DELETE_CHARACTER]: (username, type, msg) => {
             const {success, message, id} = characterService.deleteCharacter(username, msg.id),
                 msgObj = {success:success, message:message};
             if (success) msgObj.id = id;
-            return {type:TYPE_DELETE_CHARACTER, msg:msgObj};
-        }
+            return {type:type, msg:msgObj};
+        },
+        
+        [TYPE_ENTER_WORLD]:doEventNextHandler,
+        [TYPE_EXIT_WORLD]:doEventNextHandler,
     };
 
 module.exports = {
@@ -39,7 +47,7 @@ module.exports = {
                 account:{username, websocket}, 
                 data:{time, type, msg}
             } = scope,
-            response = HANDLERS[type](username, msg);
+            response = HANDLERS[type](username, type, msg);
         
         if (response) {
             try {

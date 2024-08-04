@@ -53,7 +53,8 @@
                 if (character) {
                     self.playBtn = new TextBtn(self, {valign:'middle', text:'Play Character', width:150}, [{
                         doActivated:() => {
-                            console.log('FIXME');
+                            pkg.app.lockUI('Entering Ouroboros...', true);
+                            pkg.websocket.sendTypedMessage(greek.TYPE_ENTER_WORLD, {id:self.character.id});
                         }
                     }]);
                     self.detailsBtn = new TextBtn(self, {valign:'middle', text:'View Details', width:150}, [{

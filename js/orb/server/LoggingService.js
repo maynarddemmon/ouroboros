@@ -2,6 +2,28 @@ let accessLog,
     eventLog;
 
 const pino = require('pino'),
+    SonicBoom = require('sonic-boom'),
+    
+    makeLogStream = logName => {
+        const dest = './logs/' + logName + '.log';
+        console.log('  Make Log Stream File: ' + dest);
+        const stream = new SonicBoom({
+                dest:dest,
+                minLength:1<<14, // 16384 byte buffer
+                maxWrite:1<<16, // 64k Must be larger than minLength
+                sync:false
+            });
+        return {
+            __dest:dest,
+            log:obj => {stream.write(JSON.stringify(obj) + '\n');},
+            flush:callback => {
+                stream.on('finish', callback);
+                stream.on('error', callback);
+                stream.flushSync();
+                stream.end();
+            }
+        };
+    },
     
     makeLog = logName => {
         const dest = './logs/' + logName + '.log';
@@ -40,7 +62,7 @@ const pino = require('pino'),
     live = (resolve, reject) => {
         console.log('Start Logging Service...');
         accessLog = makeLog('access');
-        eventLog = makeLog('event');
+        eventLog = makeLogStream('event');
         resolve();
     },
     

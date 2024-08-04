@@ -1,8 +1,10 @@
 let now,
     tick,
-    Interval;
+    Interval,
+    eventLog;
 
 const orb = require('./orb.js'),
+    {getEventLog} = require('./LoggingService.js'),
     
     FILENAME_WORLD_CLOCK = 'world_clock',
     
@@ -53,9 +55,15 @@ const orb = require('./orb.js'),
     
     processEvent = event => {
         console.log('process event', event);
+        
+        // FIXME: do something
+        
+        eventLog.log({when:now, event:event});
     },
     
     live = (resolve, reject) => {
+        eventLog = getEventLog();
+        
         console.log('Restoring World Clock...');
         
         const jsonData = orb.readDataFile(FILENAME_WORLD_CLOCK);
