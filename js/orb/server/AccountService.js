@@ -28,6 +28,13 @@ const {scryptSync} = require('crypto'),
     // a regular interval.
     lockedAccounts = [],
     
+    // Holds messages to be sent back to clients using the websocket associated with a user's account.
+    // Only currently connected users can be messaged via this mechanism.
+    outgoingMessagesByUsername = {},
+    
+    getMessagesByUsername = username => outgoingMessagesByUsername[username],
+    getMessagesByUsernameLazy = username => outgoingMessagesByUsername[username] ?? (outgoingMessagesByUsername[username] = []),
+    
     isAuthFailLimitExceeded = authFailCount => {
         if (authFailCount >= 0) {
             return authFailCount >= authFailLimit;
@@ -319,5 +326,48 @@ module.exports = {
             accessLog.warn('Account Deletion failed. No account:' + username);
         }
         return retval;
+    },
+    
+    // Outgoing WebSocket Messages
+    addMessageToUser: (username, msgOut) => {
+        const account = getAccountByUsername(username);
+        if (account) {
+            // Only message user's that are currently connected.
+            const websocket = account[FIELD_WEBSOCKET];
+            if (websocket) {
+                getMessagesByUsernameLazy(username).push(msgOut);
+            } else {
+                console.warn('Attempt to message disconnected user account: ', username);
+            }
+        } else {
+            console.error('Attempt to message non-existant user account: ', username);
+        }
+    },
+    
+    drainOutgoingMessages: () => {
+        for (const username in outgoingMessagesByUsername) {
+            const msgs = outgoingMessagesByUsername[username],
+                len = msgs.length;
+            if (len > 0) {
+                const account = getAccountByUsername(username);
+                if (account) {
+                    const websocket = account[FIELD_WEBSOCKET];
+                    if (websocket) {
+                        if (len === 1) {
+                            websocket.send(JSON.stringify(msgs.pop()));
+                        } else if (len > 1) {
+                            websocket.send(JSON.stringify(msgs));
+                            msgs.length = 0;
+                        }
+                    } else {
+                        delete outgoingMessagesByUsername[username];
+                        console.warn('Attempt to drain messages for disconnected user account: ', username);
+                    }
+                } else {
+                    delete outgoingMessagesByUsername[username];
+                    console.error('Attempt to drain messages for non-existant user account: ', username);
+                }
+            }
+        }
     }
 };

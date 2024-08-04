@@ -1,11 +1,17 @@
 (() => {
-    const TYPE_LOBBY = 'lobby',
+    const TYPE_WARNING = 'warning',
+        TYPE_ERROR = 'error',
+        
+        TYPE_LOBBY = 'lobby',
         TYPE_CREATE_CHARACTER = 'createCharacter',
         TYPE_DELETE_CHARACTER = 'deleteCharacter',
         TYPE_ENTER_WORLD = 'enterWorld',
         TYPE_EXIT_WORLD = 'exitWorld',
         
         EXPORT = {
+            TYPE_WARNING:TYPE_WARNING,
+            TYPE_ERROR:TYPE_ERROR,
+            
             // BiDirectional Types
             TYPE_LOBBY:TYPE_LOBBY,
             TYPE_CREATE_CHARACTER:TYPE_CREATE_CHARACTER,

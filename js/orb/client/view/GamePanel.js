@@ -1,5 +1,6 @@
 (pkg => {
-    let socketConnectedTxt;
+    let socketConnectedTxt,
+        character;
     
     const I18N = BABEL.get,
         M = myt,
@@ -10,7 +11,8 @@
         
         {
             TextBtn,
-            theme:{padding, spacing}
+            theme:{padding, spacing},
+            model
         } = pkg;
     
     pkg.GamePanel = new JS.Class('GamePanel', pkg.BaseStackablePanel, {
@@ -20,6 +22,8 @@
             if (this.visible) {
                 pkg.connectToWebsocket();
                 socketConnectedTxt?.syncTo(pkg.websocket, 'onWebsocketStatus', 'status');
+                
+                character = model.getCharacterInPlay();
             } else {
                 socketConnectedTxt?.detachFrom(pkg.websocket, 'onWebsocketStatus', 'status');
             }
@@ -41,6 +45,15 @@
             socketConnectedTxt = pkg.makeSocketStatusIndicator(header);
         },
         
-        buildFooter: footer => {}
+        buildFooter: footer => {
+            new View(footer, {layoutHint:1});
+            
+            new TextBtn(footer, {valign:'middle', text:pkg.FA_CHEVRON_LEFT + ' Exit to Lobby'}, [{
+                doActivated:() => {
+                    pkg.app.lockUI('Leaving Ouroboros...', true);
+                    pkg.websocket.sendTypedMessage(greek.TYPE_EXIT_WORLD, {id:character.id});
+                }
+            }]);
+        }
     });
 })(orb);

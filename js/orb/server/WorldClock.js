@@ -6,6 +6,7 @@ let now,
 const orb = require('./orb.js'),
     {getEventLog} = require('./LoggingService.js'),
     worldEventHandler = require('./WorldEventHandler.js'),
+    {drainOutgoingMessages} = require('./AccountService.js'),
     
     FILENAME_WORLD_CLOCK = 'world_clock',
     
@@ -37,6 +38,9 @@ const orb = require('./orb.js'),
     getQueueLazy = tickTime => queues[tickTime] ?? (queues[tickTime] = []),
     
     doTick = () => {
+        const start = Date.now();
+        
+        // Handle Events
         const queue = getQueue(now);
         if (queue) {
             for (let i = 0; i < queue.length; i++) {
@@ -56,8 +60,11 @@ const orb = require('./orb.js'),
             delete queues[now];
         }
         
-        console.log('tick', now);
+        // Send outgoing messages
+        drainOutgoingMessages();
         
+        // Move time forward
+        console.log('tick', now, Date.now() - start);
         now++;
     },
     

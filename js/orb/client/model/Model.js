@@ -12,6 +12,14 @@
         getCharacters: function() {
             return this.characters ?? (this.characters = []);
         },
+        getCharacterById: function(id) {
+            const characters = this.getCharacters();
+            let i = characters.length;
+            while (i) {
+                const character = characters[--i];
+                if (character.id === id) return character;
+            }
+        },
         addCharacter: function(character) {
             const characters = this.getCharacters();
             characters.push(character);
@@ -28,6 +36,14 @@
             }
             this.fireEvent('characters', characters);
         },
+        
+        setCharacterInPlay: function(character) {
+            this._characterInPlay = character;
+        },
+        getCharacterInPlay: function() {
+            return this._characterInPlay;
+        },
+        
         // Characters:end
         
         setWorldClockTick: function(v) {

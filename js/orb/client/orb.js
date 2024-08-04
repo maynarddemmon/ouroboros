@@ -14,7 +14,11 @@ orb = (() => {
         } = myt,
         makeTagFunc = FontAwesome.makeTag.bind(FontAwesome),
         
-        {TYPE_LOBBY, TYPE_CREATE_CHARACTER, TYPE_DELETE_CHARACTER} = greek,
+        {
+            TYPE_WARNING, TYPE_ERROR, 
+            TYPE_LOBBY, TYPE_CREATE_CHARACTER, TYPE_DELETE_CHARACTER,
+            TYPE_ENTER_WORLD, TYPE_EXIT_WORLD
+        } = greek,
         
         pkg = {
             app:null,
@@ -68,6 +72,49 @@ orb = (() => {
                         }
                         pkg.app.unlockUI();
                     }, TYPE_DELETE_CHARACTER);
+                    
+                    websocket.registerListener(response => {
+                        pkg.growl('warning', 'Server Warning', response.msg);
+                        pkg.app.unlockUI();
+                    }, TYPE_WARNING);
+                    
+                    websocket.registerListener(response => {
+                        pkg.growl('failure', 'Server Warning', response.msg);
+                        pkg.app.unlockUI();
+                    }, TYPE_ERROR);
+                    
+                    websocket.registerListener(response => {
+                        pkg.growl('failure', 'Server Warning', response.msg);
+                        pkg.app.unlockUI();
+                    }, TYPE_ERROR);
+                    
+                    websocket.registerListener(response => {
+                        const model = pkg.model,
+                            {id} = response.msg;
+                        const character = model.getCharacterById(id);
+                        if (character) {
+                            character.isInWorld = true; // FIXME: send entire character.
+                            model.setCharacterInPlay(character);
+                            pkg.app.selectPanel(pkg.PANEL_ID_GAME);
+                        } else {
+                            pkg.growl('failure', 'Character Not Found', 'The chracter ID sent back by the server was not found locally.');
+                        }
+                        pkg.app.unlockUI();
+                    }, TYPE_ENTER_WORLD);
+                    
+                    websocket.registerListener(response => {
+                        const model = pkg.model,
+                            {id} = response.msg;
+                        const character = model.getCharacterById(id);
+                        if (character) {
+                            character.isInWorld = false; // FIXME: send entire character.
+                            model.setCharacterInPlay();
+                            pkg.app.selectPanel(pkg.PANEL_ID_LOBBY);
+                        } else {
+                            pkg.growl('failure', 'Character Not Found', 'The chracter ID sent back by the server was not found locally.');
+                        }
+                        pkg.app.unlockUI();
+                    }, TYPE_EXIT_WORLD);
                 }
                 
                 // Open Socket Connection
@@ -141,6 +188,8 @@ orb = (() => {
                     case 'warning':
                         attrs.textColor = THEME.colorFgWarning;
                         attrs.icon = pkg.FA_WARNING;
+                        attrs.showCloseButton = true;
+                        attrs.closeOnly = true;
                         break;
                     case 'info':
                         break;
@@ -207,6 +256,7 @@ orb = (() => {
             FA_EYE_SLASH:          makeTagFunc(['eye-slash']),
             FA_FORWARD:            makeTagFunc(['chevron-circle-right']),
             FA_GEAR:               makeTagFunc(['cog']),
+            FA_GLOBE:              makeTagFunc(['globe']),
             FA_HELP:               makeTagFunc(['question-circle']),
             FA_LOGIN:              makeTagFunc(['sign-in-alt']),
             FA_LOGOUT:             makeTagFunc(['sign-out-alt']),

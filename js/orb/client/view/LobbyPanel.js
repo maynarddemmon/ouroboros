@@ -62,7 +62,7 @@
                             console.log('FIXME');
                         }
                     }]);
-                    new Text(self, {valign:'middle', text:character.name, layoutHint:1});
+                    new Text(self, {valign:'middle', text:(character.isInWorld ? pkg.FA_GLOBE + ' ' : '') + character.name, layoutHint:1});
                     self.deleteBtn = new TextBtn(self, {valign:'middle', text:'Delete Character', width:150}, [{
                         doActivated:() => {
                             pkg.showDeleteDialog(

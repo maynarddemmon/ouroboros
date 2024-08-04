@@ -1,28 +1,38 @@
 const orb = require('./orb.js'),
-    accountService = require('./AccountService.js'),
-    characterService = require('./CharacterService.js'),
+    {getAccountByUsername, addMessageToUser} = require('./AccountService.js'),
+    {getCharactersByUserId} = require('./CharacterService.js'),
     greek = require('../common/SocketProtocol.js'),
     
     {
-        TYPE_ENTER_WORLD, TYPE_EXIT_WORLD
+        TYPE_WARNING, TYPE_ERROR, TYPE_ENTER_WORLD, TYPE_EXIT_WORLD
     } = greek;
     
+    warningMessageToUser = (username, msg) => {
+        console.warn(msg);
+        addMessageToUser(username, {type:TYPE_WARNING, msg:msg});
+    },
+    
+    errorMessageToUser = (username, msg) => {
+        console.warn(msg);
+        addMessageToUser(username, {type:TYPE_ERROR, msg:msg});
+    },
+    
     worldEventHandler = module.exports = {
+        /** Find the character for the user and mark it as "isInWorld". Mark all other characters
+            for the user as not "isInWorld". */
         [TYPE_ENTER_WORLD]:event => {
-            console.log('Handle Enter World', event);
-            
             const username = event._uid,
-                account = accountService.getAccountByUsername(username);
+                account = getAccountByUsername(username);
             if (account) {
                 const characterId = event.msg.id,
-                    usersCharacters = characterService.getCharactersByUserId(username);
+                    usersCharacters = getCharactersByUserId(username);
                 let character,
                     i = usersCharacters.length;
                 while (i) {
                     const usersCharacter = usersCharacters[--i];
                     if (usersCharacter.id === characterId) {
                         if (usersCharacter.isInWorld) {
-                            console.info('Character already in world ', characterId);
+                            warningMessageToUser(username, 'Character already in world ', characterId);
                         } else {
                             usersCharacter.isInWorld = true;
                         }
@@ -33,20 +43,43 @@ const orb = require('./orb.js'),
                 }
                 
                 if (character) {
-                    console.log('SUCCESS');
-                    // FIXME: send success to the client.
+                    addMessageToUser(username, {type:TYPE_ENTER_WORLD, msg:{id:characterId}, _tt:event._tt});
                 } else {
-                    console.warn('Character not found for ', characterId);
-                    // FIXME: send an error to the client.
+                    warningMessageToUser(username, 'Character not found for ', characterId);
                 }
             } else {
-                console.warn('Account not found for ', username);
-                // FIXME: send an error to the client.
+                errorMessageToUser(username, 'Account not found for ', username);
             }
         },
         
         [TYPE_EXIT_WORLD]:event => {
-            console.log('Handle Exit World', event);
-            // FIXME: implement
+            const username = event._uid,
+                account = getAccountByUsername(username);
+            if (account) {
+                const characterId = event.msg.id,
+                    usersCharacters = getCharactersByUserId(username);
+                let character,
+                    i = usersCharacters.length;
+                while (i) {
+                    const usersCharacter = usersCharacters[--i];
+                    if (usersCharacter.id === characterId) {
+                        if (usersCharacter.isInWorld) {
+                            usersCharacter.isInWorld = false;
+                        } else {
+                            warningMessageToUser(username, 'Character already not in world ', characterId);
+                        }
+                        character = usersCharacter;
+                        break;
+                    }
+                }
+                
+                if (character) {
+                    addMessageToUser(username, {type:TYPE_EXIT_WORLD, msg:{id:characterId}, _tt:event._tt});
+                } else {
+                    warningMessageToUser(username, 'Character not found for ', characterId);
+                }
+            } else {
+                errorMessageToUser(username, 'Account not found for ', username);
+            }
         },
     };

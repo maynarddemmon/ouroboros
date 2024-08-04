@@ -180,6 +180,21 @@
                 // Invalid matcherFunc
             }
             return matcherFunc;
+        },
+        
+        notifyListenersForTypedMessage = (websocket, msg) => {
+            const type = msg?.type;
+            if (type) {
+                websocket._listeners.forEach(listenerInfo => {
+                    listenerInfo.patternMatchers.every(patternMatcher => {
+                        if (patternMatcher(type)) {
+                            listenerInfo.func(msg);
+                            return false;
+                        }
+                        return true;
+                    });
+                });
+            };
         };
     
     /** A WebSocket where messages are JSON objects with the following structure:
@@ -302,22 +317,14 @@
         
         /** @overrides */
         onMessage: function(event) {
-            const msg = this.callSuper(event),
-                type = msg?.type;
-            
-            // Notify Listeners
-            if (type) {
-                this._listeners.forEach(listenerInfo => {
-                    listenerInfo.patternMatchers.every(patternMatcher => {
-                        if (patternMatcher(type)) {
-                            listenerInfo.func(msg);
-                            return false;
-                        }
-                        return true;
-                    });
-                });
+            const msg = this.callSuper(event);
+            if (Array.isArray(msg)) {
+                // Process multiple typed messages bundled into an array
+                const len = msg.length;
+                for (let i = 0; i < len; i++) notifyListenersForTypedMessage(this, msg[i]);
+            } else {
+                notifyListenersForTypedMessage(this, msg);
             }
-            
             return msg;
         }
     });
