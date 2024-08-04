@@ -40,7 +40,9 @@ const path = require('path'),
     
     saveDataToFile = (filename, data) => {
         try {
-            const path = makePath('data/' + filename + '.json');
+            const dirPath = makePath('data'),
+                path = dirPath + '/' + filename + '.json';
+            fs.mkdirSync(dirPath, {recursive:true});
             fs.writeFileSync(path, JSON.stringify(data, null, 4));
             console.log('  Saved ' + path + (Array.isArray(data) ? ' with ' + data.length + ' elements.' : ''));
         } catch (err) {

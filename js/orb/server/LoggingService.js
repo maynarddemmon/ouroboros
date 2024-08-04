@@ -9,6 +9,7 @@ const pino = require('pino'),
         console.log('  Make Log Stream File: ' + dest);
         const stream = new SonicBoom({
             dest:dest,
+            mkdir:true,
             minLength:1<<14, // 16384 byte buffer
             maxWrite:1<<16, // 64k Must be larger than minLength
             sync:false
@@ -37,6 +38,7 @@ const pino = require('pino'),
             },
             pino.destination({
                 dest:dest,
+                mkdir:true,
                 minLength:1<<14, // 16384 byte buffer
                 maxWrite:1<<16, // 64k Must be larger than minLength
                 sync:false
