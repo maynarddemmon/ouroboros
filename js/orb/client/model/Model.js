@@ -25,6 +25,19 @@
             characters.push(character);
             this.fireEvent('characters', characters);
         },
+        replaceCharacter: function(character) {
+            const id = character?.id,
+                characters = this.getCharacters();
+            let i = characters.length;
+            while (i) {
+                const existingCharacter = characters[--i];
+                if (existingCharacter.id === id) {
+                    characters.splice(i, 1, character);
+                    return true;
+                }
+            }
+            return false;
+        },
         removeCharacterById: function(id) {
             const characters = this.getCharacters();
             let i = characters.length;
@@ -43,7 +56,6 @@
         getCharacterInPlay: function() {
             return this._characterInPlay;
         },
-        
         // Characters:end
         
         setWorldClockTick: function(v) {

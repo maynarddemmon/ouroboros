@@ -1,8 +1,9 @@
 /logs
 /data
-/notes.txt
-/node_modules
 /cfg/override.json
+/notes.txt
+/SERVER_COMMAND_INPUT.txt
+/node_modules
 
 # OS generated files #
 ######################

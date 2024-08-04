@@ -1,5 +1,6 @@
 const ARGS = process.argv,
-    orb = require('./orb.js');
+    orb = require('./orb.js'),
+    JSON5 = require('json5');
 
 // Load Config Files before anything else is required.
 orb.readAndApplyConfigFile('base', orb);
@@ -11,6 +12,7 @@ orb.IS_PROD = ARGS[2] ?? false;
 orb.CACHE_BUST = ARGS[3] ?? '';
 
 // Startup
+let inputWatcher;
 const loggingService = require('./LoggingService.js'),
     socketServer = require('./SocketServer.js'),
     httpServer = require('./HTTPServer.js'),
@@ -19,10 +21,37 @@ const loggingService = require('./LoggingService.js'),
     worldClock = require('./WorldClock.js'),
     
     lifeCycle = isBirth => {
-        if (!isBirth) {
+        if (isBirth) {
+            // Watch a file for "command line" interaction with the server.
+            inputWatcher = orb.fileWatcher('./SERVER_COMMAND_INPUT.txt', data => {
+                let command;
+                try {
+                    command = JSON5.parse(data);
+                } catch (err) {
+                    console.error('Failed to parse command input JSON: ', data);
+                    return;
+                }
+                
+                const type = command.type;
+                console.log('Command Received: ' + type);
+                switch(type) {
+                    case 'shutdown':
+                        lifeCycle(false);
+                        break;
+                    default:
+                        console.warn('Unknown Command Type: ', type);
+                    /*
+                        FIXME: handle various messages. Maybe do them as JSON?
+                        - Send a broadcast message to every isInGame socket.
+                        - Send a broadcast message to every account. Requires out-of-game and offline message queues.
+                    */
+                }
+            });
+        } else {
             // Block or Disable some functionality immediately
             worldClock.stopClock();
             httpServer.notifyShuttingDown();
+            inputWatcher.close();
         }
         
         orb.lifeCycle(isBirth).then(

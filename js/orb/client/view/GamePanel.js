@@ -24,6 +24,8 @@
                 socketConnectedTxt?.syncTo(pkg.websocket, 'onWebsocketStatus', 'status');
                 
                 character = model.getCharacterInPlay();
+                
+                this.header.setTitle('Playing As: ' + character.name);
             } else {
                 socketConnectedTxt?.detachFrom(pkg.websocket, 'onWebsocketStatus', 'status');
             }
@@ -33,7 +35,7 @@
         // Methods /////////////////////////////////////////////////////////////
         buildUI: function() {
             const self = this;
-            self.buildHeader(self.header = new pkg.Header(self, {}));
+            self.buildHeader(self.header = new pkg.TitleHeader(self, {}));
             self.gameSpace = new View(self, {percentOfParentWidth:100, layoutHint:1}, [SizeToParent]);
             self.buildFooter(self.footer = new pkg.Footer(self, {}));
             new ResizeLayout(self, {axis:'y'});
@@ -46,8 +48,6 @@
         },
         
         buildFooter: footer => {
-            new View(footer, {layoutHint:1});
-            
             new TextBtn(footer, {valign:'middle', text:pkg.FA_CHEVRON_LEFT + ' Exit to Lobby'}, [{
                 doActivated:() => {
                     pkg.app.lockUI('Leaving Ouroboros...', true);

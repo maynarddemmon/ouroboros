@@ -90,28 +90,28 @@ orb = (() => {
                     
                     websocket.registerListener(response => {
                         const model = pkg.model,
-                            {id} = response.msg;
-                        const character = model.getCharacterById(id);
+                            {character} = response.msg;
                         if (character) {
-                            character.isInWorld = true; // FIXME: send entire character.
-                            model.setCharacterInPlay(character);
-                            pkg.app.selectPanel(pkg.PANEL_ID_GAME);
-                        } else {
-                            pkg.growl('failure', 'Character Not Found', 'The chracter ID sent back by the server was not found locally.');
+                            if (model.replaceCharacter(character)) {
+                                model.setCharacterInPlay(character);
+                                pkg.app.selectPanel(pkg.PANEL_ID_GAME);
+                            } else {
+                                pkg.growl('failure', 'Character Not Found', 'The chracter sent back by the server was not found locally.');
+                            }
                         }
                         pkg.app.unlockUI();
                     }, TYPE_ENTER_WORLD);
                     
                     websocket.registerListener(response => {
                         const model = pkg.model,
-                            {id} = response.msg;
-                        const character = model.getCharacterById(id);
+                            {character} = response.msg;
                         if (character) {
-                            character.isInWorld = false; // FIXME: send entire character.
-                            model.setCharacterInPlay();
-                            pkg.app.selectPanel(pkg.PANEL_ID_LOBBY);
-                        } else {
-                            pkg.growl('failure', 'Character Not Found', 'The chracter ID sent back by the server was not found locally.');
+                            if (model.replaceCharacter(character)) {
+                                model.setCharacterInPlay();
+                                pkg.app.selectPanel(pkg.PANEL_ID_LOBBY);
+                            } else {
+                                pkg.growl('failure', 'Character Not Found', 'The chracter sent back by the server was not found locally.');
+                            }
                         }
                         pkg.app.unlockUI();
                     }, TYPE_EXIT_WORLD);
@@ -146,7 +146,7 @@ orb = (() => {
                 });
             },
             
-            makeSocketStatusIndicator: parent => {
+            makeSocketStatusIndicator: (parent, statusChangeCallback) => {
                 const socketConnectedTxt = new Text(parent, {valign:'middle', text:pkg.FA_PLUG, fontSize:'18px'}, [{
                     onWebsocketStatus: function(event) {
                         const status = event.value;
@@ -160,10 +160,12 @@ orb = (() => {
                             this.setTooltip('Socket not connected.');
                             this.setTextColor(pkg.theme.colorFgError);
                         }
+                        
+                        statusChangeCallback?.(status);
                     }
                 }]);
                 FontAwesome.registerForNotification(socketConnectedTxt);
-                socketConnectedTxt.onWebsocketStatus({value:false});
+                socketConnectedTxt.onWebsocketStatus({value:'COMPONENT_INIT'});
                 return socketConnectedTxt;
             },
             

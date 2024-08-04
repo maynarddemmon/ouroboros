@@ -118,5 +118,37 @@ const path = require('path'),
             }
         },
         
-        getGuidString: prefix => (prefix ? prefix : '') + getGuid()
+        getGuidString: prefix => (prefix ? prefix : '') + getGuid(),
+        
+        /** Watch a file for changes and execute a callback when a change
+            occurs setting the file to a non-empty value. On each such change
+            reset the file to an empty state. This will be used to send
+            messages into the running server from the command line or any
+            other process that has access to the file system. If true
+            interprocess communication is needed we should use a named pipe. */
+        fileWatcher: (filePath, onChangeCallback) => {
+            const writeEmptyFile = () => {
+                    fs.writeFile(filePath, '', err => {
+                        if (err) console.error('Error creating file:', filePath, err);
+                    });
+                },
+                handleFileChange = () => {
+                    fs.readFile(filePath, 'utf8', (err, data) => {
+                        if (err) {
+                            console.error(err);
+                        } else {
+                            if (data?.length > 0) {
+                                writeEmptyFile();
+                                onChangeCallback?.(data);
+                            }
+                        }
+                    });
+                };
+            
+            // Ensure the file exists then watch it for changes.
+            writeEmptyFile();
+            return fs.watch(filePath, (eventType, filename) => {
+                if (eventType === 'change') handleFileChange();
+            });
+        }
     };

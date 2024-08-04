@@ -31,10 +31,24 @@
                 const {maxCharacters, characters} = pkg.model;
                 
                 characterContainer.destroyAllSubviews();
+                
+                let inWorldCharacter;
                 for (let i = 0; i < maxCharacters; i++) {
-                    new CharacterRow(characterContainer, {character:characters[i]});
+                    const character = characters[i];
+                    if (character?.isInWorld) inWorldCharacter = character;
+                    new CharacterRow(characterContainer, {character:character});
+                }
+                
+                if (inWorldCharacter) {
+                    pkg.growl('info', 'Attempting to auto-join because one of your characters already appears to be in play.');
+                    doPlay(inWorldCharacter);
                 }
             }
+        },
+        
+        doPlay = character => {
+            pkg.app.lockUI('Entering Ouroboros...', true);
+            pkg.websocket.sendTypedMessage(greek.TYPE_ENTER_WORLD, {id:character.id});
         },
         
         CharacterRow = new JS.Class('CharacterRow', pkg.WideFlowComponent, {
@@ -52,10 +66,7 @@
                 const character = self.character;
                 if (character) {
                     self.playBtn = new TextBtn(self, {valign:'middle', text:'Play Character', width:150}, [{
-                        doActivated:() => {
-                            pkg.app.lockUI('Entering Ouroboros...', true);
-                            pkg.websocket.sendTypedMessage(greek.TYPE_ENTER_WORLD, {id:self.character.id});
-                        }
+                        doActivated:() => {doPlay(self.character);}
                     }]);
                     self.detailsBtn = new TextBtn(self, {valign:'middle', text:'View Details', width:150}, [{
                         doActivated:() => {
@@ -173,7 +184,7 @@
             this.callSuper(parent, attrs);
             
             const model = pkg.model;
-            this.constrain('_updateCharacterContainer', [model, 'characters', model, 'characterContainer']);
+            this.constrain('_updateCharacterContainer', [model, 'characters', model, 'maxCharacters']);
         },
         
         
@@ -193,6 +204,7 @@
         
         
         // Methods /////////////////////////////////////////////////////////////
+        
         buildUI: function() {
             const self = this;
             self.buildHeader(titleHeader = new pkg.TitleHeader(self, {title:I18N('title-lobby')}));

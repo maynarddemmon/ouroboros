@@ -20,7 +20,11 @@ const pino = require('pino'),
             flush:callback => {
                 stream.on('finish', callback);
                 stream.on('error', callback);
-                stream.end();
+                if (stream.destroyed) {
+                    console.warn('Stream already destroyed: ' + dest);
+                } else {
+                    stream.end();
+                }
             }
         };
     },

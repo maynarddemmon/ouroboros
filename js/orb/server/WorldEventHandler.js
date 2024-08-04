@@ -1,6 +1,6 @@
 const orb = require('./orb.js'),
     {getAccountByUsername, addMessageToUser} = require('./AccountService.js'),
-    {getCharactersByUserId} = require('./CharacterService.js'),
+    {getCharactersByUserId, doCharacterExitWorld} = require('./CharacterService.js'),
     greek = require('../common/SocketProtocol.js'),
     
     {
@@ -43,7 +43,7 @@ const orb = require('./orb.js'),
                 }
                 
                 if (character) {
-                    addMessageToUser(username, {type:TYPE_ENTER_WORLD, msg:{id:characterId}, _tt:event._tt});
+                    addMessageToUser(username, {type:TYPE_ENTER_WORLD, msg:{character:character}, _tt:event._tt});
                 } else {
                     warningMessageToUser(username, 'Character not found for ', characterId);
                 }
@@ -63,9 +63,7 @@ const orb = require('./orb.js'),
                 while (i) {
                     const usersCharacter = usersCharacters[--i];
                     if (usersCharacter.id === characterId) {
-                        if (usersCharacter.isInWorld) {
-                            usersCharacter.isInWorld = false;
-                        } else {
+                        if (!characterService.doCharacterExitWorld(usersCharacter)) {
                             warningMessageToUser(username, 'Character already not in world ', characterId);
                         }
                         character = usersCharacter;
@@ -74,7 +72,7 @@ const orb = require('./orb.js'),
                 }
                 
                 if (character) {
-                    addMessageToUser(username, {type:TYPE_EXIT_WORLD, msg:{id:characterId}, _tt:event._tt});
+                    addMessageToUser(username, {type:TYPE_EXIT_WORLD, msg:{character:character}, _tt:event._tt});
                 } else {
                     warningMessageToUser(username, 'Character not found for ', characterId);
                 }

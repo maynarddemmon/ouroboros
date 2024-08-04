@@ -67,6 +67,15 @@ const orb = require('./orb.js'),
         return charactersByUserId[userId] || (charactersByUserId[userId] = []);
     },
     
+    doCharacterExitWorld = character => {
+        if (character.isInWorld) {
+            character.isInWorld = false;
+            return true;
+        } else {
+            return false;
+        }
+    },
+    
     saveCharactersOnShutdown = () => {
         orb.saveDataToFile(FILENAME_CHARACTERS, Object.values(charactersById));
     },
@@ -101,6 +110,12 @@ const orb = require('./orb.js'),
     
     die = (resolve, reject) => {
         console.log('Save Characters');
+        
+        // Force exit all in world characters
+        for (const id in charactersById) {
+            doCharacterExitWorld(charactersById[id]);
+        }
+        
         saveCharactersOnShutdown();
         resolve();
     };
@@ -117,6 +132,8 @@ module.exports = {
     getCharacterById:getCharacterById,
     getCharacterByName:getCharacterByName,
     getCharactersByUserId:getCharactersByUserId,
+    
+    doCharacterExitWorld:doCharacterExitWorld,
     
     createCharacter: (userId, data) => {
         const name = data.name,
