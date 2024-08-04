@@ -5,6 +5,7 @@ let now,
 
 const orb = require('./orb.js'),
     {getEventLog} = require('./LoggingService.js'),
+    worldEventHandler = require('./WorldEventHandler.js'),
     
     FILENAME_WORLD_CLOCK = 'world_clock',
     
@@ -13,35 +14,42 @@ const orb = require('./orb.js'),
     
     queues = {}, // Stores event queues by tick time.
     
-    getQueue = (when, noLazy) => {
+    getTickTime = when => {
         let tickTime;
         if (when === NEXT) {
-            tickTime = now + 1;
+            return now + 1;
         } else if (when === NOW) {
-            tickTime = now;
+            return now;
         } else if (typeof when === 'number') {
             if (when >= now) {
-                tickTime = when;
+                return when;
             } else {
                 console.error('No access to past queueus.');
                 return null;
             }
         } else {
-            console.error('getQueue called with non-number.');
+            console.error('getTickTime called with non-number.');
             return null;
-        }
-        
-        if (noLazy) {
-            return queues[tickTime];
-        } else {
-            return queues[tickTime] ?? (queues[tickTime] = []);
         }
     },
     
+    getQueue = tickTime => queues[tickTime],
+    getQueueLazy = tickTime => queues[tickTime] ?? (queues[tickTime] = []),
+    
     doTick = () => {
-        const queue = getQueue(NOW, true);
+        const queue = getQueue(now);
         if (queue) {
-            for (let i = 0; i < queue.length; i++) processEvent(queue[i]);
+            for (let i = 0; i < queue.length; i++) {
+                // Handle Event
+                const event = queue[i],
+                    handler = worldEventHandler[event.type];
+                if (handler) {
+                    handler(event);
+                    eventLog.log(event);
+                } else {
+                    console.error('Unexpected World Event:', event);
+                }
+            }
             
             // Clear Queue
             queue.length = 0;
@@ -51,14 +59,6 @@ const orb = require('./orb.js'),
         console.log('tick', now);
         
         now++;
-    },
-    
-    processEvent = event => {
-        console.log('process event', event);
-        
-        // FIXME: do something
-        
-        eventLog.log({when:now, event:event});
     },
     
     live = (resolve, reject) => {
@@ -125,8 +125,11 @@ const orb = require('./orb.js'),
         },
         doEventAt: (when, event) => {
             if (event) {
-                const queue = getQueue(when);
-                queue.push(event);
+                const tickTime = getTickTime(when);
+                if (tickTime >= 0) {
+                    event._tt = tickTime;
+                    getQueueLazy(tickTime).push(event);
+                }
             }
         }
     };

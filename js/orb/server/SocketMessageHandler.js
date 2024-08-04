@@ -9,8 +9,7 @@ const {maxCharactersPerUser} = require('./orb.js'),
     } = greek,
     
     doEventNextHandler = (username, type, msg) => {
-        worldClock.doEventNext({type:type, msg:msg});
-        return null;
+        worldClock.doEventNext({_uid:username, type:type, msg:msg});
     },
     
     HANDLERS = {
@@ -43,15 +42,12 @@ const {maxCharactersPerUser} = require('./orb.js'),
 
 module.exports = {
     handleMessage: scope => {
-        const {
-                account:{username, websocket}, 
-                data:{time, type, msg}
-            } = scope,
-            response = HANDLERS[type](username, type, msg);
+        const {account, data:{time, type, msg}} = scope,
+            response = HANDLERS[type](account.username, type, msg);
         
         if (response) {
             try {
-                websocket.send(JSON.stringify(response));
+                account.websocket.send(JSON.stringify(response));
             } catch (err) {
                 console.error('Failed to send response', type, response, err);
             }

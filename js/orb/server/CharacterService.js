@@ -53,7 +53,8 @@ const orb = require('./orb.js'),
             id:null,
             userId:null,
             name:'',
-            isZombie:false
+            isZombie:false,
+            isInWorld:false
         };
     },
     
@@ -75,13 +76,14 @@ const orb = require('./orb.js'),
         if (jsonData) {
             let count = 0;
             for (const datum of jsonData) {
-                const {id, userId, name, isZombie} = datum;
+                const {id, userId, name, isZombie, isInWorld} = datum;
                 if (id && userId && name) {
                     const character = makeEmptyCharacter();
                     character.id = id;
                     character.userId = userId;
                     character.name = name;
                     character.isZombie = isZombie || false;
+                    character.isInWorld = isInWorld || false;
                     if (storeCharacterInRepo(character)) count++;
                 } else {
                     console.error('  Failed to restore character: ', datum);

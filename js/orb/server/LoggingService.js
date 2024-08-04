@@ -8,18 +8,17 @@ const pino = require('pino'),
         const dest = './logs/' + logName + '.log';
         console.log('  Make Log Stream File: ' + dest);
         const stream = new SonicBoom({
-                dest:dest,
-                minLength:1<<14, // 16384 byte buffer
-                maxWrite:1<<16, // 64k Must be larger than minLength
-                sync:false
-            });
+            dest:dest,
+            minLength:1<<14, // 16384 byte buffer
+            maxWrite:1<<16, // 64k Must be larger than minLength
+            sync:false
+        });
         return {
             __dest:dest,
             log:obj => {stream.write(JSON.stringify(obj) + '\n');},
             flush:callback => {
                 stream.on('finish', callback);
                 stream.on('error', callback);
-                stream.flushSync();
                 stream.end();
             }
         };
