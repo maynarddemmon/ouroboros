@@ -1,10 +1,12 @@
-let accountUnlockerIntervalId = null;
+let accessLog,
+    accountUnlockerIntervalId = null;
 
 const {scryptSync} = require('crypto'),
     orb = require('./orb.js'),
     {salt, authFailLimit, accountUnlockerInterval} = orb,
     
     characterService = require('./CharacterService.js'),
+    {getAccessLog} = require('./LoggingService.js'),
     
     FILENAME_ACCOUNTS = 'accounts',
     
@@ -88,72 +90,6 @@ const {scryptSync} = require('crypto'),
         }
     },
     
-    saveAccountsOnShutdown = () => {
-        const dataToSave = [];
-        for (const key in accountsByUsername) {
-            const account = accountsByUsername[key],
-                authFailCount = account[FIELD_AUTH_FAIL_COUNT],
-                datum = {
-                    [FIELD_USERNAME]:account[FIELD_USERNAME], 
-                    [FIELD_PASSWORD]:account[FIELD_PASSWORD], 
-                    [FIELD_LAST_LOGIN]:account[FIELD_LAST_LOGIN]
-                };
-            if (authFailCount > 0) datum[FIELD_AUTH_FAIL_COUNT] = authFailCount;
-            dataToSave.push(datum);
-        }
-        orb.saveDataToFile(FILENAME_ACCOUNTS, dataToSave);
-    },
-    
-    restoreAccountsOnStartup = () => {
-        const jsonData = orb.readDataFile(FILENAME_ACCOUNTS);
-        if (jsonData) {
-            let count = 0,
-                needsAccountUnlocker = false;
-            for (const datum of jsonData) {
-                const username = datum[FIELD_USERNAME],
-                    password = datum[FIELD_PASSWORD];
-                if (username && password) {
-                    const authFailCount = datum[FIELD_AUTH_FAIL_COUNT],
-                        account = makeEmptyAccount();
-                    account[FIELD_USERNAME] = username;
-                    account[FIELD_PASSWORD] = password;
-                    account[FIELD_LAST_LOGIN] = datum[FIELD_LAST_LOGIN];
-                    account[FIELD_AUTH_FAIL_COUNT] = authFailCount || 0;
-                    accountsByUsername[username] = account;
-                    
-                    if (isAuthFailLimitExceeded(authFailCount)) {
-                        lockedAccounts.push(account);
-                        needsAccountUnlocker = true;
-                    }
-                    
-                    count++;
-                } else {
-                    console.error('  Failed to restore account: ', datum);
-                }
-            }
-            if (needsAccountUnlocker) startAccountUnlocker();
-            console.log('  Restored ' + count + ' user account(s).');
-        }
-    },
-    
-    // Logging
-    pino = require('pino'),
-    accessLog = pino(
-        {
-            base:undefined,
-            level:process.env.PINO_LOG_LEVEL || 'info', // ???
-            formatters:{
-                level:label => ({level:label})
-            }
-        },
-        pino.destination({
-            dest:'./logs/access.log',
-            minLength:1<<14, // 16384 byte buffer
-            maxWrite:1<<16, // 64k Must be larger than minLength
-            sync:false
-        })
-    ),
-    
     authenticate = (session, username, password) => {
         const existingAccount = getAccountByUsername(username),
             retval = {success:false};
@@ -197,8 +133,39 @@ const {scryptSync} = require('crypto'),
     },
     
     live = (resolve, reject) => {
+        accessLog = getAccessLog();
+        
         console.log('Restoring User Accounts...');
-        restoreAccountsOnStartup();
+        const jsonData = orb.readDataFile(FILENAME_ACCOUNTS);
+        if (jsonData) {
+            let count = 0,
+                needsAccountUnlocker = false;
+            for (const datum of jsonData) {
+                const username = datum[FIELD_USERNAME],
+                    password = datum[FIELD_PASSWORD];
+                if (username && password) {
+                    const authFailCount = datum[FIELD_AUTH_FAIL_COUNT],
+                        account = makeEmptyAccount();
+                    account[FIELD_USERNAME] = username;
+                    account[FIELD_PASSWORD] = password;
+                    account[FIELD_LAST_LOGIN] = datum[FIELD_LAST_LOGIN];
+                    account[FIELD_AUTH_FAIL_COUNT] = authFailCount || 0;
+                    accountsByUsername[username] = account;
+                    
+                    if (isAuthFailLimitExceeded(authFailCount)) {
+                        lockedAccounts.push(account);
+                        needsAccountUnlocker = true;
+                    }
+                    
+                    count++;
+                } else {
+                    console.error('  Failed to restore account: ', datum);
+                }
+            }
+            if (needsAccountUnlocker) startAccountUnlocker();
+            console.log('  Restored ' + count + ' user account(s).');
+        }
+        
         resolve();
     },
     
@@ -206,16 +173,21 @@ const {scryptSync} = require('crypto'),
         if (accountUnlockerIntervalId) clearInterval(accountUnlockerIntervalId);
         
         console.log('Save Accounts');
-        saveAccountsOnShutdown();
+        const dataToSave = [];
+        for (const key in accountsByUsername) {
+            const account = accountsByUsername[key],
+                authFailCount = account[FIELD_AUTH_FAIL_COUNT],
+                datum = {
+                    [FIELD_USERNAME]:account[FIELD_USERNAME], 
+                    [FIELD_PASSWORD]:account[FIELD_PASSWORD], 
+                    [FIELD_LAST_LOGIN]:account[FIELD_LAST_LOGIN]
+                };
+            if (authFailCount > 0) datum[FIELD_AUTH_FAIL_COUNT] = authFailCount;
+            dataToSave.push(datum);
+        }
+        orb.saveDataToFile(FILENAME_ACCOUNTS, dataToSave);
         
-        console.log('  Flush Logs');
-        accessLog.flush(err => {
-            if (err) {
-                reject();
-            } else {
-                resolve();
-            }
-        });
+        resolve();
     };
 
 module.exports = {
@@ -227,7 +199,6 @@ module.exports = {
         }
     }),
     
-    accessLog:accessLog,
     getAccountByUsername:getAccountByUsername,
     getAccountBySocketToken:getAccountBySocketToken,
     authenticate:authenticate,

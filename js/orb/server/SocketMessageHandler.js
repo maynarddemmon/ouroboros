@@ -1,5 +1,4 @@
-const {JS, tym} = require('../../../lib/tym.js'),
-    orb = require('./orb.js'),
+const {maxCharactersPerUser} = require('./orb.js'),
     characterService = require('./CharacterService.js'),
     worldClock = require('./WorldClock.js'),
     greek = require('../common/SocketProtocol.js'),
@@ -13,8 +12,8 @@ const {JS, tym} = require('../../../lib/tym.js'),
         [TYPE_LOBBY]: (username, msg) => {
             const msgObj = {
                 characters:characterService.getCharactersByUserId(username),
-                maxCharacters:orb.maxCharactersPerUser,
-                worldClockTick:worldClock.getWorldClockTick()
+                maxCharacters:maxCharactersPerUser,
+                worldClockTick:worldClock.getTick()
             };
             return {type:TYPE_LOBBY, msg:msgObj};
         },

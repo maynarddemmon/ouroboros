@@ -4,10 +4,11 @@ const path = require('path'),
     fs = require('fs'),
     JSON5 = require('json5'),
     
-    {JS, tym} = require('../../../lib/tym.js'),
+    PATH_PREFIX = '../../../',
+    
+    {JS, tym} = require(PATH_PREFIX + 'lib/tym.js'),
     {getRandomInt} = tym,
     
-    PATH_PREFIX = '../../../',
     FILENAME_PACKAGE_STATE = 'pkg_state',
     
     getGuid = () => ++GUID_COUNTER,

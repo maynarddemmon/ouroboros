@@ -1,12 +1,15 @@
-let socketServer;
+let socketServer,
+    accessLog;
 
 const ws = require('ws'),
     {socketPort} = require('./orb.js'),
-    accountService = require('./AccountService.js'),
-    accessLog = accountService.accessLog,
+    {getAccountBySocketToken} = require('./AccountService.js'),
+    {getAccessLog} = require('./LoggingService.js'),
     socketMessageHandler = require('./SocketMessageHandler.js'),
     
     live = (resolve, reject) => {
+        accessLog = getAccessLog();
+        
         console.log('Socket Server Starting Up...');
         
         if (socketServer) {
@@ -41,7 +44,7 @@ const ws = require('ws'),
                     // Build a scope for further message processing.
                     const socketToken = jsonData.token;
                     if (socketToken) {
-                        const account = accountService.getAccountBySocketToken(socketToken);
+                        const account = getAccountBySocketToken(socketToken);
                         if (account) {
                             account.websocket = ws;
                             socketMessageHandler.handleMessage({account:account, data:jsonData});

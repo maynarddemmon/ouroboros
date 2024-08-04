@@ -11,7 +11,8 @@ orb.IS_PROD = ARGS[2] ?? false;
 orb.CACHE_BUST = ARGS[3] ?? '';
 
 // Startup
-const socketServer = require('./SocketServer.js'),
+const loggingService = require('./LoggingService.js'),
+    socketServer = require('./SocketServer.js'),
     httpServer = require('./HTTPServer.js'),
     accountService = require('./AccountService.js'),
     characterService = require('./CharacterService.js'),
@@ -25,6 +26,7 @@ const socketServer = require('./SocketServer.js'),
         }
         
         orb.lifeCycle(isBirth).then(
+            () =>   loggingService.lifeCycle(isBirth)).then(
             () =>     socketServer.lifeCycle(isBirth)).then(
             () =>   accountService.lifeCycle(isBirth)).then(
             () => characterService.lifeCycle(isBirth)).then(
@@ -44,6 +46,6 @@ lifeCycle(true);
 
 // Graceful Shutdown
 process.on('SIGTERM', () => {
-    console.log('SIGTERM signal received. Starting Shutdown...');
+    console.log('\nSIGTERM signal received. Starting Shutdown...');
     lifeCycle(false);
 });
