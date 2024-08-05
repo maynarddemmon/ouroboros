@@ -20,7 +20,7 @@ orb = (() => {
         {
             util:{worldTimeToParts},
             greek:{
-                TYPE_WARNING, TYPE_ERROR, 
+                TYPE_WARNING, TYPE_ERROR, TYPE_SERVERINFO,
                 TYPE_LOBBY, TYPE_CREATE_CHARACTER, TYPE_DELETE_CHARACTER,
                 TYPE_ENTER_WORLD, TYPE_EXIT_WORLD,
                 ATTR_TIME
@@ -92,6 +92,11 @@ orb = (() => {
                         pkg.growl('failure', 'Server Warning', response.msg);
                         pkg.app.unlockUI();
                     }, TYPE_ERROR);
+                    
+                    websocket.registerListener(response => {
+                        pkg.growl('info', 'Server Info', response.msg);
+                        pkg.app.unlockUI();
+                    }, TYPE_SERVERINFO);
                     
                     websocket.registerListener(response => {
                         const model = pkg.model,

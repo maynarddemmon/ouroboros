@@ -195,179 +195,205 @@ const {scryptSync} = require('crypto'),
         orb.saveDataToFile(FILENAME_ACCOUNTS, dataToSave);
         
         resolve();
-    };
-
-module.exports = {
-    lifeCycle: isBirth => new Promise((resolve, reject) => {
-        if (isBirth) {
-            live(resolve, reject);
-        } else {
-            die(resolve, reject);
-        }
-    }),
-    
-    getAccountByUsername:getAccountByUsername,
-    getAccountBySocketToken:getAccountBySocketToken,
-    authenticate:authenticate,
-    
-    createAccount: (session, username, password) => {
-        const retval = {success:false};
-        if (!username) {
-            retval.message = 'No username provided.';
-        } else if (!password) {
-            retval.message = 'No password provided.';
-        } else if (password.length < 7) {
-            retval.message = 'Password not suitable.';
-        } else if (getAccountByUsername(username)) {
-            retval.message = 'Account already exists.';
-        } else {
-            const account = makeAccountObject(username, password);
-            accessLog.info('Create Account:' + username);
-            return authenticate(session, username, password);
-        }
-        return retval;
     },
     
-    deauthenticate: session => {
-        const username = session[FIELD_USERNAME],
-            retval = {success:false};
-        if (username) {
-            const existingAccount = getAccountByUsername(username);
-            if (existingAccount) {
-                delete session[FIELD_USERNAME];
-                accessLog.info('Deauthenticate:' + username);
-                
-                closeSocketForAccount(existingAccount);
-                
-                existingAccount[FIELD_SOCKET_TOKEN] = null;
-                existingAccount[FIELD_AUTHENTICATED] = false;
-                retval.success = true;
+    accountService = module.exports = {
+        lifeCycle: isBirth => new Promise((resolve, reject) => {
+            if (isBirth) {
+                live(resolve, reject);
             } else {
-                retval.message = 'Logout failed.';
-                accessLog.error('Deauthenticate failed. No account:' + username);
+                die(resolve, reject);
             }
-        } else {
-            retval.message = 'Logout failed because session was already unauthenticated.';
-        }
-        return retval;
-    },
-    
-    changePassword: (session, username, password, newPassword) => {
-        const existingAccount = getAccountByUsername(username),
-            retval = {success:false};
-        if (existingAccount) {
+        }),
+        
+        getAccountByUsername:getAccountByUsername,
+        getAccountBySocketToken:getAccountBySocketToken,
+        authenticate:authenticate,
+        
+        createAccount: (session, username, password) => {
+            const retval = {success:false};
             if (!username) {
                 retval.message = 'No username provided.';
             } else if (!password) {
                 retval.message = 'No password provided.';
-            } else if (!newPassword) {
-                retval.message = 'No new password provided.';
-            } else if (newPassword.length < 7) {
-                retval.message = 'New password not suitable.';
-            } else if (isAuthFailLimitExceeded(existingAccount[FIELD_AUTH_FAIL_COUNT])) {
-                // Catch accounts locked for excessive fail counts before we try to authenticate.
-                retval.message = 'Account authentication temporarily locked.';
-            } else if (makeHash(password) === existingAccount[FIELD_PASSWORD]) {
-                accessLog.info('Updating Password:' + username);
-                existingAccount[FIELD_PASSWORD] = makeHash(newPassword);
-                retval.success = true;
+            } else if (password.length < 7) {
+                retval.message = 'Password not suitable.';
+            } else if (getAccountByUsername(username)) {
+                retval.message = 'Account already exists.';
             } else {
-                // Auth Failed
+                const account = makeAccountObject(username, password);
+                accessLog.info('Create Account:' + username);
+                return authenticate(session, username, password);
+            }
+            return retval;
+        },
+        
+        deauthenticate: session => {
+            const username = session[FIELD_USERNAME],
+                retval = {success:false};
+            if (username) {
+                const existingAccount = getAccountByUsername(username);
+                if (existingAccount) {
+                    delete session[FIELD_USERNAME];
+                    accessLog.info('Deauthenticate:' + username);
+                    
+                    closeSocketForAccount(existingAccount);
+                    
+                    existingAccount[FIELD_SOCKET_TOKEN] = null;
+                    existingAccount[FIELD_AUTHENTICATED] = false;
+                    retval.success = true;
+                } else {
+                    retval.message = 'Logout failed.';
+                    accessLog.error('Deauthenticate failed. No account:' + username);
+                }
+            } else {
+                retval.message = 'Logout failed because session was already unauthenticated.';
+            }
+            return retval;
+        },
+        
+        changePassword: (session, username, password, newPassword) => {
+            const existingAccount = getAccountByUsername(username),
+                retval = {success:false};
+            if (existingAccount) {
+                if (!username) {
+                    retval.message = 'No username provided.';
+                } else if (!password) {
+                    retval.message = 'No password provided.';
+                } else if (!newPassword) {
+                    retval.message = 'No new password provided.';
+                } else if (newPassword.length < 7) {
+                    retval.message = 'New password not suitable.';
+                } else if (isAuthFailLimitExceeded(existingAccount[FIELD_AUTH_FAIL_COUNT])) {
+                    // Catch accounts locked for excessive fail counts before we try to authenticate.
+                    retval.message = 'Account authentication temporarily locked.';
+                } else if (makeHash(password) === existingAccount[FIELD_PASSWORD]) {
+                    accessLog.info('Updating Password:' + username);
+                    existingAccount[FIELD_PASSWORD] = makeHash(newPassword);
+                    retval.success = true;
+                } else {
+                    // Auth Failed
+                    retval.message = 'Update Password failed.';
+                    accessLog.warn('Update Password failed. Password mismatch:' + username);
+                    
+                    // Lock account if necessary
+                    if (isAuthFailLimitExceeded(++existingAccount[FIELD_AUTH_FAIL_COUNT])) {
+                        lockedAccounts.push(existingAccount);
+                        startAccountUnlocker();
+                        retval.message += ' Account temporarily locked.';
+                        accessLog.warn('Temporarily locking account:' + username);
+                    }
+                }
+            } else {
+                // No account for username
                 retval.message = 'Update Password failed.';
-                accessLog.warn('Update Password failed. Password mismatch:' + username);
-                
-                // Lock account if necessary
-                if (isAuthFailLimitExceeded(++existingAccount[FIELD_AUTH_FAIL_COUNT])) {
-                    lockedAccounts.push(existingAccount);
-                    startAccountUnlocker();
-                    retval.message += ' Account temporarily locked.';
-                    accessLog.warn('Temporarily locking account:' + username);
-                }
+                accessLog.warn('Update Password failed. No account:' + username);
             }
-        } else {
-            // No account for username
-            retval.message = 'Update Password failed.';
-            accessLog.warn('Update Password failed. No account:' + username);
-        }
-        return retval;
-    },
-    
-    deleteAccount: (session, username, password) => {
-        const existingAccount = getAccountByUsername(username),
-            retval = {success:false};
-        if (existingAccount) {
-            if (isAuthFailLimitExceeded(existingAccount[FIELD_AUTH_FAIL_COUNT])) {
-                // Catch accounts locked for excessive fail counts before we try to authenticate.
-                retval.message = 'Account authentication temporarily locked.';
-            } else if (makeHash(password) === existingAccount[FIELD_PASSWORD]) {
-                accessLog.info('Deleting Account:' + username);
-                
-                closeSocketForAccount(existingAccount);
-                characterService.convertAllCharactersToZombiesForAccount(username);
-                delete accountsByUsername[username];
-                
-                retval.success = true;
+            return retval;
+        },
+        
+        deleteAccount: (session, username, password) => {
+            const existingAccount = getAccountByUsername(username),
+                retval = {success:false};
+            if (existingAccount) {
+                if (isAuthFailLimitExceeded(existingAccount[FIELD_AUTH_FAIL_COUNT])) {
+                    // Catch accounts locked for excessive fail counts before we try to authenticate.
+                    retval.message = 'Account authentication temporarily locked.';
+                } else if (makeHash(password) === existingAccount[FIELD_PASSWORD]) {
+                    accessLog.info('Deleting Account:' + username);
+                    
+                    closeSocketForAccount(existingAccount);
+                    characterService.convertAllCharactersToZombiesForAccount(username);
+                    delete accountsByUsername[username];
+                    
+                    retval.success = true;
+                } else {
+                    // Auth Failed
+                    retval.message = 'Account Deletion failed.';
+                    accessLog.warn('Account Deletion failed. Password mismatch:' + username);
+                    
+                    // Lock account if necessary
+                    if (isAuthFailLimitExceeded(++existingAccount[FIELD_AUTH_FAIL_COUNT])) {
+                        lockedAccounts.push(existingAccount);
+                        startAccountUnlocker();
+                        retval.message += ' Account temporarily locked.';
+                        accessLog.warn('Temporarily locking account:' + username);
+                    }
+                }
             } else {
-                // Auth Failed
+                // No account for username
                 retval.message = 'Account Deletion failed.';
-                accessLog.warn('Account Deletion failed. Password mismatch:' + username);
-                
-                // Lock account if necessary
-                if (isAuthFailLimitExceeded(++existingAccount[FIELD_AUTH_FAIL_COUNT])) {
-                    lockedAccounts.push(existingAccount);
-                    startAccountUnlocker();
-                    retval.message += ' Account temporarily locked.';
-                    accessLog.warn('Temporarily locking account:' + username);
+                accessLog.warn('Account Deletion failed. No account:' + username);
+            }
+            return retval;
+        },
+        
+        // Outgoing WebSocket Messages
+        addMessageToUser: (username, msgOut) => {
+            const account = getAccountByUsername(username);
+            if (account) {
+                // Only message user's that are currently connected.
+                const websocket = account[FIELD_WEBSOCKET];
+                if (websocket) {
+                    getMessagesByUsernameLazy(username).push(msgOut);
+                } else {
+                    console.warn('Attempt to message disconnected user account: ', username);
                 }
-            }
-        } else {
-            // No account for username
-            retval.message = 'Account Deletion failed.';
-            accessLog.warn('Account Deletion failed. No account:' + username);
-        }
-        return retval;
-    },
-    
-    // Outgoing WebSocket Messages
-    addMessageToUser: (username, msgOut) => {
-        const account = getAccountByUsername(username);
-        if (account) {
-            // Only message user's that are currently connected.
-            const websocket = account[FIELD_WEBSOCKET];
-            if (websocket) {
-                getMessagesByUsernameLazy(username).push(msgOut);
             } else {
-                console.warn('Attempt to message disconnected user account: ', username);
+                console.error('Attempt to message non-existant user account: ', username);
             }
-        } else {
-            console.error('Attempt to message non-existant user account: ', username);
-        }
-    },
-    
-    drainOutgoingMessages: () => {
-        for (const username in outgoingMessagesByUsername) {
-            const msgs = outgoingMessagesByUsername[username],
-                len = msgs.length;
-            if (len > 0) {
-                const account = getAccountByUsername(username);
-                if (account) {
-                    const websocket = account[FIELD_WEBSOCKET];
-                    if (websocket) {
-                        if (len === 1) {
-                            websocket.send(JSON.stringify(msgs.pop()));
-                        } else if (len > 1) {
-                            websocket.send(JSON.stringify(msgs));
-                            msgs.length = 0;
+        },
+        
+        addMessageToAllConnectedAccounts: (msgOut, accountFilter) => {
+            const connectedAccountFilter = account => {
+                if (account[FIELD_WEBSOCKET]) {
+                    return accountFilter ? accountFilter(account) : true;
+                } else {
+                    return false;
+                }
+            };
+            accountService.addMessageToAllAccounts(msgOut, connectedAccountFilter);
+        },
+        
+        addMessageToAllAccounts: (msgOut, accountFilter) => {
+            // FIXME: this won't actually work for disconnected users.
+            // Requires out-of-game and offline message queues.
+            if (msgOut) {
+                for (const username in accountsByUsername) {
+                    const account = accountsByUsername[username];
+                    if (!accountFilter || accountFilter(account)) {
+                        getMessagesByUsernameLazy(username).push(msgOut);
+                    }
+                }
+            } else {
+                console.warn('Broadcast message not sent because it was empty.');
+            }
+        },
+        
+        drainOutgoingMessages: () => {
+            for (const username in outgoingMessagesByUsername) {
+                const msgs = outgoingMessagesByUsername[username],
+                    len = msgs.length;
+                if (len > 0) {
+                    const account = getAccountByUsername(username);
+                    if (account) {
+                        const websocket = account[FIELD_WEBSOCKET];
+                        if (websocket) {
+                            if (len === 1) {
+                                websocket.send(JSON.stringify(msgs.pop()));
+                            } else if (len > 1) {
+                                websocket.send(JSON.stringify(msgs));
+                                msgs.length = 0;
+                            }
+                        } else {
+                            delete outgoingMessagesByUsername[username];
+                            console.warn('Attempt to drain messages for disconnected user account: ', username);
                         }
                     } else {
                         delete outgoingMessagesByUsername[username];
-                        console.warn('Attempt to drain messages for disconnected user account: ', username);
+                        console.error('Attempt to drain messages for non-existant user account: ', username);
                     }
-                } else {
-                    delete outgoingMessagesByUsername[username];
-                    console.error('Attempt to drain messages for non-existant user account: ', username);
                 }
             }
         }
-    }
-};
+    };

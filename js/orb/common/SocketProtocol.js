@@ -1,6 +1,7 @@
 (() => {
     const TYPE_WARNING = 'warning',
         TYPE_ERROR = 'error',
+        TYPE_SERVERINFO = 'serverInfo',
         
         TYPE_LOBBY = 'lobby',
         TYPE_CREATE_CHARACTER = 'createCharacter',
@@ -13,6 +14,7 @@
         EXPORT = {
             TYPE_WARNING:TYPE_WARNING,
             TYPE_ERROR:TYPE_ERROR,
+            TYPE_SERVERINFO:TYPE_SERVERINFO,
             
             // BiDirectional Types
             TYPE_LOBBY:TYPE_LOBBY,
