@@ -1,4 +1,6 @@
 (pkg => {
+    let worldClockIntervalId;
+    
     pkg.model = new JS.Singleton('Model', myt.Node, {
         // Accessors ///////////////////////////////////////////////////////////
         
@@ -58,9 +60,23 @@
         },
         // Characters:end
         
+        // Time:start
         setWorldClockTick: function(v) {
             this.set('worldClockTick', v, true);
         },
+        
+        setWorldClockTime: function(v) {
+            this.set('worldClockTime', v, true);
+        },
+        
+        updateWorldClockTime: function(v) {
+            if (worldClockIntervalId) clearInterval(worldClockIntervalId);
+            this.setWorldClockTime(v);
+            worldClockIntervalId = setInterval(() => {
+                this.setWorldClockTime(this.worldClockTime + 1);
+            }, this.worldClockTick);
+        },
+        // Time:end
         
         
         // Methods /////////////////////////////////////////////////////////////

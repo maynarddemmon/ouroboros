@@ -1,11 +1,10 @@
 const orb = require('./orb.js'),
     {getAccountByUsername, addMessageToUser} = require('./AccountService.js'),
     {getCharactersByUserId, doCharacterExitWorld} = require('./CharacterService.js'),
-    greek = require('../common/SocketProtocol.js'),
-    
     {
-        TYPE_WARNING, TYPE_ERROR, TYPE_ENTER_WORLD, TYPE_EXIT_WORLD
-    } = greek;
+        TYPE_WARNING, TYPE_ERROR, TYPE_ENTER_WORLD, TYPE_EXIT_WORLD,
+        ATTR_TIME
+    } = require('../common/SocketProtocol.js');
     
     warningMessageToUser = (username, msg) => {
         console.warn(msg);
@@ -43,7 +42,7 @@ const orb = require('./orb.js'),
                 }
                 
                 if (character) {
-                    addMessageToUser(username, {type:TYPE_ENTER_WORLD, msg:{character:character}, _tt:event._tt});
+                    addMessageToUser(username, {type:TYPE_ENTER_WORLD, msg:{character:character}, [ATTR_TIME]:event[ATTR_TIME]});
                 } else {
                     warningMessageToUser(username, 'Character not found for ', characterId);
                 }
@@ -63,7 +62,7 @@ const orb = require('./orb.js'),
                 while (i) {
                     const usersCharacter = usersCharacters[--i];
                     if (usersCharacter.id === characterId) {
-                        if (!characterService.doCharacterExitWorld(usersCharacter)) {
+                        if (!doCharacterExitWorld(usersCharacter)) {
                             warningMessageToUser(username, 'Character already not in world ', characterId);
                         }
                         character = usersCharacter;
@@ -72,7 +71,7 @@ const orb = require('./orb.js'),
                 }
                 
                 if (character) {
-                    addMessageToUser(username, {type:TYPE_EXIT_WORLD, msg:{character:character}, _tt:event._tt});
+                    addMessageToUser(username, {type:TYPE_EXIT_WORLD, msg:{character:character}, [ATTR_TIME]:event[ATTR_TIME]});
                 } else {
                     warningMessageToUser(username, 'Character not found for ', characterId);
                 }

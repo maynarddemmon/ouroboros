@@ -7,6 +7,7 @@ const orb = require('./orb.js'),
     {getEventLog} = require('./LoggingService.js'),
     worldEventHandler = require('./WorldEventHandler.js'),
     {drainOutgoingMessages} = require('./AccountService.js'),
+    {ATTR_TIME} = require('../common/SocketProtocol.js'),
     
     FILENAME_WORLD_CLOCK = 'world_clock',
     
@@ -134,7 +135,7 @@ const orb = require('./orb.js'),
             if (event) {
                 const tickTime = getTickTime(when);
                 if (tickTime >= 0) {
-                    event._tt = tickTime;
+                    event[ATTR_TIME] = tickTime;
                     getQueueLazy(tickTime).push(event);
                 }
             }

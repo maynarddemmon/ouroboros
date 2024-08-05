@@ -17,7 +17,8 @@ orb = (() => {
         {
             TYPE_WARNING, TYPE_ERROR, 
             TYPE_LOBBY, TYPE_CREATE_CHARACTER, TYPE_DELETE_CHARACTER,
-            TYPE_ENTER_WORLD, TYPE_EXIT_WORLD
+            TYPE_ENTER_WORLD, TYPE_EXIT_WORLD,
+            ATTR_TIME
         } = greek,
         
         pkg = {
@@ -84,16 +85,12 @@ orb = (() => {
                     }, TYPE_ERROR);
                     
                     websocket.registerListener(response => {
-                        pkg.growl('failure', 'Server Warning', response.msg);
-                        pkg.app.unlockUI();
-                    }, TYPE_ERROR);
-                    
-                    websocket.registerListener(response => {
                         const model = pkg.model,
                             {character} = response.msg;
                         if (character) {
                             if (model.replaceCharacter(character)) {
                                 model.setCharacterInPlay(character);
+                                model.updateWorldClockTime(response[ATTR_TIME]);
                                 pkg.app.selectPanel(pkg.PANEL_ID_GAME);
                             } else {
                                 pkg.growl('failure', 'Character Not Found', 'The chracter sent back by the server was not found locally.');
@@ -108,6 +105,7 @@ orb = (() => {
                         if (character) {
                             if (model.replaceCharacter(character)) {
                                 model.setCharacterInPlay();
+                                model.updateWorldClockTime(response[ATTR_TIME]);
                                 pkg.app.selectPanel(pkg.PANEL_ID_LOBBY);
                             } else {
                                 pkg.growl('failure', 'Character Not Found', 'The chracter sent back by the server was not found locally.');
