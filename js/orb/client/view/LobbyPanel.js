@@ -71,7 +71,7 @@
                     }]);
                     self.detailsBtn = new TextBtn(self, {valign:'middle', text:'View Details', width:150}, [{
                         doActivated:() => {
-                            console.log('FIXME');
+                            console.log('FIXME', self.character);
                         }
                     }]);
                     new Text(self, {valign:'middle', text:(character.isInWorld ? pkg.FA_GLOBE + ' ' : '') + character.name, layoutHint:1});
@@ -352,7 +352,7 @@
                                     formValues.username = pkg.username;
                                     G.app.doDeleteAccountRequest(formValues, (success, dataOrError) => {
                                         if (success) {
-                                            pkg.cleanUpForDeath();
+                                            pkg.cleanUpForDeauth();
                                             pkg.app.selectPanel(pkg.PANEL_ID_AUTH);
                                             pkg.growl('success', 'Account Deletion Succeeded');
                                         } else {

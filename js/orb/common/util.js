@@ -53,7 +53,11 @@
                     }
                 }
                 return accum.join('');
-            }
+            },
+            
+            // Map Functions
+            locArrToId: locArr => locArr.join(),
+            locArrToMapId: locArr => '' + locArr[0],
         };
     
     if (typeof module === 'object' && module.exports) {

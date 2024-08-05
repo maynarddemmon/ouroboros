@@ -1,8 +1,10 @@
 const orb = require('./orb.js'),
     {getAccountByUsername, addMessageToUser} = require('./AccountService.js'),
     {getCharactersByUserId, doCharacterExitWorld} = require('./CharacterService.js'),
+    {getCellDataForCharacter, getMapDataForCharacter} = require('./WorldMap.js'),
     {
         TYPE_WARNING, TYPE_ERROR, TYPE_ENTER_WORLD, TYPE_EXIT_WORLD,
+        TYPE_MAP_DATA, TYPE_CELL_DATA,
         ATTR_TIME
     } = require('../common/SocketProtocol.js');
     
@@ -42,7 +44,10 @@ const orb = require('./orb.js'),
                 }
                 
                 if (character) {
-                    addMessageToUser(username, {type:TYPE_ENTER_WORLD, msg:{character:character}, [ATTR_TIME]:event[ATTR_TIME]});
+                    const time = event[ATTR_TIME];
+                    addMessageToUser(username, {type:TYPE_ENTER_WORLD, msg:{character:character}, [ATTR_TIME]:time});
+                    addMessageToUser(username, {type:TYPE_MAP_DATA, msg:getMapDataForCharacter(character), [ATTR_TIME]:time});
+                    addMessageToUser(username, {type:TYPE_CELL_DATA, msg:getCellDataForCharacter(character), [ATTR_TIME]:time});
                 } else {
                     warningMessageToUser(username, 'Character not found for ', characterId);
                 }

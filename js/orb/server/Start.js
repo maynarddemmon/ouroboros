@@ -19,6 +19,7 @@ const loggingService = require('./LoggingService.js'),
     accountService = require('./AccountService.js'),
     characterService = require('./CharacterService.js'),
     worldClock = require('./WorldClock.js'),
+    worldMap = require('./WorldMap.js'),
     
     {
         TYPE_WARNING, TYPE_SERVERINFO
@@ -81,6 +82,7 @@ const loggingService = require('./LoggingService.js'),
             () =>     socketServer.lifeCycle(isBirth)).then(
             () =>   accountService.lifeCycle(isBirth)).then(
             () => characterService.lifeCycle(isBirth)).then(
+            () =>         worldMap.lifeCycle(isBirth)).then(
             () =>       worldClock.lifeCycle(isBirth)).then(
             () =>       httpServer.lifeCycle(isBirth)).then(
             () => {

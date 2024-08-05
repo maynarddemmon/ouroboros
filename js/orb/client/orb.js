@@ -23,6 +23,7 @@ orb = (() => {
                 TYPE_WARNING, TYPE_ERROR, TYPE_SERVERINFO,
                 TYPE_LOBBY, TYPE_CREATE_CHARACTER, TYPE_DELETE_CHARACTER,
                 TYPE_ENTER_WORLD, TYPE_EXIT_WORLD,
+                TYPE_MAP_DATA, TYPE_CELL_DATA,
                 ATTR_TIME
             }
         } = common,
@@ -119,6 +120,7 @@ orb = (() => {
                         if (character) {
                             if (model.replaceCharacter(character)) {
                                 model.setCharacterInPlay();
+                                pkg.model.clearMapAndCellData();
                                 model.updateWorldClockTime(response[ATTR_TIME]);
                                 pkg.app.selectPanel(pkg.PANEL_ID_LOBBY);
                             } else {
@@ -127,13 +129,21 @@ orb = (() => {
                         }
                         pkg.app.unlockUI();
                     }, TYPE_EXIT_WORLD);
+                    
+                    websocket.registerListener(response => {
+                        pkg.model.storeMapData(response.msg);
+                    }, TYPE_MAP_DATA);
+                    
+                    websocket.registerListener(response => {
+                        pkg.model.storeCellData(response.msg);
+                    }, TYPE_CELL_DATA);
                 }
                 
                 // Open Socket Connection
                 if (websocket.status === 'closed') websocket.connect();
             },
             
-            cleanUpForDeath: () => {
+            cleanUpForDeauth: () => {
                 // Wipe Model
                 pkg.model.wipeClean();
                 
@@ -150,7 +160,7 @@ orb = (() => {
             doDeathRequest: () => {
                 pkg.app.doDeauthRequest({username:pkg.username}, (success, dataOrError) => {
                     if (success) {
-                        pkg.cleanUpForDeath();
+                        pkg.cleanUpForDeauth();
                         pkg.app.selectPanel(pkg.PANEL_ID_AUTH);
                     } else {
                         pkg.growl('failure', 'Logout Failed', dataOrError.message);
