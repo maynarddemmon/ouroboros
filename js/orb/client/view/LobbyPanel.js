@@ -1,6 +1,5 @@
 (pkg => {
-    let socketConnectedTxt,
-        titleHeader,
+    let titleHeader,
         characterContainer,
         newCharNameField;
     
@@ -10,6 +9,8 @@
             View, Text, SpacedLayout, ResizeLayout, SizeToParent, EqualFieldsValidator,
             global:G
         } = M,
+        
+        {TYPE_ENTER_WORLD, TYPE_CREATE_CHARACTER, TYPE_DELETE_CHARACTER} = common.greek,
         
         {
             TextBtn, FormInputText, FieldErrorTextMixin, RevealPasswordBtn,
@@ -48,7 +49,7 @@
         
         doPlay = character => {
             pkg.app.lockUI('Entering Ouroboros...', true);
-            pkg.websocket.sendTypedMessage(greek.TYPE_ENTER_WORLD, {id:character.id});
+            pkg.websocket.sendTypedMessage(TYPE_ENTER_WORLD, {id:character.id});
         },
         
         CharacterRow = new JS.Class('CharacterRow', pkg.WideFlowComponent, {
@@ -81,7 +82,7 @@
                                 'Delete Character',
                                 () => {
                                     pkg.app.lockUI('Deleting Character...', true);
-                                    pkg.websocket.sendTypedMessage(greek.TYPE_DELETE_CHARACTER, {id:self.character.id});
+                                    pkg.websocket.sendTypedMessage(TYPE_DELETE_CHARACTER, {id:self.character.id});
                                 }
                             );
                         }
@@ -153,7 +154,7 @@
                         doActivated:() => {
                             if (formContainer.isValid) {
                                 pkg.app.lockUI('Creating Character...', true);
-                                pkg.websocket.sendTypedMessage(greek.TYPE_CREATE_CHARACTER, formContainer.getValue());
+                                pkg.websocket.sendTypedMessage(TYPE_CREATE_CHARACTER, formContainer.getValue());
                             }
                         }
                     }]);
@@ -196,9 +197,8 @@
                 refreshLobby();
                 
                 pkg.connectToWebsocket();
-                socketConnectedTxt?.syncTo(pkg.websocket, 'onWebsocketStatus', 'status');
-            } else {
-                socketConnectedTxt?.detachFrom(pkg.websocket, 'onWebsocketStatus', 'status');
+                pkg.reparentWorldClockView(titleHeader);
+                pkg.reparenSocketStatusIndicator(titleHeader);
             }
         },
         
@@ -220,7 +220,6 @@
         
         buildHeader: header => {
             new View(header, {layoutHint:1});
-            socketConnectedTxt = pkg.makeSocketStatusIndicator(header);
         },
         
         buildFooter: header => {

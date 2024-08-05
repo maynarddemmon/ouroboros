@@ -28,6 +28,6 @@
     if (typeof module === 'object' && module.exports) {
         module.exports = EXPORT;
     } else {
-        global.greek = EXPORT;
+        common.greek = EXPORT;
     }
 })();

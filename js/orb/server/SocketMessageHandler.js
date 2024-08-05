@@ -1,15 +1,16 @@
 const {maxCharactersPerUser} = require('./orb.js'),
     characterService = require('./CharacterService.js'),
-    worldClock = require('./WorldClock.js'),
+    {doEventNext, getTick, getNow} = require('./WorldClock.js'),
     greek = require('../common/SocketProtocol.js'),
     
     {
         TYPE_LOBBY, TYPE_CREATE_CHARACTER, TYPE_DELETE_CHARACTER,
-        TYPE_ENTER_WORLD, TYPE_EXIT_WORLD
+        TYPE_ENTER_WORLD, TYPE_EXIT_WORLD,
+        ATTR_TIME
     } = greek,
     
     doEventNextHandler = (username, type, msg) => {
-        worldClock.doEventNext({_uid:username, type:type, msg:msg});
+        doEventNext({_uid:username, type:type, msg:msg});
     },
     
     HANDLERS = {
@@ -17,23 +18,23 @@ const {maxCharactersPerUser} = require('./orb.js'),
             const msgObj = {
                 characters:characterService.getCharactersByUserId(username),
                 maxCharacters:maxCharactersPerUser,
-                worldClockTick:worldClock.getTick()
+                worldClockTick:getTick()
             };
-            return {type:type, msg:msgObj};
+            return {type:type, msg:msgObj, [ATTR_TIME]:getNow()};
         },
         
         [TYPE_CREATE_CHARACTER]: (username, type, msg) => {
             const {success, message, character} = characterService.createCharacter(username, msg),
                 msgObj = {success:success, message:message};
             if (success) msgObj.character = character;
-            return {type:type, msg:msgObj};
+            return {type:type, msg:msgObj, [ATTR_TIME]:getNow()};
         },
         
         [TYPE_DELETE_CHARACTER]: (username, type, msg) => {
             const {success, message, id} = characterService.deleteCharacter(username, msg.id),
                 msgObj = {success:success, message:message};
             if (success) msgObj.id = id;
-            return {type:type, msg:msgObj};
+            return {type:type, msg:msgObj, [ATTR_TIME]:getNow()};
         },
         
         [TYPE_ENTER_WORLD]:doEventNextHandler,

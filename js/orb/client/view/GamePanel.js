@@ -1,5 +1,5 @@
 (pkg => {
-    let socketConnectedTxt,
+    let titleHeader,
         character;
     
     const I18N = BABEL.get,
@@ -8,6 +8,8 @@
             View, Text, SpacedLayout, ResizeLayout, SizeToParent, 
             global:G
         } = M,
+        
+        {TYPE_EXIT_WORLD} = common.greek,
         
         {
             TextBtn,
@@ -21,13 +23,12 @@
             this.callSuper(v);
             if (this.visible) {
                 pkg.connectToWebsocket();
-                socketConnectedTxt?.syncTo(pkg.websocket, 'onWebsocketStatus', 'status');
+                pkg.reparentWorldClockView(titleHeader);
+                pkg.reparenSocketStatusIndicator(titleHeader);
                 
                 character = model.getCharacterInPlay();
                 
-                this.header.setTitle('Playing As: ' + character.name);
-            } else {
-                socketConnectedTxt?.detachFrom(pkg.websocket, 'onWebsocketStatus', 'status');
+                titleHeader.setTitle('Playing As: ' + character.name);
             }
         },
         
@@ -35,7 +36,7 @@
         // Methods /////////////////////////////////////////////////////////////
         buildUI: function() {
             const self = this;
-            self.buildHeader(self.header = new pkg.TitleHeader(self, {}));
+            self.buildHeader(titleHeader = new pkg.TitleHeader(self, {}));
             self.gameSpace = new View(self, {percentOfParentWidth:100, layoutHint:1}, [SizeToParent]);
             self.buildFooter(self.footer = new pkg.Footer(self, {}));
             new ResizeLayout(self, {axis:'y'});
@@ -43,15 +44,13 @@
         
         buildHeader: header => {
             new View(header, {layoutHint:1});
-            
-            socketConnectedTxt = pkg.makeSocketStatusIndicator(header);
         },
         
         buildFooter: footer => {
             new TextBtn(footer, {valign:'middle', text:pkg.FA_CHEVRON_LEFT + ' Exit to Lobby'}, [{
                 doActivated:() => {
                     pkg.app.lockUI('Leaving Ouroboros...', true);
-                    pkg.websocket.sendTypedMessage(greek.TYPE_EXIT_WORLD, {id:character.id});
+                    pkg.websocket.sendTypedMessage(TYPE_EXIT_WORLD, {id:character.id});
                 }
             }]);
         }

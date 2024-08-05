@@ -7,10 +7,12 @@ JS.Packages(file => {
     file(ORB_ROOT + '../../../lib/myt.js').provides('myt.all');
     
     // Common
-    file(ORB_ROOT + '../common/SocketProtocol.js').provides('greek');
+    file(ORB_ROOT + '../common/common.js').provides('common');
+    file(ORB_ROOT + '../common/SocketProtocol.js').provides('common.greek').requires('common');
+    file(ORB_ROOT + '../common/util.js').provides('common.util').requires('common');
     
     // Package:orb
-    file(ORB_ROOT + 'orb.js').provides('orb').requires('myt.all','greek');
+    file(ORB_ROOT + 'orb.js').provides('orb').requires('myt.all','common.greek','common.util');
     
     file(COMPONENT_ROOT + 'WebSocket.js').provides('orb.MessageTypeWebSocket').requires('orb');
     file(COMPONENT_ROOT + 'Basic.js').provides(
@@ -18,11 +20,11 @@ JS.Packages(file => {
         'orb.WideMiddle',
         'orb.Footer',
         'orb.BaseStackablePanel',
-        'orb.TextBtn'
+        'orb.TextBtn', 'orb.SquareBtn'
     ).requires('orb');
     file(COMPONENT_ROOT + 'Form.js').provides(
         'orb.FormInputText', 'orb.FormInputTextArea', 'orb.RevealPasswordBtn'
-    ).requires('orb');
+    ).requires('orb.SquareBtn');
     
     file(MODEL_ROOT + 'Model.js').provides('orb.model').requires('orb');
     

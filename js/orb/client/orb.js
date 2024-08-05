@@ -1,6 +1,9 @@
 (global.BABEL = myt.I18N).setDictionary(LOCALE_JSON, LOCALE);
 
 orb = (() => {
+    let socketConnectedTxt,
+        worldClockView;
+    
     const I18N = BABEL.get,
         
         {
@@ -15,11 +18,14 @@ orb = (() => {
         makeTagFunc = FontAwesome.makeTag.bind(FontAwesome),
         
         {
-            TYPE_WARNING, TYPE_ERROR, 
-            TYPE_LOBBY, TYPE_CREATE_CHARACTER, TYPE_DELETE_CHARACTER,
-            TYPE_ENTER_WORLD, TYPE_EXIT_WORLD,
-            ATTR_TIME
-        } = greek,
+            util:{worldTimeToParts},
+            greek:{
+                TYPE_WARNING, TYPE_ERROR, 
+                TYPE_LOBBY, TYPE_CREATE_CHARACTER, TYPE_DELETE_CHARACTER,
+                TYPE_ENTER_WORLD, TYPE_EXIT_WORLD,
+                ATTR_TIME
+            }
+        } = common,
         
         pkg = {
             app:null,
@@ -48,6 +54,7 @@ orb = (() => {
                         model.setWorldClockTick(msg.worldClockTick);
                         model.setMaxCharacters(msg.maxCharacters);
                         model.setCharacters(msg.characters);
+                        model.updateWorldClockTime(response[ATTR_TIME]);
                     }, TYPE_LOBBY);
                     
                     websocket.registerListener(response => {
@@ -55,6 +62,7 @@ orb = (() => {
                             {success, message, character} = response.msg;
                         if (success) {
                             model.addCharacter(character);
+                            model.updateWorldClockTime(response[ATTR_TIME]);
                             pkg.growl('success', 'Character Created', message);
                         } else {
                             pkg.growl('failure', 'Character Creation Failed', message);
@@ -67,6 +75,7 @@ orb = (() => {
                             {success, message, id} = response.msg;
                         if (success) {
                             model.removeCharacterById(id);
+                            model.updateWorldClockTime(response[ATTR_TIME]);
                             pkg.growl('success', 'Character Deleted', message);
                         } else {
                             pkg.growl('failure', 'Character Deletion Failed', message);
@@ -144,27 +153,43 @@ orb = (() => {
                 });
             },
             
-            makeSocketStatusIndicator: (parent, statusChangeCallback) => {
-                const socketConnectedTxt = new Text(parent, {valign:'middle', text:pkg.FA_PLUG, fontSize:'18px'}, [{
-                    onWebsocketStatus: function(event) {
-                        const status = event.value;
-                        
-                        if (status === 'open') {
-                            this.setOpacity(1);
-                            this.setTooltip('Socket connected.');
-                            this.setTextColor(pkg.theme.colorFgSuccess);
-                        } else {
-                            this.setOpacity(0.25);
-                            this.setTooltip('Socket not connected.');
-                            this.setTextColor(pkg.theme.colorFgError);
+            /** Moves the socketStatusIndicator to the provided View. Lazy
+                instantiates it as well. */
+            reparenSocketStatusIndicator: parent => {
+                if (socketConnectedTxt) {
+                    socketConnectedTxt.setParent(parent);
+                } else {
+                    socketConnectedTxt = new Text(parent, {valign:'middle', text:pkg.FA_PLUG, fontSize:'18px'}, [{
+                        onWebsocketStatus: function(event) {
+                            const status = event.value;
+                            
+                            if (status === 'open') {
+                                this.setOpacity(1);
+                                this.setTooltip('Socket connected.');
+                                this.setTextColor(pkg.theme.colorFgSuccess);
+                            } else {
+                                this.setOpacity(0.25);
+                                this.setTooltip('Socket not connected.');
+                                this.setTextColor(pkg.theme.colorFgError);
+                            }
                         }
-                        
-                        statusChangeCallback?.(status);
-                    }
-                }]);
-                FontAwesome.registerForNotification(socketConnectedTxt);
-                socketConnectedTxt.onWebsocketStatus({value:'COMPONENT_INIT'});
-                return socketConnectedTxt;
+                    }]);
+                    FontAwesome.registerForNotification(socketConnectedTxt);
+                    socketConnectedTxt.syncTo(pkg.websocket, 'onWebsocketStatus', 'status');
+                }
+            },
+            
+            reparentWorldClockView: parent => {
+                if (worldClockView) {
+                    worldClockView.setParent(parent);
+                } else {
+                    worldClockView = new Text(parent, {valign:'middle', fontFamily:'monospace'}, [{
+                        onWorldClockTime: function(event) {
+                            this.setText(worldTimeToParts(event.value, true));
+                        }
+                    }]);
+                    worldClockView.syncTo(pkg.model, 'onWorldClockTime', 'worldClockTime');
+                }
             },
             
             // Growls
