@@ -1,16 +1,20 @@
 const {maxCharactersPerUser} = require('./orb.js'),
     characterService = require('./CharacterService.js'),
-    {doEventNext, getTick, getNow} = require('./WorldClock.js'),
+    {doEventNext, doEventNow, getTick, getNow} = require('./WorldClock.js'),
     greek = require('../common/SocketProtocol.js'),
     
     {
         TYPE_LOBBY, TYPE_CREATE_CHARACTER, TYPE_DELETE_CHARACTER,
         TYPE_ENTER_WORLD, TYPE_EXIT_WORLD,
+        TYPE_ACTION_MOVE,
         ATTR_TIME
     } = greek,
     
     doEventNextHandler = (username, type, msg) => {
         doEventNext({_uid:username, type:type, msg:msg});
+    },
+    doEventNowHandler = (username, type, msg) => {
+        doEventNow({_uid:username, type:type, msg:msg});
     },
     
     HANDLERS = {
@@ -39,19 +43,24 @@ const {maxCharactersPerUser} = require('./orb.js'),
         
         [TYPE_ENTER_WORLD]:doEventNextHandler,
         [TYPE_EXIT_WORLD]:doEventNextHandler,
+        [TYPE_ACTION_MOVE]:doEventNowHandler,
     };
 
 module.exports = {
     handleMessage: scope => {
         const {account, data:{time, type, msg}} = scope,
-            response = HANDLERS[type](account.username, type, msg);
-        
-        if (response) {
-            try {
-                account.websocket.send(JSON.stringify(response));
-            } catch (err) {
-                console.error('Failed to send response', type, response, err);
+            handler = HANDLERS[type];
+        if (handler) {
+            const response = handler(account.username, type, msg);
+            if (response) {
+                try {
+                    account.websocket.send(JSON.stringify(response));
+                } catch (err) {
+                    console.error('Failed to send response', type, response, err);
+                }
             }
+        } else {
+            console.warn('Unexpected socket message type: ' + type, msg);
         }
     }
 };

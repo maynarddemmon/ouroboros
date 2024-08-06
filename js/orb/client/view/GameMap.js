@@ -1,26 +1,29 @@
 (pkg => {
     let gameMap,
+        cellPool,
         character;
     
     const JSClass = JS.Class,
         
         mathRound = Math.round,
         
-        {View, debounce} = myt,
+        {View, Reusable, TrackActivesPool, debounce} = myt,
         
         {model} = pkg,
         
         {locArrToId} = common.util,
         
-        DISTANCE = 5,
+        DISTANCE = 9,
         CELL_SIZE = 32,
         CELL_SIZE_HALF = CELL_SIZE / 2,
         
         Cell = new JS.Class('Cell', View, {
+            includes:[Reusable],
+            
+            
             initNode: function(parent, attrs) {
                 const self = this;
                 
-                attrs.bgColor = '#ccc';
                 attrs.width = attrs.height = CELL_SIZE;
                 
                 self.callSuper(parent, attrs);
@@ -57,6 +60,8 @@
             
             gameMap.callSuper(parent, attrs);
             
+            cellPool = new TrackActivesPool(Cell, gameMap);
+            
             gameMap.constrain('refreshMap', [
                 model, 'cellChanged', model, 'mapChanged',
                 model, 'cellDataCleared', model, 'mapDataCleared'
@@ -79,12 +84,8 @@
         
         
         // Methods /////////////////////////////////////////////////////////////
-        refreshMap: function(event) {
-            gameMap.refreshMapDebounce();
-        },
-        
-        refreshMapDebounce: debounce(() => {
-            gameMap.destroyAllSubviews();
+        refreshMap: debounce(() => {
+            cellPool.putActives();
             
             const centerX = mathRound(gameMap.width / 2),
                 centerY = mathRound(gameMap.height / 2),
@@ -100,9 +101,10 @@
                     locArrCopy[2] = locArr[2] + y;
                     
                     const locId = locArrToId(locArrCopy),
-                        cellDatum = model.getCellDatum(locId);
+                        cellDatum = model.getCellDatum(locId),
+                        cellView = cellPool.getInstance();
                     
-                    new Cell(gameMap, {x:posX, y:posY, cell:cellDatum});
+                    cellView.callSetters({x:posX, y:posY, cell:cellDatum});
                     
                     posY += CELL_SIZE;
                 }

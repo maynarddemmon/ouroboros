@@ -1,5 +1,7 @@
 (() => {
-    const 
+    const IS_NODEJS = typeof module === 'object' && module.exports,
+        tym = IS_NODEJS ? require('../../../lib/tym.js') : null,
+        
         WORLD_TIME_COUNTS = [
             100, // Spoke
             36,  // Wheel
@@ -9,10 +11,7 @@
             // Age
         ],
         
-        leftPadNumber = (num, length, padChar='0', base=10) => {
-            const numStr = num.toString(base);
-            return padChar.repeat(Math.max(length - numStr.length, 0)) + numStr;
-        },
+        leftPadNumber = (global.myt ?? tym).leftPadNumber,
         
         EXPORT = {
             leftPadNumber:leftPadNumber,
@@ -60,7 +59,7 @@
             locArrToMapId: locArr => '' + locArr[0],
         };
     
-    if (typeof module === 'object' && module.exports) {
+    if (IS_NODEJS) {
         module.exports = EXPORT;
     } else {
         common.util = EXPORT;

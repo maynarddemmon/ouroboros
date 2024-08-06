@@ -58,7 +58,7 @@ const orb = require('./orb.js'),
                 accum = {};
             if (locArr) {
                 // FIXME: for now do a fixed NxN grid around the character
-                const DISTANCE = 5;
+                const DISTANCE = 9;
                 const locArrCopy = locArr.slice();
                 for (let x = -DISTANCE; x <= DISTANCE; x++) {
                     locArrCopy[1] = locArr[1] + x;
