@@ -97,8 +97,8 @@ const orb = require('./orb.js'),
                     character.isZombie = isZombie || false;
                     character.isInWorld = isInWorld || false;
                     character.loc = loc;
-                    character.lockMovement = lockMovement;
-                    character.movementSpeed = movementSpeed;
+                    character.lockMovement = lockMovement ?? 0;
+                    character.movementSpeed = movementSpeed ?? 3;
                     if (storeCharacterInRepo(character)) count++;
                 } else {
                     console.error('  Failed to restore character: ', datum);

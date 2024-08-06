@@ -24,6 +24,7 @@ orb = (() => {
                 TYPE_LOBBY, TYPE_CREATE_CHARACTER, TYPE_DELETE_CHARACTER,
                 TYPE_ENTER_WORLD, TYPE_EXIT_WORLD,
                 TYPE_MAP_DATA, TYPE_CELL_DATA,
+                TYPE_RESULT_MOVE,
                 ATTR_TIME
             }
         } = common,
@@ -33,6 +34,7 @@ orb = (() => {
             websocket:null,
             model:null,
             growlManager:null,
+            gameMap:null,
             
             authenticated:false,
             username:null,
@@ -137,6 +139,16 @@ orb = (() => {
                     websocket.registerListener(response => {
                         pkg.model.storeCellData(response.msg);
                     }, TYPE_CELL_DATA);
+                    
+                    websocket.registerListener(response => {
+                        const {id, lockMovement, newLoc} = response.msg,
+                            character = pkg.model.getCharacterById(id);
+                        if (character) {
+                            character.lockMovement = lockMovement;
+                            character.loc = newLoc;
+                            pkg.gameMap.refreshMap();
+                        }
+                    }, TYPE_RESULT_MOVE);
                 }
                 
                 // Open Socket Connection

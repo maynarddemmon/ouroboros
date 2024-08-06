@@ -114,7 +114,9 @@
             storeCellData: data => {
                 const cellData = model.getCellData();
                 for (const key in data) {
-                    const cellDatum = cellData[key] = data[key];
+                    const cellDatum = data[key];
+                    cellDatum.locId = key;
+                    cellData[key] = cellDatum;
                     model.fireEvent('cellChanged', cellDatum);
                 }
             },

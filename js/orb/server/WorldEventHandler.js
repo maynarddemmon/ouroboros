@@ -45,10 +45,10 @@ const orb = require('./orb.js'),
                 }
                 
                 if (character) {
-                    const time = event[ATTR_TIME];
-                    addMessageToUser(username, {type:TYPE_ENTER_WORLD, msg:{character:character}, [ATTR_TIME]:time});
-                    addMessageToUser(username, {type:TYPE_MAP_DATA, msg:getMapDataForCharacter(character), [ATTR_TIME]:time});
-                    addMessageToUser(username, {type:TYPE_CELL_DATA, msg:getCellDataForCharacter(character), [ATTR_TIME]:time});
+                    const now = event[ATTR_TIME];
+                    addMessageToUser(username, {type:TYPE_ENTER_WORLD, msg:{character:character}, [ATTR_TIME]:now});
+                    addMessageToUser(username, {type:TYPE_MAP_DATA, msg:getMapDataForCharacter(character), [ATTR_TIME]:now});
+                    addMessageToUser(username, {type:TYPE_CELL_DATA, msg:getCellDataForCharacter(character), [ATTR_TIME]:now});
                 } else {
                     warningMessageToUser(username, 'Character not found for ', characterId);
                 }
@@ -114,11 +114,16 @@ const orb = require('./orb.js'),
                                 break;
                         }
                         
+                        // Send movement change
                         addMessageToUser(username, {type:TYPE_RESULT_MOVE, msg:{
                             id:character.id,
                             newLoc:character.loc,
                             lockMovement:character.lockMovement
                         }, [ATTR_TIME]:now});
+                        
+                        // Send new cell data
+                        addMessageToUser(username, {type:TYPE_CELL_DATA, msg:getCellDataForCharacter(character), [ATTR_TIME]:now});
+                        
                         // FIXME: how to notify all other characters that can sense this character
                     } else {
                         warningMessageToUser(username, 'Character not found in your account ', characterId);
