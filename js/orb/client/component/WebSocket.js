@@ -3,6 +3,20 @@
         
         M = myt,
         
+        {
+            greek:{
+                TYPE_WARNING, TYPE_ERROR, TYPE_SERVERINFO,
+                TYPE_LOBBY, TYPE_CREATE_CHARACTER, TYPE_DELETE_CHARACTER,
+                TYPE_ENTER_WORLD, TYPE_EXIT_WORLD,
+                TYPE_MAP_DATA, TYPE_CELL_DATA,
+                TYPE_RESULT_MOVE,
+                ATTR_TIME
+            },
+            character:{
+                FIELD_LOCK_MOVEMENT, FIELD_LOC
+            }
+        } = common,
+        
         consoleError = console.error,
         
         CLOSE_NORMAL = 1000,
@@ -12,7 +26,7 @@
             @class */
         WebSocketClass = pkg.WebSocket = new JSClass('WebSocket', M.Eventable, {
             // Life Cycle //////////////////////////////////////////////////////
-            initialize: function(attrs) {
+            init: function(attrs) {
                 this.status = 'closed';
                 this.useJSON = true;
                 this.callSuper(attrs);
@@ -207,7 +221,7 @@
     pkg.MessageTypeWebSocket = new JSClass('MessageTypeWebSocket', WebSocketClass, {
         // Life Cycle //////////////////////////////////////////////////////////
         /** @overrides */
-        initialize: function(attrs) {
+        init: function(attrs) {
             this._listeners = [];
             attrs.protocols ??= 'typedMessage';
             this.callSuper(attrs);
@@ -328,4 +342,123 @@
             return msg;
         }
     });
+    
+    pkg.websocketUtil = {
+        connectToWebsocket: () => {
+            const websocket = pkg.websocket ??= pkg.websocketUtil.makeWebSocket(pkg.socketUrl);
+            if (websocket.status === 'closed') websocket.connect();
+            return websocket;
+        },
+        
+        makeWebSocket: url => {
+            const model = pkg.model,
+                websocket = new pkg.MessageTypeWebSocket({url:url}, [{
+                    setStatus:function(v) {
+                        this.callSuper(v);
+                        if (this.status === 'open') this.sendTypedMessage(TYPE_LOBBY);
+                    }
+                }]);
+            
+            // Setup listeners
+            websocket.registerListener(response => {
+                const msg = response.msg;
+                model.setWorldClockTick(msg.worldClockTick);
+                model.setMaxCharacters(msg.maxCharacters);
+                model.setCharactersFromData(msg.characters);
+                model.updateWorldClockTime(response[ATTR_TIME]);
+            }, TYPE_LOBBY);
+            
+            websocket.registerListener(response => {
+                const {success, message, character} = response.msg;
+                if (success) {
+                    model.addCharacterFromData(character);
+                    model.updateWorldClockTime(response[ATTR_TIME]);
+                    pkg.growl('success', 'Character Created', message);
+                } else {
+                    pkg.growl('failure', 'Character Creation Failed', message);
+                }
+                pkg.app.unlockUI();
+            }, TYPE_CREATE_CHARACTER);
+            
+            websocket.registerListener(response => {
+                const {success, message, id} = response.msg;
+                if (success) {
+                    model.removeCharacterById(id);
+                    model.updateWorldClockTime(response[ATTR_TIME]);
+                    pkg.growl('success', 'Character Deleted', message);
+                } else {
+                    pkg.growl('failure', 'Character Deletion Failed', message);
+                }
+                pkg.app.unlockUI();
+            }, TYPE_DELETE_CHARACTER);
+            
+            websocket.registerListener(response => {
+                pkg.growl('warning', 'Server Warning', response.msg);
+                pkg.app.unlockUI();
+            }, TYPE_WARNING);
+            
+            websocket.registerListener(response => {
+                pkg.growl('failure', 'Server Warning', response.msg);
+                pkg.app.unlockUI();
+            }, TYPE_ERROR);
+            
+            websocket.registerListener(response => {
+                pkg.growl('info', 'Server Info', response.msg);
+                pkg.app.unlockUI();
+            }, TYPE_SERVERINFO);
+            
+            websocket.registerListener(response => {
+                const {character} = response.msg;
+                model.updateWorldClockTime(response[ATTR_TIME]);
+                if (character) {
+                    const characterModel = model.replaceCharacterFromData(character);
+                    if (characterModel) {
+                        model.setCharacterInPlay(characterModel);
+                        pkg.app.selectPanel(pkg.PANEL_ID_GAME);
+                    } else {
+                        pkg.growl('failure', 'Character Not Found', 'The chracter sent back by the server was not found locally.');
+                    }
+                }
+                pkg.app.unlockUI();
+            }, TYPE_ENTER_WORLD);
+            
+            websocket.registerListener(response => {
+                const {character} = response.msg;
+                model.updateWorldClockTime(response[ATTR_TIME]);
+                if (character) {
+                    if (model.replaceCharacterFromData(character)) {
+                        model.setCharacterInPlay();
+                        pkg.model.clearMapAndCellData();
+                        pkg.app.selectPanel(pkg.PANEL_ID_LOBBY);
+                    } else {
+                        pkg.growl('failure', 'Character Not Found', 'The chracter sent back by the server was not found locally.');
+                    }
+                }
+                pkg.app.unlockUI();
+            }, TYPE_EXIT_WORLD);
+            
+            websocket.registerListener(response => {
+                model.updateWorldClockTime(response[ATTR_TIME]);
+                model.storeMapData(response.msg);
+            }, TYPE_MAP_DATA);
+            
+            websocket.registerListener(response => {
+                model.updateWorldClockTime(response[ATTR_TIME]);
+                model.storeCellData(response.msg);
+            }, TYPE_CELL_DATA);
+            
+            websocket.registerListener(response => {
+                const msg = response.msg,
+                    characterInPlay = model.getCharacterInPlay();
+                model.updateWorldClockTime(response[ATTR_TIME]);
+                if (characterInPlay) {
+                    characterInPlay.set(FIELD_LOCK_MOVEMENT, msg[FIELD_LOCK_MOVEMENT]);
+                    characterInPlay.set(FIELD_LOC, msg.newLoc);
+                    pkg.gameMap.refreshMap();
+                }
+            }, TYPE_RESULT_MOVE);
+            
+            return websocket;
+        }
+    }
 })(orb);

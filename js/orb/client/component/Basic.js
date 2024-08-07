@@ -1,10 +1,16 @@
 (pkg => {
+    let socketConnectedTxt,
+        worldClockView;
+    
     const JSClass = JS.Class,
         
         M = myt,
         {
-            View, Text, SpacedLayout, ResizeLayout, SizeToParent
+            View, Text, SpacedLayout, ResizeLayout, SizeToParent,
+            FontAwesome:{registerForNotification}
         } = M,
+        
+        {worldTimeToParts} = common.util,
         
         {
             theme:{
@@ -135,7 +141,7 @@
             
             this.callSuper(parent, attrs);
             
-            M.FontAwesome.registerForNotification(this);
+            registerForNotification(this);
         },
         
         draw: function(color, opacity=1) {
@@ -245,4 +251,44 @@
             return value > 0 ? this.callSuper(value) : pkg.FA_READY;
         }
     });
+    
+    pkg.componentUtil = {
+        reparentWorldClockView: parent => {
+            if (worldClockView) {
+                worldClockView.setParent(parent);
+            } else {
+                worldClockView = new Text(parent, {valign:'middle', fontFamily:'monospace'}, [{
+                    onWorldClockTime: function(event) {
+                        this.setText(worldTimeToParts(event.value, true));
+                    }
+                }]);
+                worldClockView.syncTo(pkg.model, 'onWorldClockTime', 'worldClockTime');
+            }
+        },
+        
+        /** Moves the socketStatusIndicator to the provided View. Lazy
+            instantiates it as well. */
+        reparenSocketStatusIndicator: parent => {
+            if (socketConnectedTxt) {
+                socketConnectedTxt.setParent(parent);
+            } else {
+                socketConnectedTxt = new Text(parent, {valign:'middle', text:pkg.FA_PLUG, fontSize:'18px'}, [{
+                    onWebsocketStatus: function(event) {
+                        const status = event.value;
+                        if (status === 'open') {
+                            this.setOpacity(1);
+                            this.setTooltip('Socket connected.');
+                            this.setTextColor(colorFgSuccess);
+                        } else {
+                            this.setOpacity(0.25);
+                            this.setTooltip('Socket not connected.');
+                            this.setTextColor(colorFgError);
+                        }
+                    }
+                }]);
+                registerForNotification(socketConnectedTxt);
+                socketConnectedTxt.syncTo(pkg.websocket, 'onWebsocketStatus', 'status');
+            }
+        },
+    }
 })(orb);

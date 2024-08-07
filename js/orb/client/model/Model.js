@@ -11,7 +11,7 @@
         {
             greek:{TYPE_ACTION_MOVE},
             character:{
-                FIELD_LOCK_MOVEMENT, FIELD_LOC
+                FIELD_LOCK_MOVEMENT, FIELD_LOC, FIELD_PERMISSIONS
             }
         } = common
         
@@ -19,6 +19,7 @@
             // Accessors ///////////////////////////////////////////////////////
             [generateSetterName(FIELD_LOCK_MOVEMENT)]: function(v) {this.set(FIELD_LOCK_MOVEMENT, v, true);},
             [generateSetterName(FIELD_LOC)]:           function(v) {this.set(FIELD_LOC, v, true);},
+            [generateSetterName(FIELD_PERMISSIONS)]:   function(v) {this.set(FIELD_PERMISSIONS, v, true);},
             
             
             // Methods /////////////////////////////////////////////////////////
@@ -36,6 +37,11 @@
                     return true;
                 }
                 return false;
+            },
+            
+            hasPermission: function(permId) {
+                const permissions = this[FIELD_PERMISSIONS];
+                return permissions ? permssions.includes(permId) : false;
             }
         }),
         

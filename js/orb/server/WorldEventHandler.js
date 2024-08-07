@@ -10,7 +10,7 @@ const orb = require('./orb.js'),
     } = require('../common/SocketProtocol.js'),
     {
         character:{
-            FIELD_USER_ID, FIELD_IS_IN_WORLD, FIELD_LOCK_MOVEMENT, FIELD_LOC, FIELD_MOVEMENT_SPEED
+            FIELD_IS_IN_WORLD, FIELD_LOCK_MOVEMENT, FIELD_PERMISSIONS
         }
     } = require('../common/common.js'),
     
@@ -38,14 +38,14 @@ const orb = require('./orb.js'),
                 while (i) {
                     const usersCharacter = usersCharacters[--i];
                     if (usersCharacter.id === characterId) {
-                        if (usersCharacter[FIELD_IS_IN_WORLD]) {
+                        if (usersCharacter.isInWorld()) {
                             //warningMessageToUser(username, 'Character already in world ', characterId);
                         } else {
-                            usersCharacter[FIELD_IS_IN_WORLD] = true;
+                            usersCharacter.set(FIELD_IS_IN_WORLD, true);
                         }
                         character = usersCharacter;
                     } else {
-                        usersCharacter[FIELD_IS_IN_WORLD] = false;
+                        usersCharacter.set(FIELD_IS_IN_WORLD, false);
                     }
                 }
                 
@@ -98,10 +98,11 @@ const orb = require('./orb.js'),
                 const characterId = event.msg.id,
                     character = getCharacterById(characterId);
                 if (character) {
-                    if (character[FIELD_USER_ID] === username) {
+                    if (character.getUserId() === username) {
                         const now = event[ATTR_TIME],
-                            loc = character[FIELD_LOC];
-                        character[FIELD_LOCK_MOVEMENT] = now + character[FIELD_MOVEMENT_SPEED];
+                            loc = character.getLocArr(),
+                            newLockMovement = now + character.getMovementSpeed();
+                        character.set(FIELD_LOCK_MOVEMENT, newLockMovement);
                         
                         // FIXME: need character facing to calculate move correctly
                         switch (event.msg.direction) {
@@ -122,8 +123,8 @@ const orb = require('./orb.js'),
                         // Send movement change
                         addMessageToUser(username, {type:TYPE_RESULT_MOVE, msg:{
                             id:character.id,
-                            newLoc:character[FIELD_LOC],
-                            [FIELD_LOCK_MOVEMENT]:character[FIELD_LOCK_MOVEMENT]
+                            newLoc:loc,
+                            [FIELD_LOCK_MOVEMENT]:newLockMovement
                         }, [ATTR_TIME]:now});
                         
                         // Send new cell data

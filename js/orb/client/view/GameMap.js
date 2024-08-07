@@ -12,7 +12,8 @@
         
         {
             character:{FIELD_LOC},
-            util:{locArrToId}
+            util:{locArrToId},
+            composition
         } = common,
         
         {
@@ -92,17 +93,9 @@
             },
             
             redraw: function() {
-                const cell = this.cell || {c:'v1'};
-                
-                let bgColor;
-                switch (cell.c) {
-                    case 'v1': bgColor = '#333'; break;
-                    case 'a1': bgColor = '#ccf'; break;
-                    case 's1': bgColor = '#888'; break;
-                    default: bgColor = '#800'; break;
-                }
-                
-                this.setBgColor(bgColor);
+                const cell = this.cell,
+                    cellComposition = composition[cell.c];
+                this.setBgColor(cellComposition.mapColor);
             }
         });
     
@@ -160,7 +153,7 @@
                     locArrCopy[2] = locArr[2] + y;
                     
                     const locId = locArrToId(locArrCopy),
-                        cellDatum = model.getCellDatum(locId) ?? {locId:locId},
+                        cellDatum = model.getCellDatum(locId) ?? {locId:locId, c:myt.getRandomInt(1,2) > 1 ? 'v1' : 'v2'},
                         cellView = cellPool.getInstance();
                     
                     cellView.callSetters({x:posX, y:posY, cell:cellDatum});
@@ -179,7 +172,6 @@
             characterView.updatePosition('center');
             
             // FIXME other entities
-            
         }, 50)
     });
 })(orb);

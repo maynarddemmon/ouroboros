@@ -1,12 +1,61 @@
 const orb = require('./orb.js'),
+    
+    {
+        JS, 
+        tym:{
+            Eventable,
+            AccessorSupport:{generateSetterName}
+        }
+    } = require('../../../lib/tym.js'),
+    
     {
         character:{
-            FIELD_ID, FIELD_NAME, FIELD_USER_ID, FIELD_IS_IN_WORLD, FIELD_IS_ZOMBIE, FIELD_LOCK_MOVEMENT, 
-            FIELD_LOC, FIELD_MOVEMENT_SPEED
+            FIELD_ID, FIELD_NAME, FIELD_USER_ID, FIELD_IS_IN_WORLD, FIELD_IS_ZOMBIE, 
+            FIELD_LOCK_MOVEMENT, FIELD_LOC, FIELD_MOVEMENT_SPEED, FIELD_PERMISSIONS
         }
     } = require('../common/common.js'),
     
     FILENAME_CHARACTERS = 'characters',
+    
+    Character = new JS.Class('Character', Eventable, {
+        // Life Cycle //////////////////////////////////////////////////////////
+        init: function(attrs) {
+            attrs[FIELD_ID] ??= null;
+            attrs[FIELD_USER_ID] ??= null;
+            attrs[FIELD_PERMISSIONS] ??= null;
+            attrs[FIELD_NAME] ??= '';
+            attrs[FIELD_IS_ZOMBIE] ??= false;
+            attrs[FIELD_IS_IN_WORLD] ??= false;
+            attrs[FIELD_LOC] ??= [0,0,0,0];
+            attrs[FIELD_LOCK_MOVEMENT] ??= 0;
+            attrs[FIELD_MOVEMENT_SPEED] ??= 3;
+            
+            this.callSuper(attrs);
+        },
+        
+        
+        // Accessors ///////////////////////////////////////////////////////////
+        [generateSetterName(FIELD_ID)]: function(v) {this.set(FIELD_ID, v, true);},
+        getId: function() {return this[FIELD_ID];},
+        [generateSetterName(FIELD_USER_ID)]: function(v) {this.set(FIELD_USER_ID, v, true);},
+        getUserId: function() {return this[FIELD_USER_ID];},
+        [generateSetterName(FIELD_NAME)]: function(v) {this.set(FIELD_NAME, v, true);},
+        getName: function() {return this[FIELD_NAME];},
+        [generateSetterName(FIELD_IS_ZOMBIE)]: function(v) {this.set(FIELD_IS_ZOMBIE, v, true);},
+        isZombie: function() {return this[FIELD_IS_ZOMBIE];},
+        [generateSetterName(FIELD_PERMISSIONS)]: function(v) {this.set(FIELD_PERMISSIONS, v, true);},
+        [generateSetterName(FIELD_IS_IN_WORLD)]: function(v) {this.set(FIELD_IS_IN_WORLD, v, true);},
+        isInWorld: function() {return this[FIELD_IS_IN_WORLD];},
+        [generateSetterName(FIELD_LOC)]: function(v) {this.set(FIELD_LOC, v, true);},
+        getLocArr: function() {return this[FIELD_LOC];},
+        [generateSetterName(FIELD_LOCK_MOVEMENT)]: function(v) {this.set(FIELD_LOCK_MOVEMENT, v, true);},
+        getLockMovement: function() {return this[FIELD_LOCK_MOVEMENT];},
+        [generateSetterName(FIELD_MOVEMENT_SPEED)]: function(v) {this.set(FIELD_MOVEMENT_SPEED, v, true);},
+        getMovementSpeed: function() {return this[FIELD_MOVEMENT_SPEED];},
+        
+        
+        // Methods /////////////////////////////////////////////////////////////
+    }),
     
     // An object holding all characters by object id
     charactersById = {},
@@ -22,8 +71,8 @@ const orb = require('./orb.js'),
     
     storeCharacterInRepo = character => {
         // Zombie characters are no longer managed by the User with their userId.
-        if (!character[FIELD_IS_ZOMBIE]) {
-            const userId = character[FIELD_USER_ID],
+        if (!character.isZombie()) {
+            const userId = character.getUserId(),
                 existingCharacters = getCharactersByUserId(userId);
             if (existingCharacters.length + 1 > orb.maxCharactersPerUser) {
                 console.warn('Max character limit exceeded for user:', userId);
@@ -32,38 +81,24 @@ const orb = require('./orb.js'),
             existingCharacters.push(character);
         }
         
-        charactersById[character[FIELD_ID]] = charactersByName[character[FIELD_NAME]] = character;
+        charactersById[character.getId()] = charactersByName[character.getName()] = character;
         return true;
     },
     
     removeCharacterFromRepo = character => {
-        const id = character[FIELD_ID],
-            existingCharacters = getCharactersByUserId(character[FIELD_USER_ID]);
+        const id = character.getId(),
+            existingCharacters = getCharactersByUserId(character.getUserId());
         let i = existingCharacters.length;
         while (i) {
             const existingCharacter = existingCharacters[--i];
-            if (existingCharacter[FIELD_ID] === id) {
+            if (existingCharacter.getId() === id) {
                 existingCharacters.splice(i, 1);
                 break;
             }
         }
         delete charactersById[id];
-        delete charactersByName[character[FIELD_NAME]];
+        delete charactersByName[character.getName()];
         return true;
-    },
-    
-    /** Makes an empty character object with nulls and/or default values. */
-    makeEmptyCharacter = () => {
-        return {
-            [FIELD_ID]:null,
-            [FIELD_USER_ID]:null,
-            [FIELD_NAME]:'',
-            [FIELD_IS_ZOMBIE]:false,
-            [FIELD_IS_IN_WORLD]:false,
-            [FIELD_LOC]:[0,0,0,0],
-            [FIELD_LOCK_MOVEMENT]:0,
-            [FIELD_MOVEMENT_SPEED]:3
-        };
     },
     
     getCharacterById = id => charactersById[id],
@@ -76,8 +111,8 @@ const orb = require('./orb.js'),
     },
     
     doCharacterExitWorld = character => {
-        if (character[FIELD_IS_IN_WORLD]) {
-            character[FIELD_IS_IN_WORLD] = false;
+        if (character.isInWorld()) {
+            character.set(FIELD_IS_IN_WORLD, false);
             return true;
         } else {
             return false;
@@ -93,19 +128,8 @@ const orb = require('./orb.js'),
         if (jsonData) {
             let count = 0;
             for (const datum of jsonData) {
-                const userId = datum[FIELD_USER_ID],
-                    name = datum[FIELD_NAME],
-                    id = datum[FIELD_ID];
-                if (id && userId && name) {
-                    const character = makeEmptyCharacter();
-                    character[FIELD_ID] = id;
-                    character[FIELD_USER_ID] = userId;
-                    character[FIELD_NAME] = name;
-                    character[FIELD_IS_ZOMBIE] = datum[FIELD_IS_ZOMBIE] || false;
-                    character[FIELD_IS_IN_WORLD] = datum[FIELD_IS_IN_WORLD] || false;
-                    character[FIELD_LOC] = datum[FIELD_LOC];
-                    character[FIELD_LOCK_MOVEMENT] = datum[FIELD_LOCK_MOVEMENT] ?? 0;
-                    character[FIELD_MOVEMENT_SPEED] = datum[FIELD_MOVEMENT_SPEED] ?? 3;
+                if (datum[FIELD_ID] && datum[FIELD_USER_ID] && datum[FIELD_NAME]) {
+                    const character = new Character(datum);
                     if (storeCharacterInRepo(character)) count++;
                 } else {
                     console.error('  Failed to restore character: ', datum);
@@ -156,11 +180,12 @@ module.exports = {
         } else if (getCharacterByName(name)) {
             retval.message = 'Character name already exists.';
         } else {
-            const character = makeEmptyCharacter();
-            character[FIELD_ID] = orb.getGuidString('c');
-            character[FIELD_USER_ID] = userId;
-            character[FIELD_NAME] = name;
-            character[FIELD_LOC] = [0,2,2,0];
+            const character = new Character({
+                [FIELD_ID]:orb.getGuidString('c'),
+                [FIELD_USER_ID]:userId,
+                [FIELD_NAME]:name,
+                [FIELD_LOC]:[0,2,2,0]
+            });
             
             if (storeCharacterInRepo(character)) {
                 retval.message = 'Character created successfully.';
@@ -182,7 +207,7 @@ module.exports = {
         } else {
             const character = getCharacterById(id);
             if (character) {
-                if (character[FIELD_USER_ID] === userId) {
+                if (character.getUserId() === userId) {
                     if (removeCharacterFromRepo(character)) {
                         retval.message = 'Character removed successfully.';
                         retval[FIELD_ID] = id;
@@ -203,7 +228,7 @@ module.exports = {
     convertAllCharactersToZombiesForAccount: userId => {
         const existingCharacters = getCharactersByUserId(userId);
         let i = existingCharacters.length;
-        while (i) existingCharacters[--i][FIELD_IS_ZOMBIE] = true;
+        while (i) existingCharacters[--i].set(FIELD_IS_ZOMBIE, true);
         return true;
     }
 };

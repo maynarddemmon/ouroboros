@@ -31,7 +31,8 @@ const loggingService = require('./LoggingService.js'),
     
     setupInputWatcher = fileNameToWatch => {
         return orb.fileWatcher(fileNameToWatch, data => {
-            let command;
+            let command,
+                character;
             try {
                 command = JSON5.parse(data);
             } catch (err) {
@@ -59,6 +60,25 @@ const loggingService = require('./LoggingService.js'),
                     // {type:'broadcast', msg:'Here is a message.', msgType:'error', connectedOnly:false}
                     console.log('  Broadcast Message: ' + msg);
                     msgAllAccounts(msg, command.msgType, command.connectedOnly);
+                    break;
+                case 'logCharacter':
+                    // {type:'logCharacter', name:'Foo'}
+                    character = characterService.getCharacterByName(command.name);
+                    if (character) {
+                        console.log('  Character: ', character);
+                    } else {
+                        console.warn('  Character not found: ' + command.name);
+                    }
+                    break;
+                case 'modifyCharacter':
+                    // {type:'modifyCharacter', id:'c123', prop:'movementSpeed', value:2}
+                    character = characterService.getCharacterById(command.id);
+                    if (character) {
+                        character.set(command.prop, command.value);
+                        console.log('  Character: ', character);
+                    } else {
+                        console.warn('  Character not found: ' + command.id);
+                    }
                     break;
                 default:
                     console.warn('Unknown Command Type: ', type);

@@ -1,5 +1,6 @@
 (pkg => {
-    let titleHeader,
+    let websocket,
+        titleHeader,
         characterContainer,
         newCharNameField;
     
@@ -21,6 +22,7 @@
         
         {
             TextBtn, FormInputText, FieldErrorTextMixin, RevealPasswordBtn,
+            componentUtil,
             formUtil:{
                 makeRootForm, makeFormMessageHeader
             },
@@ -56,7 +58,20 @@
         
         doPlay = character => {
             pkg.app.lockUI('Entering Ouroboros...', true);
-            pkg.websocket.sendTypedMessage(TYPE_ENTER_WORLD, {id:character.id});
+            websocket.sendTypedMessage(TYPE_ENTER_WORLD, {id:character.id});
+        },
+        
+        cleanUpForDeauth = () => {
+            // Wipe Model
+            pkg.model.wipeClean();
+            
+            // Close WebSocket if necessary
+            if (websocket && websocket.status !== 'closed') websocket.close();
+            
+            pkg.authenticated = false;
+            pkg.username = null;
+            pkg.socketToken = null;
+            pkg.socketUrl = null;
         },
         
         CharacterRow = new JS.Class('CharacterRow', pkg.WideFlowComponent, {
@@ -89,7 +104,7 @@
                                 'Delete Character',
                                 () => {
                                     pkg.app.lockUI('Deleting Character...', true);
-                                    pkg.websocket.sendTypedMessage(TYPE_DELETE_CHARACTER, {id:self.character.id});
+                                    websocket.sendTypedMessage(TYPE_DELETE_CHARACTER, {id:self.character.id});
                                 }
                             );
                         }
@@ -161,7 +176,7 @@
                         doActivated:() => {
                             if (formContainer.isValid) {
                                 pkg.app.lockUI('Creating Character...', true);
-                                pkg.websocket.sendTypedMessage(TYPE_CREATE_CHARACTER, formContainer.getValue());
+                                websocket.sendTypedMessage(TYPE_CREATE_CHARACTER, formContainer.getValue());
                             }
                         }
                     }]);
@@ -203,9 +218,9 @@
                 // Clean out any existing data.
                 refreshLobby();
                 
-                pkg.connectToWebsocket();
-                pkg.reparentWorldClockView(titleHeader);
-                pkg.reparenSocketStatusIndicator(titleHeader);
+                websocket = pkg.websocketUtil.connectToWebsocket();
+                componentUtil.reparentWorldClockView(titleHeader);
+                componentUtil.reparenSocketStatusIndicator(titleHeader);
             }
         },
         
@@ -231,7 +246,16 @@
         
         buildFooter: header => {
             new TextBtn(header, {valign:'middle', text:pkg.FA_LOGOUT + ' ' + I18N('logout')}, [{
-                doActivated:pkg.doDeathRequest
+                doActivated:() => {
+                    pkg.app.doDeauthRequest({username:pkg.username}, (success, dataOrError) => {
+                        if (success) {
+                            cleanUpForDeauth();
+                            pkg.app.selectPanel(pkg.PANEL_ID_AUTH);
+                        } else {
+                            pkg.growl('failure', 'Logout Failed', dataOrError.message);
+                        }
+                    });
+                }
             }]);
             
             new TextBtn(header, {valign:'middle', text:I18N('changePassword')}, [{
@@ -359,7 +383,7 @@
                                     formValues.username = pkg.username;
                                     G.app.doDeleteAccountRequest(formValues, (success, dataOrError) => {
                                         if (success) {
-                                            pkg.cleanUpForDeauth();
+                                            cleanUpForDeauth();
                                             pkg.app.selectPanel(pkg.PANEL_ID_AUTH);
                                             pkg.growl('success', 'Account Deletion Succeeded');
                                         } else {

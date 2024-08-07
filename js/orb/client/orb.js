@@ -1,43 +1,26 @@
 (global.BABEL = myt.I18N).setDictionary(LOCALE_JSON, LOCALE);
 
 orb = (() => {
-    let socketConnectedTxt,
-        worldClockView;
+    let growlManager;
     
     const I18N = BABEL.get,
         
+        M = myt,
         {
-            View, Text, Dialog, ModalPanel, FontAwesome, Validator, NumericRangeValidator, RegexValidator,
+            View, Text, Dialog, ModalPanel, FontAwesome, 
+            Validator, NumericRangeValidator, RegexValidator,
             memoize,
             global:{
-                validators:{
-                    register:registerValidator
-                }
+                validators:{register:registerValidator}
             }
-        } = myt,
+        } = M,
         makeTagFunc = FontAwesome.makeTag.bind(FontAwesome),
-        
-        {
-            util:{worldTimeToParts},
-            greek:{
-                TYPE_WARNING, TYPE_ERROR, TYPE_SERVERINFO,
-                TYPE_LOBBY, TYPE_CREATE_CHARACTER, TYPE_DELETE_CHARACTER,
-                TYPE_ENTER_WORLD, TYPE_EXIT_WORLD,
-                TYPE_MAP_DATA, TYPE_CELL_DATA,
-                TYPE_RESULT_MOVE,
-                ATTR_TIME
-            },
-            character:{
-                FIELD_LOCK_MOVEMENT, FIELD_LOC
-            }
-        } = common,
         
         pkg = {
             // Convienent References
             app:null,
             websocket:null,
             model:null,
-            growlManager:null,
             gamePanel:null,
             gameMap:null,
             
@@ -46,194 +29,9 @@ orb = (() => {
             socketToken:null,
             socketUrl:null,
             
-            connectToWebsocket: () => {
-                let websocket = pkg.websocket;
-                if (!websocket) {
-                    websocket = pkg.websocket = new pkg.MessageTypeWebSocket({url:pkg.socketUrl}, [{
-                        setStatus:function(v) {
-                            this.callSuper(v);
-                            if (this.status === 'open') websocket.sendTypedMessage(TYPE_LOBBY);
-                        }
-                    }]);
-                    
-                    websocket.registerListener(response => {
-                        const model = pkg.model,
-                            msg = response.msg;
-                        model.setWorldClockTick(msg.worldClockTick);
-                        model.setMaxCharacters(msg.maxCharacters);
-                        model.setCharactersFromData(msg.characters);
-                        model.updateWorldClockTime(response[ATTR_TIME]);
-                    }, TYPE_LOBBY);
-                    
-                    websocket.registerListener(response => {
-                        const model = pkg.model,
-                            {success, message, character} = response.msg;
-                        if (success) {
-                            model.addCharacterFromData(character);
-                            model.updateWorldClockTime(response[ATTR_TIME]);
-                            pkg.growl('success', 'Character Created', message);
-                        } else {
-                            pkg.growl('failure', 'Character Creation Failed', message);
-                        }
-                        pkg.app.unlockUI();
-                    }, TYPE_CREATE_CHARACTER);
-                    
-                    websocket.registerListener(response => {
-                        const model = pkg.model,
-                            {success, message, id} = response.msg;
-                        if (success) {
-                            model.removeCharacterById(id);
-                            model.updateWorldClockTime(response[ATTR_TIME]);
-                            pkg.growl('success', 'Character Deleted', message);
-                        } else {
-                            pkg.growl('failure', 'Character Deletion Failed', message);
-                        }
-                        pkg.app.unlockUI();
-                    }, TYPE_DELETE_CHARACTER);
-                    
-                    websocket.registerListener(response => {
-                        pkg.growl('warning', 'Server Warning', response.msg);
-                        pkg.app.unlockUI();
-                    }, TYPE_WARNING);
-                    
-                    websocket.registerListener(response => {
-                        pkg.growl('failure', 'Server Warning', response.msg);
-                        pkg.app.unlockUI();
-                    }, TYPE_ERROR);
-                    
-                    websocket.registerListener(response => {
-                        pkg.growl('info', 'Server Info', response.msg);
-                        pkg.app.unlockUI();
-                    }, TYPE_SERVERINFO);
-                    
-                    websocket.registerListener(response => {
-                        const model = pkg.model,
-                            {character} = response.msg;
-                        model.updateWorldClockTime(response[ATTR_TIME]);
-                        if (character) {
-                            const characterModel = model.replaceCharacterFromData(character);
-                            if (characterModel) {
-                                model.setCharacterInPlay(characterModel);
-                                pkg.app.selectPanel(pkg.PANEL_ID_GAME);
-                            } else {
-                                pkg.growl('failure', 'Character Not Found', 'The chracter sent back by the server was not found locally.');
-                            }
-                        }
-                        pkg.app.unlockUI();
-                    }, TYPE_ENTER_WORLD);
-                    
-                    websocket.registerListener(response => {
-                        const model = pkg.model,
-                            {character} = response.msg;
-                        model.updateWorldClockTime(response[ATTR_TIME]);
-                        if (character) {
-                            if (model.replaceCharacterFromData(character)) {
-                                model.setCharacterInPlay();
-                                pkg.model.clearMapAndCellData();
-                                pkg.app.selectPanel(pkg.PANEL_ID_LOBBY);
-                            } else {
-                                pkg.growl('failure', 'Character Not Found', 'The chracter sent back by the server was not found locally.');
-                            }
-                        }
-                        pkg.app.unlockUI();
-                    }, TYPE_EXIT_WORLD);
-                    
-                    websocket.registerListener(response => {
-                        const model = pkg.model;
-                        model.updateWorldClockTime(response[ATTR_TIME]);
-                        model.storeMapData(response.msg);
-                    }, TYPE_MAP_DATA);
-                    
-                    websocket.registerListener(response => {
-                        const model = pkg.model;
-                        model.updateWorldClockTime(response[ATTR_TIME]);
-                        model.storeCellData(response.msg);
-                    }, TYPE_CELL_DATA);
-                    
-                    websocket.registerListener(response => {
-                        const model = pkg.model,
-                            msg = response.msg,
-                            characterInPlay = model.getCharacterInPlay();
-                        model.updateWorldClockTime(response[ATTR_TIME]);
-                        if (characterInPlay) {
-                            characterInPlay.set(FIELD_LOCK_MOVEMENT, msg[FIELD_LOCK_MOVEMENT]);
-                            characterInPlay.set(FIELD_LOC, msg.newLoc);
-                            pkg.gameMap.refreshMap();
-                        }
-                    }, TYPE_RESULT_MOVE);
-                }
-                
-                // Open Socket Connection
-                if (websocket.status === 'closed') websocket.connect();
-            },
-            
-            cleanUpForDeauth: () => {
-                // Wipe Model
-                pkg.model.wipeClean();
-                
-                // Close WebSocket if necessary
-                const websocket = pkg.websocket;
-                if (websocket && websocket.status !== 'closed') websocket.close();
-                
-                pkg.authenticated = false;
-                pkg.username = null;
-                pkg.socketToken = null;
-                pkg.socketUrl = null;
-            },
-            
-            doDeathRequest: () => {
-                pkg.app.doDeauthRequest({username:pkg.username}, (success, dataOrError) => {
-                    if (success) {
-                        pkg.cleanUpForDeauth();
-                        pkg.app.selectPanel(pkg.PANEL_ID_AUTH);
-                    } else {
-                        pkg.growl('failure', 'Logout Failed', dataOrError.message);
-                    }
-                });
-            },
-            
-            /** Moves the socketStatusIndicator to the provided View. Lazy
-                instantiates it as well. */
-            reparenSocketStatusIndicator: parent => {
-                if (socketConnectedTxt) {
-                    socketConnectedTxt.setParent(parent);
-                } else {
-                    socketConnectedTxt = new Text(parent, {valign:'middle', text:pkg.FA_PLUG, fontSize:'18px'}, [{
-                        onWebsocketStatus: function(event) {
-                            const status = event.value;
-                            
-                            if (status === 'open') {
-                                this.setOpacity(1);
-                                this.setTooltip('Socket connected.');
-                                this.setTextColor(pkg.theme.colorFgSuccess);
-                            } else {
-                                this.setOpacity(0.25);
-                                this.setTooltip('Socket not connected.');
-                                this.setTextColor(pkg.theme.colorFgError);
-                            }
-                        }
-                    }]);
-                    FontAwesome.registerForNotification(socketConnectedTxt);
-                    socketConnectedTxt.syncTo(pkg.websocket, 'onWebsocketStatus', 'status');
-                }
-            },
-            
-            reparentWorldClockView: parent => {
-                if (worldClockView) {
-                    worldClockView.setParent(parent);
-                } else {
-                    worldClockView = new Text(parent, {valign:'middle', fontFamily:'monospace'}, [{
-                        onWorldClockTime: function(event) {
-                            this.setText(worldTimeToParts(event.value, true));
-                        }
-                    }]);
-                    worldClockView.syncTo(pkg.model, 'onWorldClockTime', 'worldClockTime');
-                }
-            },
-            
             // Growls
             growl: (type, title, msg) => {
-                const growlManager = pkg.growlManager ?? (pkg.growlManager = new myt.GrowlManager());
+                growlManager ??= new M.GrowlManager();
                 
                 const attrs = {},
                     THEME = pkg.theme;
@@ -272,15 +70,9 @@ orb = (() => {
                     msg,
                     action => {
                         switch (action) {
-                            case 'confirmBtn':
-                                confirmFunc?.();
-                                break;
-                            case 'cancelBtn':
-                                cancelFunc?.();
-                                break;
-                            case 'closeBtn':
-                                closeFunc?.();
-                                break;
+                            case 'confirmBtn': confirmFunc?.(); break;
+                            case 'cancelBtn': cancelFunc?.(); break;
+                            case 'closeBtn': closeFunc?.(); break;
                         }
                     },{
                         width:350,

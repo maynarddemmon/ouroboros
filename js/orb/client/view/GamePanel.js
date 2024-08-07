@@ -15,12 +15,10 @@
             global:{keys:GlobalKeys}
         } = M,
         
-        {
-            character:{FIELD_NAME}
-        } = common,
+        {character:{FIELD_NAME}} = common,
         
         {
-            TextBtn,
+            TextBtn, componentUtil,
             theme:{padding, spacing},
             model
         } = pkg,
@@ -37,10 +35,9 @@
             
             this.callSuper(v);
             if (this.visible) {
-                pkg.connectToWebsocket();
-                websocket = pkg.websocket;
-                pkg.reparentWorldClockView(titleHeader);
-                pkg.reparenSocketStatusIndicator(titleHeader);
+                websocket = pkg.websocketUtil.connectToWebsocket();
+                componentUtil.reparentWorldClockView(titleHeader);
+                componentUtil.reparenSocketStatusIndicator(titleHeader);
                 
                 character = model.getCharacterInPlay();
                 gameMap.setCharacter(character);
