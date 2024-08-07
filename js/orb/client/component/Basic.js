@@ -1,5 +1,6 @@
 (pkg => {
     const JSClass = JS.Class,
+        
         M = myt,
         {
             View, Text, SpacedLayout, ResizeLayout, SizeToParent
@@ -9,6 +10,7 @@
             theme:{
                 padding, spacing, headerHeight, footerHeight, inputHeight,
                 fontSizeHuge,
+                colorFgSuccess, colorFgWarning, colorFgError,
                 colorBgHeader, colorBgPanel, colorBgMiddleComp
             }
         } = pkg,
@@ -172,6 +174,58 @@
             } else {
                 this.callSuper(color, opacity);
             }
+        }
+    });
+    
+    
+    pkg.BaseRadialGuage = new JSClass('BaseRadialGuage', M.RadialGuage, {
+        initNode: function(parent, attrs) {
+            this.callSuper(parent, attrs);
+        }
+    });
+    
+    pkg.BaseCTRadialGuage = new JSClass('BaseCTRadialGuage', M.ColorThresholdRadialGuage, {
+        initNode: function(parent, attrs) {
+            attrs.thresholds ??= [
+                {color:colorFgSuccess, value:0.5},
+                {color:colorFgWarning, value:0.25},
+                {color:colorFgError,   value:0}
+            ];
+            this.callSuper(parent, attrs);
+        }
+    });
+    
+    pkg.CooldownRadialGuage = new JSClass('CooldownRadialGuage', pkg.BaseRadialGuage, {
+        initNode: function(parent, attrs) {
+            attrs.propTarget ??= pkg.model.getCharacterInPlay();
+            attrs.propTargetName ??= 'lockMovement';
+            
+            this.quickSet(['propTarget','propTargetName'], attrs);
+            
+            this.callSuper(parent, attrs);
+        },
+        
+        setCountdown: function(v) {
+            const model = pkg.model;
+            this.detachFrom(model, 'updateCountdown', 'worldClockTime');
+            this.setMaxValue(v);
+            this.setValue(v);
+            this.attachTo(model, 'updateCountdown', 'worldClockTime');
+        },
+        
+        updateCountdown: function(event) {
+            const model = pkg.model,
+                newValue = this.propTarget[this.propTargetName] - event.value;
+            this.setValue(newValue);
+            if (newValue <= 0) this.detachFrom(model, 'updateCountdown', 'worldClockTime');
+        },
+        
+        getTooltipByValue: function(value) {
+            return '' + value + ' ticks of the clock until this cooldown is ready.';
+        },
+        
+        getTextByValue: function(value) {
+            return value > 0 ? this.callSuper(value) : pkg.FA_READY;
         }
     });
 })(orb);

@@ -34,6 +34,7 @@ orb = (() => {
             websocket:null,
             model:null,
             growlManager:null,
+            gamePanel:null,
             gameMap:null,
             
             authenticated:false,
@@ -144,7 +145,9 @@ orb = (() => {
                         const {id, lockMovement, newLoc} = response.msg,
                             character = pkg.model.getCharacterById(id);
                         if (character) {
+                            // FIXME: use a setter so there's an event
                             character.lockMovement = lockMovement;
+                            pkg.gamePanel.getMovementCooldown().setCountdown(lockMovement - pkg.model.worldClockTime);
                             character.loc = newLoc;
                             pkg.gameMap.refreshMap();
                         }
@@ -317,6 +320,7 @@ orb = (() => {
             FA_PLUG:               makeTagFunc(['plug']),
             FA_PLUS:               makeTagFunc(['plus']),
             FA_PLUS_SQUARE:        makeTagFunc(['plus-square']),
+            FA_READY:              makeTagFunc(['thumbs-up']),
             FA_SAVE:               makeTagFunc(['save']),
             FA_SEARCH:             makeTagFunc(['search']),
             FA_SUCCESS:            makeTagFunc(['smile']),

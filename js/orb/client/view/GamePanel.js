@@ -2,6 +2,10 @@
     let titleHeader,
         contentView,
         gameMap,
+        
+        rightPanel,
+        movementCooldown,
+        
         websocket,
         character;
     
@@ -34,6 +38,8 @@
     pkg.GamePanel = new JS.Class('GamePanel', pkg.BaseStackablePanel, {
         // Accessors ///////////////////////////////////////////////////////////
         setVisible: function(v) {
+            pkg.gamePanel = this;
+            
             this.callSuper(v);
             if (this.visible) {
                 pkg.connectToWebsocket();
@@ -46,11 +52,19 @@
                 
                 titleHeader.setTitle('Playing As: ' + character.name);
                 
+                // FIXME: listen to character event
+                movementCooldown.set
+                
                 this.attachToDom(GlobalKeys, '_keyDown', 'keydown', true);
             } else {
                 this.detachFromDom(GlobalKeys, '_keyDown', 'keydown', true);
             }
         },
+        
+        
+        // Accessors ///////////////////////////////////////////////////////////
+        getMovementCooldown: () => movementCooldown,
+        
         
         // Methods /////////////////////////////////////////////////////////////
         /** @private */
@@ -89,6 +103,16 @@
                 percentOfParentWidth:50, percentOfParentWidthOffset:-padding,
                 percentOfParentHeight:100, percentOfParentHeightOffset:-2*padding,
             }, [SizeToParent]);
+            
+            rightPanel = new View(content, {
+                y:padding, align:'right', alignOffset:padding,
+                percentOfParentWidth:50, percentOfParentWidthOffset:-2*padding,
+                percentOfParentHeight:100, percentOfParentHeightOffset:-2*padding,
+            }, [SizeToParent]);
+            
+            movementCooldown = new pkg.CooldownRadialGuage(rightPanel, {
+                propTargetName:'lockMovement', tooltip:'Movement Cooldown'
+            });
         },
         
         buildFooter: footer => {
