@@ -26,10 +26,14 @@ orb = (() => {
                 TYPE_MAP_DATA, TYPE_CELL_DATA,
                 TYPE_RESULT_MOVE,
                 ATTR_TIME
+            },
+            character:{
+                FIELD_LOCK_MOVEMENT, FIELD_LOC
             }
         } = common,
         
         pkg = {
+            // Convienent References
             app:null,
             websocket:null,
             model:null,
@@ -135,20 +139,25 @@ orb = (() => {
                     }, TYPE_EXIT_WORLD);
                     
                     websocket.registerListener(response => {
-                        pkg.model.storeMapData(response.msg);
+                        const model = pkg.model;
+                        model.updateWorldClockTime(response[ATTR_TIME]);
+                        model.storeMapData(response.msg);
                     }, TYPE_MAP_DATA);
                     
                     websocket.registerListener(response => {
-                        pkg.model.storeCellData(response.msg);
+                        const model = pkg.model;
+                        model.updateWorldClockTime(response[ATTR_TIME]);
+                        model.storeCellData(response.msg);
                     }, TYPE_CELL_DATA);
                     
                     websocket.registerListener(response => {
                         const model = pkg.model,
-                            {id, lockMovement, newLoc} = response.msg,
+                            msg = response.msg,
                             characterInPlay = model.getCharacterInPlay();
+                        model.updateWorldClockTime(response[ATTR_TIME]);
                         if (characterInPlay) {
-                            characterInPlay.setLockMovement(lockMovement);
-                            characterInPlay.setLoc(newLoc);
+                            characterInPlay.set(FIELD_LOCK_MOVEMENT, msg[FIELD_LOCK_MOVEMENT]);
+                            characterInPlay.set(FIELD_LOC, msg.newLoc);
                             pkg.gameMap.refreshMap();
                         }
                     }, TYPE_RESULT_MOVE);
@@ -358,7 +367,10 @@ orb = (() => {
             },
             
             cfg:{
-                
+                // Map
+                mapRange:9,
+                cellSize:32,
+                entitySizeM:16
             },
             
             elements:{

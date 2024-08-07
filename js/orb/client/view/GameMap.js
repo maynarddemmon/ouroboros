@@ -10,21 +10,22 @@
         
         {View, Reusable, TrackActivesPool, debounce} = myt,
         
-        {model} = pkg,
+        {
+            character:{FIELD_LOC},
+            util:{locArrToId}
+        } = common,
         
-        {locArrToId} = common.util,
+        {
+            model,
+            cfg:{mapRange, cellSize, entitySizeM}
+        } = pkg,
         
-        DISTANCE = 9,
-        CELL_SIZE = 32,
-        CELL_SIZE_HALF = CELL_SIZE / 2,
-        
-        ENTITY_SIZE_CHARACTER = 16,
+        halfCellSize = cellSize / 2,
+        halfMapSize = halfCellSize + (mapRange * cellSize),
+        mapSize = 2*halfMapSize,
         
         cellViewsByLocId = new Map(),
-        
-        getCellViewForLocId = locId => {
-            return cellViewsByLocId.get(locId);
-        },
+        getCellViewForLocId = locId => cellViewsByLocId.get(locId),
         
         Entity = new JSClass('Entity', View, {
             includes:[Reusable],
@@ -32,14 +33,14 @@
             setEntity: function(v) {
                 this.entity = v;
                 
-                this.setWidth(ENTITY_SIZE_CHARACTER);
-                this.setHeight(ENTITY_SIZE_CHARACTER);
-                this.setRoundedCorners(ENTITY_SIZE_CHARACTER / 2);
+                this.setWidth(entitySizeM);
+                this.setHeight(entitySizeM);
+                this.setRoundedCorners(entitySizeM / 2);
                 this.setBgColor('#f00');
             },
             
             updatePosition: function(position) {
-                const entityLocId = locArrToId(this.entity.loc),
+                const entityLocId = locArrToId(this.entity[FIELD_LOC]),
                     cell = getCellViewForLocId(entityLocId);
                 if (cell) {
                     let adjX = 0,
@@ -65,8 +66,8 @@
                         
                         case 'center':
                         default:
-                            adjX = CELL_SIZE_HALF - this.width / 2;
-                            adjY = CELL_SIZE_HALF - this.height / 2;
+                            adjX = halfCellSize - this.width / 2;
+                            adjY = halfCellSize - this.height / 2;
                     }
                     this.setX(cell.x + adjX);
                     this.setY(cell.y + adjY);
@@ -78,7 +79,7 @@
             includes:[Reusable],
             
             initNode: function(parent, attrs) {
-                attrs.width = attrs.height = CELL_SIZE;
+                attrs.width = attrs.height = cellSize;
                 this.callSuper(parent, attrs);
             },
             
@@ -110,6 +111,7 @@
         initNode: function(parent, attrs) {
             gameMap = pkg.gameMap = this;
             
+            attrs.width = attrs.height = mapSize;
             attrs.bgColor = '#666';
             attrs.overflow = 'hidden';
             
@@ -146,15 +148,15 @@
             
             const centerX = mathRound(gameMap.width / 2),
                 centerY = mathRound(gameMap.height / 2),
-                locArr = character.loc,
+                locArr = character[FIELD_LOC],
                 locArrCopy = locArr.slice(),
-                posStartAdj = CELL_SIZE_HALF + (DISTANCE * CELL_SIZE);
+                posStartAdj = halfMapSize;
                 
             let posX = centerX - posStartAdj,
                 posY = centerY - posStartAdj;
-            for (let x = -DISTANCE; x <= DISTANCE; x++) {
+            for (let x = -mapRange; x <= mapRange; x++) {
                 locArrCopy[1] = locArr[1] + x;
-                for (let y = -DISTANCE; y <= DISTANCE; y++) {
+                for (let y = -mapRange; y <= mapRange; y++) {
                     locArrCopy[2] = locArr[2] + y;
                     
                     const locId = locArrToId(locArrCopy),
@@ -163,10 +165,10 @@
                     
                     cellView.callSetters({x:posX, y:posY, cell:cellDatum});
                     
-                    posY += CELL_SIZE;
+                    posY += cellSize;
                 }
-                posX += CELL_SIZE;
-                posY -= CELL_SIZE + 2*DISTANCE*CELL_SIZE;
+                posX += cellSize;
+                posY -= mapSize;
             }
             
             // Update Entitites

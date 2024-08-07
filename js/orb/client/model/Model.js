@@ -3,26 +3,34 @@
         mapData,
         cellData;
     
-    const {Node, Eventable} = myt,
+    const {
+            Node, Eventable,
+            AccessorSupport:{generateSetterName}
+        } = myt,
         
-        {TYPE_ACTION_MOVE} = common.greek,
+        {
+            greek:{TYPE_ACTION_MOVE},
+            character:{
+                FIELD_LOCK_MOVEMENT, FIELD_LOC
+            }
+        } = common
         
         CharacterModel = new JS.Class('CharacterModel', Eventable, {
             // Accessors ///////////////////////////////////////////////////////
-            setLockMovement: function(v) {this.set('lockMovement', v, true);},
-            setLoc: function(v) {this.set('loc', v, true);},
+            [generateSetterName(FIELD_LOCK_MOVEMENT)]: function(v) {this.set(FIELD_LOCK_MOVEMENT, v, true);},
+            [generateSetterName(FIELD_LOC)]:           function(v) {this.set(FIELD_LOC, v, true);},
             
             
             // Methods /////////////////////////////////////////////////////////
             canMove: function() {
-                return this.lockMovement == null || this.lockMovement <= model.worldClockTime;
+                return this[FIELD_LOCK_MOVEMENT] == null || this[FIELD_LOCK_MOVEMENT] <= model.worldClockTime;
             },
             
             doMove: function(direction) {
                 if (this.canMove()) {
                     // Pre-emptive indefinite lock. Will be updated once the
                     // server handles the character's movement.
-                    this.lockMovement = Number.MAX_SAFE_INTEGER;
+                    this[FIELD_LOCK_MOVEMENT] = Number.MAX_SAFE_INTEGER;
                     
                     pkg.websocket.sendTypedMessage(TYPE_ACTION_MOVE, {id:this.id, direction:direction});
                     return true;

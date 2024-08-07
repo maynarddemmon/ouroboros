@@ -1,4 +1,10 @@
 const orb = require('./orb.js'),
+    {
+        character:{
+            FIELD_ID, FIELD_NAME, FIELD_USER_ID, FIELD_IS_IN_WORLD, FIELD_IS_ZOMBIE, FIELD_LOCK_MOVEMENT, 
+            FIELD_LOC, FIELD_MOVEMENT_SPEED
+        }
+    } = require('../common/common.js'),
     
     FILENAME_CHARACTERS = 'characters',
     
@@ -15,11 +21,10 @@ const orb = require('./orb.js'),
     charactersByUserId = {},
     
     storeCharacterInRepo = character => {
-        const {id, name, userId, isZombie} = character;
-        
         // Zombie characters are no longer managed by the User with their userId.
-        if (!isZombie) {
-            const existingCharacters = getCharactersByUserId(userId);
+        if (!character[FIELD_IS_ZOMBIE]) {
+            const userId = character[FIELD_USER_ID],
+                existingCharacters = getCharactersByUserId(userId);
             if (existingCharacters.length + 1 > orb.maxCharactersPerUser) {
                 console.warn('Max character limit exceeded for user:', userId);
                 return false;
@@ -27,37 +32,37 @@ const orb = require('./orb.js'),
             existingCharacters.push(character);
         }
         
-        charactersById[id] = charactersByName[name] = character;
+        charactersById[character[FIELD_ID]] = charactersByName[character[FIELD_NAME]] = character;
         return true;
     },
     
     removeCharacterFromRepo = character => {
-        const {id, name, userId} = character,
-            existingCharacters = getCharactersByUserId(userId);
+        const id = character[FIELD_ID],
+            existingCharacters = getCharactersByUserId(character[FIELD_USER_ID]);
         let i = existingCharacters.length;
         while (i) {
             const existingCharacter = existingCharacters[--i];
-            if (existingCharacter.id === id) {
+            if (existingCharacter[FIELD_ID] === id) {
                 existingCharacters.splice(i, 1);
                 break;
             }
         }
         delete charactersById[id];
-        delete charactersByName[name];
+        delete charactersByName[character[FIELD_NAME]];
         return true;
     },
     
     /** Makes an empty character object with nulls and/or default values. */
     makeEmptyCharacter = () => {
         return {
-            id:null,
-            userId:null,
-            name:'',
-            isZombie:false,
-            isInWorld:false,
-            loc:[0,0,0,0],
-            lockMovement:0,
-            movementSpeed:3
+            [FIELD_ID]:null,
+            [FIELD_USER_ID]:null,
+            [FIELD_NAME]:'',
+            [FIELD_IS_ZOMBIE]:false,
+            [FIELD_IS_IN_WORLD]:false,
+            [FIELD_LOC]:[0,0,0,0],
+            [FIELD_LOCK_MOVEMENT]:0,
+            [FIELD_MOVEMENT_SPEED]:3
         };
     },
     
@@ -71,8 +76,8 @@ const orb = require('./orb.js'),
     },
     
     doCharacterExitWorld = character => {
-        if (character.isInWorld) {
-            character.isInWorld = false;
+        if (character[FIELD_IS_IN_WORLD]) {
+            character[FIELD_IS_IN_WORLD] = false;
             return true;
         } else {
             return false;
@@ -88,17 +93,19 @@ const orb = require('./orb.js'),
         if (jsonData) {
             let count = 0;
             for (const datum of jsonData) {
-                const {id, userId, name, isZombie, isInWorld, loc, lockMovement, movementSpeed} = datum;
+                const userId = datum[FIELD_USER_ID],
+                    name = datum[FIELD_NAME],
+                    id = datum[FIELD_ID];
                 if (id && userId && name) {
                     const character = makeEmptyCharacter();
-                    character.id = id;
-                    character.userId = userId;
-                    character.name = name;
-                    character.isZombie = isZombie || false;
-                    character.isInWorld = isInWorld || false;
-                    character.loc = loc;
-                    character.lockMovement = lockMovement ?? 0;
-                    character.movementSpeed = movementSpeed ?? 3;
+                    character[FIELD_ID] = id;
+                    character[FIELD_USER_ID] = userId;
+                    character[FIELD_NAME] = name;
+                    character[FIELD_IS_ZOMBIE] = datum[FIELD_IS_ZOMBIE] || false;
+                    character[FIELD_IS_IN_WORLD] = datum[FIELD_IS_IN_WORLD] || false;
+                    character[FIELD_LOC] = datum[FIELD_LOC];
+                    character[FIELD_LOCK_MOVEMENT] = datum[FIELD_LOCK_MOVEMENT] ?? 0;
+                    character[FIELD_MOVEMENT_SPEED] = datum[FIELD_MOVEMENT_SPEED] ?? 3;
                     if (storeCharacterInRepo(character)) count++;
                 } else {
                     console.error('  Failed to restore character: ', datum);
@@ -142,7 +149,7 @@ module.exports = {
     doCharacterExitWorld:doCharacterExitWorld,
     
     createCharacter: (userId, data) => {
-        const name = data.name,
+        const name = data[FIELD_NAME],
             retval = {success:false};
         if (!userId) {
             retval.message = 'No userId provided.';
@@ -150,10 +157,10 @@ module.exports = {
             retval.message = 'Character name already exists.';
         } else {
             const character = makeEmptyCharacter();
-            character.id = orb.getGuidString('c');
-            character.userId = userId;
-            character.name = name;
-            character.loc = [0,2,2,0];
+            character[FIELD_ID] = orb.getGuidString('c');
+            character[FIELD_USER_ID] = userId;
+            character[FIELD_NAME] = name;
+            character[FIELD_LOC] = [0,2,2,0];
             
             if (storeCharacterInRepo(character)) {
                 retval.message = 'Character created successfully.';
@@ -175,10 +182,10 @@ module.exports = {
         } else {
             const character = getCharacterById(id);
             if (character) {
-                if (character.userId === userId) {
+                if (character[FIELD_USER_ID] === userId) {
                     if (removeCharacterFromRepo(character)) {
                         retval.message = 'Character removed successfully.';
-                        retval.id = id;
+                        retval[FIELD_ID] = id;
                         retval.success = true;
                     } else {
                         retval.message = 'Character deletion failed.';
@@ -196,7 +203,7 @@ module.exports = {
     convertAllCharactersToZombiesForAccount: userId => {
         const existingCharacters = getCharactersByUserId(userId);
         let i = existingCharacters.length;
-        while (i) existingCharacters[--i].isZombie = true;
+        while (i) existingCharacters[--i][FIELD_IS_ZOMBIE] = true;
         return true;
     }
 };

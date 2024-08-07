@@ -4,7 +4,6 @@
         gameMap,
         
         rightPanel,
-        movementCooldown,
         
         websocket,
         character;
@@ -16,7 +15,9 @@
             global:{keys:GlobalKeys}
         } = M,
         
-        {TYPE_EXIT_WORLD} = common.greek,
+        {
+            character:{FIELD_NAME}
+        } = common,
         
         {
             TextBtn,
@@ -24,12 +25,8 @@
             model
         } = pkg,
         
-        preventDefault = domEvent => {
-            domEvent.preventDefault();
-        },
-        
         doArrowKey = (domEvent, direction) => {
-            preventDefault(domEvent);
+            domEvent.preventDefault();
             if (!character.doMove(direction)) pkg.growl('info',"You can't move right now.");
         };
     
@@ -48,10 +45,7 @@
                 character = model.getCharacterInPlay();
                 gameMap.setCharacter(character);
                 
-                titleHeader.setTitle('Playing As: ' + character.name);
-                
-                // FIXME: listen to character event
-                movementCooldown.set
+                titleHeader.setTitle('Playing As: <b>' + character[FIELD_NAME] + '</b>');
                 
                 this.attachToDom(GlobalKeys, '_keyDown', 'keydown', true);
             } else {
@@ -61,7 +55,6 @@
         
         
         // Accessors ///////////////////////////////////////////////////////////
-        getMovementCooldown: () => movementCooldown,
         
         
         // Methods /////////////////////////////////////////////////////////////
@@ -87,7 +80,7 @@
             const self = this;
             self.buildHeader(titleHeader = new pkg.TitleHeader(self, {}));
             self.buildContent(contentView = new View(self, {percentOfParentWidth:100, layoutHint:1}, [SizeToParent]));
-            self.buildFooter(self.footer = new pkg.Footer(self, {}));
+            self.buildFooter(new pkg.Footer(self, {}));
             new ResizeLayout(self, {axis:'y'});
         },
         
@@ -96,20 +89,17 @@
         },
         
         buildContent: content => {
-            gameMap = new pkg.GameMap(content, {
-                x:padding, y:padding,
-                percentOfParentWidth:50, percentOfParentWidthOffset:-padding,
-                percentOfParentHeight:100, percentOfParentHeightOffset:-2*padding,
-            }, [SizeToParent]);
+            gameMap = new pkg.GameMap(content);
             
+            const rightPanelX = gameMap.x + gameMap.width + padding;
             rightPanel = new View(content, {
-                y:padding, align:'right', alignOffset:padding,
-                percentOfParentWidth:50, percentOfParentWidthOffset:-2*padding,
+                x:rightPanelX, y:padding,
+                percentOfParentWidth:100, percentOfParentWidthOffset:-(rightPanelX + padding),
                 percentOfParentHeight:100, percentOfParentHeightOffset:-2*padding,
             }, [SizeToParent]);
             
-            movementCooldown = new pkg.CharacterCooldownRadialGuage(rightPanel, {
-                propTargetName:'lockMovement', tooltip:'Movement Cooldown'
+            new pkg.CharacterCooldownRadialGuage(rightPanel, {
+                propTargetName:common.character.FIELD_LOCK_MOVEMENT, tooltip:'Movement Cooldown'
             });
         },
         
@@ -117,7 +107,7 @@
             new TextBtn(footer, {valign:'middle', text:pkg.FA_CHEVRON_LEFT + ' Exit to Lobby'}, [{
                 doActivated:() => {
                     pkg.app.lockUI('Leaving Ouroboros...', true);
-                    websocket.sendTypedMessage(TYPE_EXIT_WORLD, {id:character.id});
+                    websocket.sendTypedMessage(common.greek.TYPE_EXIT_WORLD, {id:character.id});
                 }
             }]);
         }

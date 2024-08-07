@@ -197,7 +197,6 @@
     
     pkg.CharacterCooldownRadialGuage = new JSClass('CharacterCooldownRadialGuage', pkg.BaseRadialGuage, {
         initNode: function(parent, attrs) {
-            attrs.propTargetName ??= 'lockMovement';
             this.quickSet(['propTargetName'], attrs);
             this.callSuper(parent, attrs);
             

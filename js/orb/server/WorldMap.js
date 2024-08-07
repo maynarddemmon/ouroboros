@@ -3,6 +3,11 @@ let mapData = {},
 
 const orb = require('./orb.js'),
     {locArrToId, locArrToMapId} = require('../common/util.js'),
+    {
+        character:{
+            FIELD_LOC
+        }
+    } = require('../common/common.js'),
     
     FILENAME_WORLD_MAP = 'world_map',
     
@@ -44,7 +49,7 @@ const orb = require('./orb.js'),
         }),
         
         getMapDataForCharacter: character => {
-            const locArr = character.loc,
+            const locArr = character[FIELD_LOC],
                 accum = {};
             if (locArr) {
                 const mapId = locArrToMapId(locArr);
@@ -54,7 +59,7 @@ const orb = require('./orb.js'),
         },
         
         getCellDataForCharacter: character => {
-            const locArr = character.loc,
+            const locArr = character[FIELD_LOC],
                 accum = {};
             if (locArr) {
                 // FIXME: for now do a fixed NxN grid around the character
