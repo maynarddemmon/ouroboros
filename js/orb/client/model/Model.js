@@ -3,70 +3,100 @@
         mapData,
         cellData;
     
-    const {TYPE_ACTION_MOVE} = common.greek,
+    const {Node, Eventable} = myt,
         
-        model = pkg.model = new JS.Singleton('Model', myt.Node, {
+        {TYPE_ACTION_MOVE} = common.greek,
+        
+        CharacterModel = new JS.Class('CharacterModel', Eventable, {
+            // Accessors ///////////////////////////////////////////////////////
+            setLockMovement: function(v) {this.set('lockMovement', v, true);},
+            setLoc: function(v) {this.set('loc', v, true);},
+            
+            
+            // Methods /////////////////////////////////////////////////////////
+            canMove: function() {
+                return this.lockMovement == null || this.lockMovement <= model.worldClockTime;
+            },
+            
+            doMove: function(direction) {
+                if (this.canMove()) {
+                    // Pre-emptive indefinite lock. Will be updated once the
+                    // server handles the character's movement.
+                    this.lockMovement = Number.MAX_SAFE_INTEGER;
+                    
+                    pkg.websocket.sendTypedMessage(TYPE_ACTION_MOVE, {id:this.id, direction:direction});
+                    return true;
+                }
+                return false;
+            }
+        }),
+        
+        model = pkg.model = new JS.Singleton('Model', Node, {
             // Characters:start
             setMaxCharacters: v => {
                 model.set('maxCharacters', v, true);
             },
-            setCharacters: v => {
-                model.set('characters', v, true);
-            },
-            getCharacters: () => {
-                return model.characters ?? (model.characters = []);
-            },
-            getCharacterById: id => {
+            
+            setCharacterInPlay: v => {model.set('characterInPlay', v, true);},
+            getCharacterInPlay: () => model.characterInPlay,
+            
+            /*getCharacterById: id => {
                 const characters = model.getCharacters();
                 let i = characters.length;
                 while (i) {
                     const character = characters[--i];
                     if (character.id === id) return character;
                 }
-            },
-            addCharacter: character => {
-                const characters = model.getCharacters();
-                characters.push(character);
-                model.fireEvent('characters', characters);
-            },
-            replaceCharacter: character => {
-                const id = character?.id,
-                    characters = model.getCharacters();
-                let i = characters.length;
-                while (i) {
-                    const existingCharacter = characters[--i];
-                    if (existingCharacter.id === id) {
-                        characters.splice(i, 1, character);
-                        return true;
+            },*/
+            
+            getCharacters: () => model.characters ?? (model.characters = []),
+            
+            setCharactersFromData: data => {
+                const characters = [];
+                if (Array.isArray(data)) {
+                    for (const datum of data) {
+                        const character = new CharacterModel(datum);
+                        if (character) characters.push(character);
                     }
                 }
-                return false;
+                model.set('characters', characters, true);
             },
+            addCharacterFromData: datum => {
+                const character = new CharacterModel(datum);
+                if (character) {
+                    const characters = model.getCharacters();
+                    characters.push(character);
+                    model.fireEvent('characters', characters);
+                }
+            },
+            
+            replaceCharacterFromData: datum => {
+                const character = new CharacterModel(datum);
+                if (character) {
+                    const id = character.id,
+                        characters = model.getCharacters();
+                    let i = characters.length;
+                    while (i) {
+                        const existingCharacter = characters[--i];
+                        if (existingCharacter.id === id) {
+                            characters.splice(i, 1, character);
+                            model.fireEvent('characters', characters);
+                            return character;
+                        }
+                    }
+                }
+                return null;
+            },
+            
             removeCharacterById: id => {
                 const characters = model.getCharacters();
                 let i = characters.length;
                 while (i) {
                     if (characters[--i].id === id) {
                         characters.splice(i, 1);
-                        break;
+                        model.fireEvent('characters', characters);
+                        return true;
                     }
-                }
-                model.fireEvent('characters', characters);
-            },
-            
-            setCharacterInPlay: character => {
-                model._characterInPlay = character;
-            },
-            getCharacterInPlay: () => model._characterInPlay,
-            
-            characterCanMove: character => {
-                return character.lockMovement == null || character.lockMovement <= model.worldClockTime;
-            },
-            characterDoMove: (character, direction) => {
-                if (model.characterCanMove(character)) {
-                    character.lockMovement = Number.MAX_SAFE_INTEGER;
-                    pkg.websocket.sendTypedMessage(TYPE_ACTION_MOVE, {id:character.id, direction:direction});
-                    return true;
                 }
                 return false;
             },

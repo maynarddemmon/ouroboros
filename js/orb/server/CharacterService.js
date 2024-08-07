@@ -55,7 +55,7 @@ const orb = require('./orb.js'),
             name:'',
             isZombie:false,
             isInWorld:false,
-            loc:'',
+            loc:[0,0,0,0],
             lockMovement:0,
             movementSpeed:3
         };
@@ -153,6 +153,7 @@ module.exports = {
             character.id = orb.getGuidString('c');
             character.userId = userId;
             character.name = name;
+            character.loc = [0,2,2,0];
             
             if (storeCharacterInRepo(character)) {
                 retval.message = 'Character created successfully.';

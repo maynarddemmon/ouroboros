@@ -195,33 +195,51 @@
         }
     });
     
-    pkg.CooldownRadialGuage = new JSClass('CooldownRadialGuage', pkg.BaseRadialGuage, {
+    pkg.CharacterCooldownRadialGuage = new JSClass('CharacterCooldownRadialGuage', pkg.BaseRadialGuage, {
         initNode: function(parent, attrs) {
-            attrs.propTarget ??= pkg.model.getCharacterInPlay();
             attrs.propTargetName ??= 'lockMovement';
-            
-            this.quickSet(['propTarget','propTargetName'], attrs);
-            
+            this.quickSet(['propTargetName'], attrs);
             this.callSuper(parent, attrs);
+            
+            this.syncTo(pkg.model, 'characterInPlayChanged', 'characterInPlay');
         },
         
-        setCountdown: function(v) {
+        characterInPlayChanged: function(event) {
+            this.reset();
+        },
+        
+        reset: function() {
             const model = pkg.model;
-            this.detachFrom(model, 'updateCountdown', 'worldClockTime');
-            this.setMaxValue(v);
-            this.setValue(v);
-            this.attachTo(model, 'updateCountdown', 'worldClockTime');
+            if (this.propTarget) {
+                this.detachFrom(model, 'notifyWorldClockTime', 'worldClockTime');
+                this.detachFrom(this.propTarget, 'targetPropChanged', this.propTargetName);
+            }
+            
+            const propTarget = this.propTarget = model.getCharacterInPlay();
+            if (propTarget) this.attachTo(propTarget, 'targetPropChanged', this.propTargetName);
         },
         
-        updateCountdown: function(event) {
+        targetPropChanged: function(event) {
+            const model = pkg.model;
+            this.setMaxValue(event.value - model.worldClockTime);
+            if (!this.isAttachedTo(model, 'notifyWorldClockTime', 'worldClockTime')) {
+                this.syncTo(model, 'notifyWorldClockTime', 'worldClockTime');
+            }
+        },
+        
+        notifyWorldClockTime: function(event) {
             const model = pkg.model,
                 newValue = this.propTarget[this.propTargetName] - event.value;
             this.setValue(newValue);
-            if (newValue <= 0) this.detachFrom(model, 'updateCountdown', 'worldClockTime');
+            if (newValue <= 0) this.detachFrom(model, 'notifyWorldClockTime', 'worldClockTime');
         },
         
-        getTooltipByValue: function(value) {
-            return '' + value + ' ticks of the clock until this cooldown is ready.';
+        getTooltipByValue: value => {
+            if (value > 0) {
+                return '' + value + ' ticks of the clock until this cooldown is ready.';
+            } else {
+                return 'The cooldown is ready.';
+            }
         },
         
         getTextByValue: function(value) {

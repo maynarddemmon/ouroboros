@@ -40,7 +40,7 @@
                     new CharacterRow(characterContainer, {character:character});
                 }
                 
-                if (inWorldCharacter) {
+                if (inWorldCharacter && !pkg.model.getCharacterInPlay()) {
                     pkg.growl('info', 'Attempting to auto-join because one of your characters already appears to be in play.');
                     doPlay(inWorldCharacter);
                 }

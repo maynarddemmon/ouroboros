@@ -30,9 +30,7 @@
         
         doArrowKey = (domEvent, direction) => {
             preventDefault(domEvent);
-            if (!model.characterDoMove(character, direction)) {
-                pkg.growl('info',"You can't move right now.");
-            }
+            if (!character.doMove(direction)) pkg.growl('info',"You can't move right now.");
         };
     
     pkg.GamePanel = new JS.Class('GamePanel', pkg.BaseStackablePanel, {
@@ -110,7 +108,7 @@
                 percentOfParentHeight:100, percentOfParentHeightOffset:-2*padding,
             }, [SizeToParent]);
             
-            movementCooldown = new pkg.CooldownRadialGuage(rightPanel, {
+            movementCooldown = new pkg.CharacterCooldownRadialGuage(rightPanel, {
                 propTargetName:'lockMovement', tooltip:'Movement Cooldown'
             });
         },

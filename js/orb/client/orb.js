@@ -57,7 +57,7 @@ orb = (() => {
                             msg = response.msg;
                         model.setWorldClockTick(msg.worldClockTick);
                         model.setMaxCharacters(msg.maxCharacters);
-                        model.setCharacters(msg.characters);
+                        model.setCharactersFromData(msg.characters);
                         model.updateWorldClockTime(response[ATTR_TIME]);
                     }, TYPE_LOBBY);
                     
@@ -65,7 +65,7 @@ orb = (() => {
                         const model = pkg.model,
                             {success, message, character} = response.msg;
                         if (success) {
-                            model.addCharacter(character);
+                            model.addCharacterFromData(character);
                             model.updateWorldClockTime(response[ATTR_TIME]);
                             pkg.growl('success', 'Character Created', message);
                         } else {
@@ -105,10 +105,11 @@ orb = (() => {
                     websocket.registerListener(response => {
                         const model = pkg.model,
                             {character} = response.msg;
+                        model.updateWorldClockTime(response[ATTR_TIME]);
                         if (character) {
-                            if (model.replaceCharacter(character)) {
-                                model.setCharacterInPlay(character);
-                                model.updateWorldClockTime(response[ATTR_TIME]);
+                            const characterModel = model.replaceCharacterFromData(character);
+                            if (characterModel) {
+                                model.setCharacterInPlay(characterModel);
                                 pkg.app.selectPanel(pkg.PANEL_ID_GAME);
                             } else {
                                 pkg.growl('failure', 'Character Not Found', 'The chracter sent back by the server was not found locally.');
@@ -120,11 +121,11 @@ orb = (() => {
                     websocket.registerListener(response => {
                         const model = pkg.model,
                             {character} = response.msg;
+                        model.updateWorldClockTime(response[ATTR_TIME]);
                         if (character) {
-                            if (model.replaceCharacter(character)) {
+                            if (model.replaceCharacterFromData(character)) {
                                 model.setCharacterInPlay();
                                 pkg.model.clearMapAndCellData();
-                                model.updateWorldClockTime(response[ATTR_TIME]);
                                 pkg.app.selectPanel(pkg.PANEL_ID_LOBBY);
                             } else {
                                 pkg.growl('failure', 'Character Not Found', 'The chracter sent back by the server was not found locally.');
@@ -142,13 +143,12 @@ orb = (() => {
                     }, TYPE_CELL_DATA);
                     
                     websocket.registerListener(response => {
-                        const {id, lockMovement, newLoc} = response.msg,
-                            character = pkg.model.getCharacterById(id);
-                        if (character) {
-                            // FIXME: use a setter so there's an event
-                            character.lockMovement = lockMovement;
-                            pkg.gamePanel.getMovementCooldown().setCountdown(lockMovement - pkg.model.worldClockTime);
-                            character.loc = newLoc;
+                        const model = pkg.model,
+                            {id, lockMovement, newLoc} = response.msg,
+                            characterInPlay = model.getCharacterInPlay();
+                        if (characterInPlay) {
+                            characterInPlay.setLockMovement(lockMovement);
+                            characterInPlay.setLoc(newLoc);
                             pkg.gameMap.refreshMap();
                         }
                     }, TYPE_RESULT_MOVE);
