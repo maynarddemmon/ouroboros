@@ -86,7 +86,7 @@ const loggingService = require('./LoggingService.js'),
         });
     },
     
-    lifeCycle = isBirth => {
+    lifeCycle = (isBirth, restart) => {
         if (isBirth) {
             // Watch a file for "command line" interaction with the server.
             inputWatcher = setupInputWatcher('./SERVER_COMMAND_INPUT.txt');
@@ -110,9 +110,16 @@ const loggingService = require('./LoggingService.js'),
                     worldClock.startClock();
                     console.log('\nREADY!!!\n');
                 } else {
-                    console.log('\nSHUTDOWN COMPLETE!!!\n');}
+                    console.log('\nSHUTDOWN COMPLETE!!!\n');
+                    
+                    if (restart) {
+                        const {spawn} = require('child_process');
+                        console.log('Restarting...\n');
+                        spawn(ARGS[0], ARGS.slice(1), {detached:true, stdio:'inherit'});
+                        process.exit();
+                    }
                 }
-            );
+            });
     };
 
 lifeCycle(true);
@@ -121,4 +128,10 @@ lifeCycle(true);
 process.on('SIGTERM', () => {
     console.log('\nSIGTERM signal received. Starting Shutdown...');
     lifeCycle(false);
+});
+
+// Graceful Restart
+process.on('SIGHUP', () => {
+    console.log('\nSIGHUP signal received. Restarting...\n\nStarting Shutdown...');
+    lifeCycle(false, true);
 });

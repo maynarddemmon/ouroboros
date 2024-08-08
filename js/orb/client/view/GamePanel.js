@@ -93,11 +93,18 @@
             const self = this;
             self.buildHeader(titleHeader = new pkg.TitleHeader(self, {}));
             self.buildContent(contentView = new View(self, {percentOfParentWidth:100, layoutHint:1}, [SizeToParent]));
-            self.buildFooter(new pkg.Footer(self, {}));
             new ResizeLayout(self, {axis:'y'});
         },
         
         buildHeader: header => {
+            const exitBtn = new TextBtn(header, {valign:'middle', text:pkg.FA_CHEVRON_LEFT + ' Exit to Lobby'}, [{
+                doActivated:() => {
+                    pkg.app.lockUI('Leaving Ouroboros...', true);
+                    websocket.sendTypedMessage(TYPE_EXIT_WORLD, {id:character.getId()});
+                }
+            }]);
+            header.sendSubviewBehind(exitBtn, header.titleView, header.getFirstLayout());
+            
             new View(header, {layoutHint:1});
         },
         
@@ -124,7 +131,7 @@
                 propTargetName:FIELD_LOCK_FREE, tooltip:'Free Action Cooldown'
             });
             
-            alterCellBtn = new TextBtn(rightPanel, {text:'Alter Cell', visible:false}, [{
+            alterCellBtn = new TextBtn(rightPanel, {text:'Alter Cell', layoutHint:'break', visible:false}, [{
                 doActivated: () => {
                     if (!character.doFree(TYPE_ALTER_CELL, {direction:'here', prop:'c', value:alterCellCompositionSelector.value})) {
                         pkg.growl('info',"You can't act right now.");
@@ -140,16 +147,7 @@
                 visible:false, height:28, options:options
             });
             
-            new M.WrappingLayout(rightPanel, {spacing:2*spacing, lineSpacing:2*spacing});
-        },
-        
-        buildFooter: footer => {
-            new TextBtn(footer, {valign:'middle', text:pkg.FA_CHEVRON_LEFT + ' Exit to Lobby'}, [{
-                doActivated:() => {
-                    pkg.app.lockUI('Leaving Ouroboros...', true);
-                    websocket.sendTypedMessage(TYPE_EXIT_WORLD, {id:character.getId()});
-                }
-            }]);
+            new M.WrappingLayout(rightPanel, {spacing:12, lineSpacing:20});
         }
     });
 })(orb);
