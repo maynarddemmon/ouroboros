@@ -12,8 +12,8 @@
             greek:{TYPE_ACTION_MOVE},
             character:{
                 FIELD_ID, FIELD_NAME, FIELD_USER_ID, FIELD_IS_IN_WORLD, FIELD_IS_ZOMBIE, 
-                FIELD_LOCK_MOVEMENT, FIELD_LOC, FIELD_MOVEMENT_SPEED, FIELD_PERMISSIONS,
-                FIELD_LOCK_ACTION
+                FIELD_LOC, FIELD_MOVEMENT_SPEED, FIELD_PERMISSIONS,
+                FIELD_LOCK_MOVEMENT, FIELD_LOCK_ACTION, FIELD_LOCK_REACT, FIELD_LOCK_FREE
             }
         } = common
         
@@ -38,6 +38,10 @@
             getMovementSpeed: function() {return this[FIELD_MOVEMENT_SPEED];},
             [generateSetterName(FIELD_LOCK_ACTION)]: function(v) {this.set(FIELD_LOCK_ACTION, v, true);},
             getLockAction: function() {return this[FIELD_LOCK_ACTION];},
+            [generateSetterName(FIELD_LOCK_FREE)]: function(v) {this.set(FIELD_LOCK_FREE, v, true);},
+            getLockFree: function() {return this[FIELD_LOCK_FREE];},
+            [generateSetterName(FIELD_LOCK_REACT)]: function(v) {this.set(FIELD_LOCK_REACT, v, true);},
+            getLockReact: function() {return this[FIELD_LOCK_REACT];},
             
             // Methods /////////////////////////////////////////////////////////
             canMove: function() {
@@ -65,6 +69,22 @@
                     // Pre-emptive indefinite lock. Will be updated once the
                     // server handles the character's action.
                     this[FIELD_LOCK_ACTION] = Number.MAX_SAFE_INTEGER;
+                    
+                    pkg.websocket.sendTypedMessage(type, {id:this.id, ...params});
+                    return true;
+                }
+                return false;
+            },
+            
+            canFree: function() {
+                return this[FIELD_LOCK_FREE] == null || this[FIELD_LOCK_FREE] <= model.worldClockTime;
+            },
+            
+            doFree: function(type, params) {
+                if (this.canFree()) {
+                    // Pre-emptive indefinite lock. Will be updated once the
+                    // server handles the character's action.
+                    this[FIELD_LOCK_FREE] = Number.MAX_SAFE_INTEGER;
                     
                     pkg.websocket.sendTypedMessage(type, {id:this.id, ...params});
                     return true;

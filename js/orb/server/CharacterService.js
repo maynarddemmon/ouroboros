@@ -11,8 +11,8 @@ const orb = require('./orb.js'),
     {
         character:{
             FIELD_ID, FIELD_NAME, FIELD_USER_ID, FIELD_IS_IN_WORLD, FIELD_IS_ZOMBIE, 
-            FIELD_LOCK_MOVEMENT, FIELD_LOC, FIELD_MOVEMENT_SPEED, FIELD_PERMISSIONS,
-            FIELD_LOCK_ACTION
+            FIELD_LOC, FIELD_MOVEMENT_SPEED, FIELD_PERMISSIONS,
+            FIELD_LOCK_MOVEMENT, FIELD_LOCK_ACTION, FIELD_LOCK_FREE, FIELD_LOCK_REACT
         }
     } = require('../common/common.js'),
     
@@ -28,9 +28,11 @@ const orb = require('./orb.js'),
             attrs[FIELD_IS_ZOMBIE] ??= false;
             attrs[FIELD_IS_IN_WORLD] ??= false;
             attrs[FIELD_LOC] ??= [0,0,0,0];
-            attrs[FIELD_LOCK_MOVEMENT] ??= 0;
             attrs[FIELD_MOVEMENT_SPEED] ??= 3;
+            attrs[FIELD_LOCK_MOVEMENT] ??= 0;
             attrs[FIELD_LOCK_ACTION] ??= 0;
+            attrs[FIELD_LOCK_REACT] ??= 0;
+            attrs[FIELD_LOCK_FREE] ??= 0;
             
             this.callSuper(attrs);
         },
@@ -56,6 +58,10 @@ const orb = require('./orb.js'),
         getMovementSpeed: function() {return this[FIELD_MOVEMENT_SPEED];},
         [generateSetterName(FIELD_LOCK_ACTION)]: function(v) {this.set(FIELD_LOCK_ACTION, v, true);},
         getLockAction: function() {return this[FIELD_LOCK_ACTION];},
+        [generateSetterName(FIELD_LOCK_FREE)]: function(v) {this.set(FIELD_LOCK_FREE, v, true);},
+        getLockFree: function() {return this[FIELD_LOCK_FREE];},
+        [generateSetterName(FIELD_LOCK_REACT)]: function(v) {this.set(FIELD_LOCK_REACT, v, true);},
+        getLockReact: function() {return this[FIELD_LOCK_REACT];},
         
         getFreeActionSpeed: function() {
             return 1;
@@ -126,10 +132,6 @@ const orb = require('./orb.js'),
         }
     },
     
-    saveCharactersOnShutdown = () => {
-        orb.saveDataToFile(FILENAME_CHARACTERS, Object.values(charactersById));
-    },
-    
     restoreCharactersOnStartup = () => {
         const jsonData = orb.readDataFile(FILENAME_CHARACTERS);
         if (jsonData) {
@@ -160,7 +162,13 @@ const orb = require('./orb.js'),
             doCharacterExitWorld(charactersById[id]);
         }
         
-        saveCharactersOnShutdown();
+        // Save Characters
+        const data = Object.values(charactersById);
+        for (const datum of data) {
+            delete datum.inited;
+        }
+        orb.saveDataToFile(FILENAME_CHARACTERS, data);
+        
         resolve();
     };
 

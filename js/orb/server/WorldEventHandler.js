@@ -14,8 +14,8 @@ const orb = require('./orb.js'),
     } = require('../common/SocketProtocol.js'),
     {
         character:{
-            FIELD_IS_IN_WORLD, FIELD_LOCK_MOVEMENT, FIELD_PERMISSIONS,
-            FIELD_LOCK_ACTION
+            FIELD_IS_IN_WORLD, FIELD_PERMISSIONS,
+            FIELD_LOCK_MOVEMENT, FIELD_LOCK_ACTION, FIELD_LOCK_REACT, FIELD_LOCK_FREE
         }
     } = require('../common/common.js'),
     
@@ -188,7 +188,7 @@ const orb = require('./orb.js'),
                     // Send Result
                     addMessageToUser(username, {type:TYPE_RESULT_ALTER_CELL, msg:{
                         id:character.id,
-                        [FIELD_LOCK_ACTION]:newLockAction
+                        [FIELD_LOCK_FREE]:newLockAction
                     }, [ATTR_TIME]:now});
                     
                     // Send new cell data

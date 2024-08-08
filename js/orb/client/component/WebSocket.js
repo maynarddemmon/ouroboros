@@ -13,7 +13,8 @@
                 ATTR_TIME
             },
             character:{
-                FIELD_LOCK_MOVEMENT, FIELD_LOC, FIELD_LOCK_ACTION
+                FIELD_LOC, 
+                FIELD_LOCK_MOVEMENT, FIELD_LOCK_ACTION, FIELD_LOCK_REACT, FIELD_LOCK_FREE
             }
         } = common,
         
@@ -463,7 +464,7 @@
                     characterInPlay = model.getCharacterInPlay();
                 model.updateWorldClockTime(response[ATTR_TIME]);
                 if (characterInPlay) {
-                    characterInPlay.set(FIELD_LOCK_ACTION, msg[FIELD_LOCK_ACTION]);
+                    characterInPlay.set(FIELD_LOCK_FREE, msg[FIELD_LOCK_FREE]);
                     pkg.gameMap.refreshMap();
                 }
             }, TYPE_RESULT_ALTER_CELL);

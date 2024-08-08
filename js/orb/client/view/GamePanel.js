@@ -5,6 +5,7 @@
         
         rightPanel,
         alterCellBtn,
+        alterCellCompositionSelector,
         
         websocket,
         character;
@@ -13,16 +14,19 @@
         M = myt,
         {
             View, Text, SpacedLayout, ResizeLayout, SizeToParent, 
+            InputSelect,
             global:{keys:GlobalKeys}
         } = M,
         
         {
             character:{
-                FIELD_NAME, FIELD_LOCK_MOVEMENT, FIELD_LOCK_ACTION
+                FIELD_NAME, 
+                FIELD_LOCK_MOVEMENT, FIELD_LOCK_ACTION, FIELD_LOCK_FREE, FIELD_LOCK_REACT
             },
             greek:{
                 TYPE_EXIT_WORLD, TYPE_ALTER_CELL
-            }
+            },
+            composition
         } = common,
         
         {
@@ -52,6 +56,7 @@
                 
                 const hasCreatorPerm = character.hasPermission('creator');
                 alterCellBtn.setVisible(hasCreatorPerm);
+                alterCellCompositionSelector.setVisible(hasCreatorPerm);
                 
                 titleHeader.setTitle('Playing As: <b>' + character[FIELD_NAME] + '</b>');
                 
@@ -109,19 +114,31 @@
             new pkg.CharacterCooldownRadialGuage(rightPanel, {
                 propTargetName:FIELD_LOCK_MOVEMENT, tooltip:'Movement Cooldown'
             });
-            
             new pkg.CharacterCooldownRadialGuage(rightPanel, {
                 propTargetName:FIELD_LOCK_ACTION, tooltip:'Action Cooldown'
             });
-            
+            new pkg.CharacterCooldownRadialGuage(rightPanel, {
+                propTargetName:FIELD_LOCK_REACT, tooltip:'Reaction Cooldown'
+            });
+            new pkg.CharacterCooldownRadialGuage(rightPanel, {
+                propTargetName:FIELD_LOCK_FREE, tooltip:'Free Action Cooldown'
+            });
             
             alterCellBtn = new TextBtn(rightPanel, {text:'Alter Cell', visible:false}, [{
                 doActivated: () => {
-                    if (!character.doAction(TYPE_ALTER_CELL, {direction:'here', prop:'c', value:'a1'})) {
+                    if (!character.doFree(TYPE_ALTER_CELL, {direction:'here', prop:'c', value:alterCellCompositionSelector.value})) {
                         pkg.growl('info',"You can't act right now.");
                     }
                 }
             }]);
+            const options = [];
+            for (const key in composition) {
+                const entry = composition[key];
+                options.push({label:entry.name, value:key});
+            }
+            alterCellCompositionSelector = new InputSelect(rightPanel, {
+                visible:false, height:28, options:options
+            });
             
             new M.WrappingLayout(rightPanel, {spacing:2*spacing, lineSpacing:2*spacing});
         },

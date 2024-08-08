@@ -186,6 +186,7 @@
     
     pkg.BaseRadialGuage = new JSClass('BaseRadialGuage', M.RadialGuage, {
         initNode: function(parent, attrs) {
+            attrs.radius ??= 28;
             this.callSuper(parent, attrs);
         }
     });

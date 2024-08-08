@@ -5,15 +5,17 @@
         },
         character:{
             FIELD_ID:'id',
-            FIELD_USER_ID:'userId',
+            FIELD_USER_ID:'uid',
             FIELD_NAME:'name',
             FIELD_IS_ZOMBIE:'zombie',
-            FIELD_PERMISSIONS:'permissions',
+            FIELD_PERMISSIONS:'perms',
             FIELD_IS_IN_WORLD:'inWorld',
             FIELD_LOC:'loc',
-            FIELD_LOCK_MOVEMENT:'lockMovement',
-            FIELD_MOVEMENT_SPEED:'movementSpeed',
-            FIELD_LOCK_ACTION:'lockAction'
+            FIELD_MOVEMENT_SPEED:'moveSpeed',
+            FIELD_LOCK_MOVEMENT:'lockMove',
+            FIELD_LOCK_ACTION:'lockAct',
+            FIELD_LOCK_FREE:'lockFree',
+            FIELD_LOCK_REACT:'lockReact'
         },
         
         composition:{
