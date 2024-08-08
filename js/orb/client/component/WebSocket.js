@@ -9,7 +9,7 @@
                 TYPE_LOBBY, TYPE_CREATE_CHARACTER, TYPE_DELETE_CHARACTER,
                 TYPE_ENTER_WORLD, TYPE_EXIT_WORLD,
                 TYPE_MAP_DATA, TYPE_CELL_DATA,
-                TYPE_RESULT_MOVE, TYPE_RESULT_ALTER_CELL,
+                TYPE_RESULT_MOVE, TYPE_RESULT_ALTER_CELL, TYPE_ALTER_CHARACTER,
                 ATTR_TIME
             },
             character:{
@@ -467,6 +467,14 @@
                     pkg.gameMap.refreshMap();
                 }
             }, TYPE_RESULT_ALTER_CELL);
+            
+            websocket.registerListener(response => {
+                const msg = response.msg,
+                    newNow = response[ATTR_TIME],
+                    character = model.getCharacterById(msg.id);
+                if (newNow) model.updateWorldClockTime(newNow);
+                if (character) character.set(msg.p, msg.v);
+            }, TYPE_ALTER_CHARACTER);
             
             return websocket;
         }

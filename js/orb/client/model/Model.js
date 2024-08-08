@@ -87,14 +87,14 @@
             setCharacterInPlay: v => {model.set('characterInPlay', v, true);},
             getCharacterInPlay: () => model.characterInPlay,
             
-            /*getCharacterById: id => {
+            getCharacterById: id => {
                 const characters = model.getCharacters();
                 let i = characters.length;
                 while (i) {
                     const character = characters[--i];
                     if (character.id === id) return character;
                 }
-            },*/
+            },
             
             getCharacters: () => model.characters ?? (model.characters = []),
             

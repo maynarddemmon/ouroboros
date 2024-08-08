@@ -57,6 +57,9 @@ const orb = require('./orb.js'),
         [generateSetterName(FIELD_LOCK_ACTION)]: function(v) {this.set(FIELD_LOCK_ACTION, v, true);},
         getLockAction: function() {return this[FIELD_LOCK_ACTION];},
         
+        getFreeActionSpeed: function() {
+            return 1;
+        },
         
         // Methods /////////////////////////////////////////////////////////////
     }),

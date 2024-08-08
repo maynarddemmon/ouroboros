@@ -11,6 +11,9 @@
         TYPE_ENTER_WORLD = 'enterWorld',
         TYPE_EXIT_WORLD = 'exitWorld',
         
+        // Misc
+        TYPE_ALTER_CHARACTER = 'alterCharacter',
+        
         // Map
         TYPE_MAP_DATA = 'mapData',
         TYPE_CELL_DATA = 'cellData',
@@ -36,6 +39,8 @@
             
             TYPE_ENTER_WORLD:TYPE_ENTER_WORLD,
             TYPE_EXIT_WORLD:TYPE_EXIT_WORLD,
+            
+            TYPE_ALTER_CHARACTER:TYPE_ALTER_CHARACTER,
             
             TYPE_MAP_DATA:TYPE_MAP_DATA,
             TYPE_CELL_DATA:TYPE_CELL_DATA,

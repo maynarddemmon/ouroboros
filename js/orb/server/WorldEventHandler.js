@@ -9,7 +9,7 @@ const orb = require('./orb.js'),
         TYPE_WARNING, TYPE_ERROR, TYPE_ENTER_WORLD, TYPE_EXIT_WORLD,
         TYPE_MAP_DATA, TYPE_CELL_DATA,
         TYPE_ACTION_MOVE, TYPE_RESULT_MOVE,
-        TYPE_ALTER_CELL, TYPE_RESULT_ALTER_CELL,
+        TYPE_ALTER_CELL, TYPE_RESULT_ALTER_CELL, TYPE_ALTER_CHARACTER,
         ATTR_TIME
     } = require('../common/SocketProtocol.js'),
     {
@@ -39,6 +39,35 @@ const orb = require('./orb.js'),
         } else {
             errorMessageToUser(userId, 'Account not found for ', userId);
             return null;
+        }
+    },
+    
+    performAction = (event, lockProperty, cooldownFuncName, actionFunc) => {
+        const username = verifyUserIdHasAccount(event);
+        if (username) {
+            const characterId = event.msg.id,
+                character = getCharacterById(characterId);
+            if (character) {
+                if (character.getUserId() === username) {
+                    const now = event[ATTR_TIME],
+                        curLockValue = character.get(lockProperty);
+                    if (now >= curLockValue) { // FIXME: remove -5
+                        const cooldown = character[cooldownFuncName](),
+                            newLockAction = now + cooldown;
+                        character.set(lockProperty, newLockAction);
+                        actionFunc(username, character, now, newLockAction);
+                    } else {
+                        // Send the cooldown to the user since their's may be wrong.
+                        addMessageToUser(username, {type:TYPE_ALTER_CHARACTER, msg:{
+                            id:character.id, p:lockProperty, v:curLockValue
+                        }, [ATTR_TIME]:now});
+                    }
+                } else {
+                    warningMessageToUser(username, 'Character not found in your account ', characterId);
+                }
+            } else {
+                warningMessageToUser(username, 'Character not found for ', characterId);
+            }
         }
     },
     
@@ -104,100 +133,69 @@ const orb = require('./orb.js'),
         },
         
         [TYPE_ACTION_MOVE]:event => {
-            const username = verifyUserIdHasAccount(event);
-            if (username) {
-                const characterId = event.msg.id,
-                    character = getCharacterById(characterId);
-                if (character) {
-                    if (character.getUserId() === username) {
-                        const now = event[ATTR_TIME],
-                            locArr = character.getLocArr(),
-                            newLockMovement = now + character.getMovementSpeed();
-                        character.set(FIELD_LOCK_MOVEMENT, newLockMovement);
-                        
-                        // FIXME: need character facing to calculate move correctly
-                        switch (event.msg.direction) {
-                            case 'forward':
-                                locArr[2] -= 1;
-                                break;
-                            case 'back':
-                                locArr[2] += 1;
-                                break;
-                            case 'left':
-                                locArr[1] -= 1;
-                                break;
-                            case 'right':
-                                locArr[1] += 1;
-                                break;
-                        }
-                        
-                        // Send movement change
-                        addMessageToUser(username, {type:TYPE_RESULT_MOVE, msg:{
-                            id:character.id,
-                            newLoc:locArr,
-                            [FIELD_LOCK_MOVEMENT]:newLockMovement
-                        }, [ATTR_TIME]:now});
-                        
-                        // Send new cell data
-                        addMessageToUser(username, {type:TYPE_CELL_DATA, msg:getCellDataForCharacter(character), [ATTR_TIME]:now});
-                        
-                        // FIXME: how to notify all other characters that can sense this character
-                    } else {
-                        warningMessageToUser(username, 'Character not found in your account ', characterId);
+            performAction(
+                event, FIELD_LOCK_MOVEMENT, 'getMovementSpeed', 
+                (username, character, now, newLockAction) => {
+                    const locArr = character.getLocArr();
+                    
+                    // FIXME: need character facing to calculate move correctly
+                    switch (event.msg.direction) {
+                        case 'forward': locArr[2] -= 1; break;
+                        case 'back': locArr[2] += 1; break;
+                        case 'left': locArr[1] -= 1; break;
+                        case 'right': locArr[1] += 1; break;
                     }
-                } else {
-                    warningMessageToUser(username, 'Character not found for ', characterId);
+                    
+                    // Send movement change
+                    addMessageToUser(username, {type:TYPE_RESULT_MOVE, msg:{
+                        id:character.id,
+                        newLoc:locArr,
+                        [FIELD_LOCK_MOVEMENT]:newLockAction
+                    }, [ATTR_TIME]:now});
+                    
+                    // Send new cell data
+                    addMessageToUser(username, {type:TYPE_CELL_DATA, msg:getCellDataForCharacter(character), [ATTR_TIME]:now});
+                    
+                    // FIXME: how to notify all other characters that can sense this character
                 }
-            }
+            );
         },
         
-        
         [TYPE_ALTER_CELL]:event => {
-            const username = verifyUserIdHasAccount(event);
-            if (username) {
-                const characterId = event.msg.id,
-                    character = getCharacterById(characterId);
-                if (character) {
-                    if (character.getUserId() === username) {
-                        const now = event[ATTR_TIME],
-                            locArr = character.getLocArr(), // FIXME: get copy
-                            newLockAction = now + 1;
-                        character.set(FIELD_LOCK_ACTION, newLockAction);
-                        
-                        // FIXME: need character facing to calculate move correctly
-                        switch (event.msg.direction) {
-                            case 'here':
-                                break;
-                        }
-                        
-                        // Get Cell and alter it
-                        const locId = locArrToId(locArr),
-                            cell = getCellData(locId),
-                            {prop, value} = event.msg;
-                        if (cell) {
-                            cell[prop] = value;
-                        } else {
-                            const newCell = makeEmptyCell();
-                            newCell[prop] = value;
-                            setCellDatum(locId, newCell);
-                        }
-                        
-                        // Send Result
-                        addMessageToUser(username, {type:TYPE_RESULT_ALTER_CELL, msg:{
-                            id:character.id,
-                            [FIELD_LOCK_ACTION]:newLockAction
-                        }, [ATTR_TIME]:now});
-                        
-                        // Send new cell data
-                        addMessageToUser(username, {type:TYPE_CELL_DATA, msg:getCellDataForCharacter(character), [ATTR_TIME]:now});
-                        
-                        // FIXME: how to notify all other characters that can sense this character
-                    } else {
-                        warningMessageToUser(username, 'Character not found in your account ', characterId);
+            performAction(
+                event, FIELD_LOCK_ACTION, 'getFreeActionSpeed', // FIXME: lock free action
+                (username, character, now, newLockAction) => {
+                    const locArr = character.getLocArr(); // FIXME: get copy
+                    
+                    // FIXME: need character facing to calculate move correctly
+                    switch (event.msg.direction) {
+                        case 'here':
+                            break;
                     }
-                } else {
-                    warningMessageToUser(username, 'Character not found for ', characterId);
+                    
+                    // Get Cell and alter it
+                    const locId = locArrToId(locArr),
+                        cell = getCellData(locId),
+                        {prop, value} = event.msg;
+                    if (cell) {
+                        cell[prop] = value;
+                    } else {
+                        const newCell = makeEmptyCell();
+                        newCell[prop] = value;
+                        setCellDatum(locId, newCell);
+                    }
+                    
+                    // Send Result
+                    addMessageToUser(username, {type:TYPE_RESULT_ALTER_CELL, msg:{
+                        id:character.id,
+                        [FIELD_LOCK_ACTION]:newLockAction
+                    }, [ATTR_TIME]:now});
+                    
+                    // Send new cell data
+                    addMessageToUser(username, {type:TYPE_CELL_DATA, msg:getCellDataForCharacter(character), [ATTR_TIME]:now});
+                    
+                    // FIXME: how to notify all other characters that can sense this character
                 }
-            }
+            );
         },
     };
