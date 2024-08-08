@@ -35,6 +35,18 @@ const orb = require('./orb.js'),
     },
     
     worldMap = module.exports = {
+        getCellData:getCellData,
+        
+        makeEmptyCell: () => {
+            return {
+                c:'v1'
+            };
+        },
+        
+        setCellDatum:(locId, datum) => {
+            cellData[locId] = datum;
+        },
+        
         lifeCycle: isBirth => new Promise((resolve, reject) => {
             if (isBirth) {
                 live(resolve, reject);

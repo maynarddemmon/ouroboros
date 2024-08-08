@@ -12,7 +12,8 @@
             FIELD_IS_IN_WORLD:'inWorld',
             FIELD_LOC:'loc',
             FIELD_LOCK_MOVEMENT:'lockMovement',
-            FIELD_MOVEMENT_SPEED:'movementSpeed'
+            FIELD_MOVEMENT_SPEED:'movementSpeed',
+            FIELD_LOCK_ACTION:'lockAction'
         },
         
         composition:{

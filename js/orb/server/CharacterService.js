@@ -11,7 +11,8 @@ const orb = require('./orb.js'),
     {
         character:{
             FIELD_ID, FIELD_NAME, FIELD_USER_ID, FIELD_IS_IN_WORLD, FIELD_IS_ZOMBIE, 
-            FIELD_LOCK_MOVEMENT, FIELD_LOC, FIELD_MOVEMENT_SPEED, FIELD_PERMISSIONS
+            FIELD_LOCK_MOVEMENT, FIELD_LOC, FIELD_MOVEMENT_SPEED, FIELD_PERMISSIONS,
+            FIELD_LOCK_ACTION
         }
     } = require('../common/common.js'),
     
@@ -29,6 +30,7 @@ const orb = require('./orb.js'),
             attrs[FIELD_LOC] ??= [0,0,0,0];
             attrs[FIELD_LOCK_MOVEMENT] ??= 0;
             attrs[FIELD_MOVEMENT_SPEED] ??= 3;
+            attrs[FIELD_LOCK_ACTION] ??= 0;
             
             this.callSuper(attrs);
         },
@@ -52,6 +54,8 @@ const orb = require('./orb.js'),
         getLockMovement: function() {return this[FIELD_LOCK_MOVEMENT];},
         [generateSetterName(FIELD_MOVEMENT_SPEED)]: function(v) {this.set(FIELD_MOVEMENT_SPEED, v, true);},
         getMovementSpeed: function() {return this[FIELD_MOVEMENT_SPEED];},
+        [generateSetterName(FIELD_LOCK_ACTION)]: function(v) {this.set(FIELD_LOCK_ACTION, v, true);},
+        getLockAction: function() {return this[FIELD_LOCK_ACTION];},
         
         
         // Methods /////////////////////////////////////////////////////////////

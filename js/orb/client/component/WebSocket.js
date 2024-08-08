@@ -9,11 +9,11 @@
                 TYPE_LOBBY, TYPE_CREATE_CHARACTER, TYPE_DELETE_CHARACTER,
                 TYPE_ENTER_WORLD, TYPE_EXIT_WORLD,
                 TYPE_MAP_DATA, TYPE_CELL_DATA,
-                TYPE_RESULT_MOVE,
+                TYPE_RESULT_MOVE, TYPE_RESULT_ALTER_CELL,
                 ATTR_TIME
             },
             character:{
-                FIELD_LOCK_MOVEMENT, FIELD_LOC
+                FIELD_LOCK_MOVEMENT, FIELD_LOC, FIELD_LOCK_ACTION
             }
         } = common,
         
@@ -457,6 +457,16 @@
                     pkg.gameMap.refreshMap();
                 }
             }, TYPE_RESULT_MOVE);
+            
+            websocket.registerListener(response => {
+                const msg = response.msg,
+                    characterInPlay = model.getCharacterInPlay();
+                model.updateWorldClockTime(response[ATTR_TIME]);
+                if (characterInPlay) {
+                    characterInPlay.set(FIELD_LOCK_ACTION, msg[FIELD_LOCK_ACTION]);
+                    pkg.gameMap.refreshMap();
+                }
+            }, TYPE_RESULT_ALTER_CELL);
             
             return websocket;
         }

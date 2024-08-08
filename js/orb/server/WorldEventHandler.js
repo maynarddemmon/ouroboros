@@ -1,18 +1,25 @@
 const orb = require('./orb.js'),
     {getAccountByUsername, addMessageToUser} = require('./AccountService.js'),
     {getCharactersByUserId, getCharacterById, doCharacterExitWorld} = require('./CharacterService.js'),
-    {getCellDataForCharacter, getMapDataForCharacter} = require('./WorldMap.js'),
+    {
+        getCellData, makeEmptyCell, setCellDatum, 
+        getCellDataForCharacter, getMapDataForCharacter
+    } = require('./WorldMap.js'),
     {
         TYPE_WARNING, TYPE_ERROR, TYPE_ENTER_WORLD, TYPE_EXIT_WORLD,
         TYPE_MAP_DATA, TYPE_CELL_DATA,
         TYPE_ACTION_MOVE, TYPE_RESULT_MOVE,
+        TYPE_ALTER_CELL, TYPE_RESULT_ALTER_CELL,
         ATTR_TIME
     } = require('../common/SocketProtocol.js'),
     {
         character:{
-            FIELD_IS_IN_WORLD, FIELD_LOCK_MOVEMENT, FIELD_PERMISSIONS
+            FIELD_IS_IN_WORLD, FIELD_LOCK_MOVEMENT, FIELD_PERMISSIONS,
+            FIELD_LOCK_ACTION
         }
     } = require('../common/common.js'),
+    
+    {locArrToId} = require('../common/util.js'),
     
     warningMessageToUser = (username, msg) => {
         console.warn(msg);
@@ -24,13 +31,23 @@ const orb = require('./orb.js'),
         addMessageToUser(username, {type:TYPE_ERROR, msg:msg});
     },
     
+    verifyUserIdHasAccount = event => {
+        const userId = event._uid,
+            account = getAccountByUsername(userId);
+        if (account) {
+            return userId;
+        } else {
+            errorMessageToUser(userId, 'Account not found for ', userId);
+            return null;
+        }
+    },
+    
     worldEventHandler = module.exports = {
         /** Find the character for the user and mark it as "isInWorld". Mark all other characters
             for the user as not "isInWorld". */
         [TYPE_ENTER_WORLD]:event => {
-            const username = event._uid,
-                account = getAccountByUsername(username);
-            if (account) {
+            const username = verifyUserIdHasAccount(event);
+            if (username) {
                 const characterId = event.msg.id,
                     usersCharacters = getCharactersByUserId(username);
                 let character,
@@ -57,15 +74,12 @@ const orb = require('./orb.js'),
                 } else {
                     warningMessageToUser(username, 'Character not found for ', characterId);
                 }
-            } else {
-                errorMessageToUser(username, 'Account not found for ', username);
             }
         },
         
         [TYPE_EXIT_WORLD]:event => {
-            const username = event._uid,
-                account = getAccountByUsername(username);
-            if (account) {
+            const username = verifyUserIdHasAccount(event);
+            if (username) {
                 const characterId = event.msg.id,
                     usersCharacters = getCharactersByUserId(username);
                 let character,
@@ -86,44 +100,41 @@ const orb = require('./orb.js'),
                 } else {
                     warningMessageToUser(username, 'Character not found for ', characterId);
                 }
-            } else {
-                errorMessageToUser(username, 'Account not found for ', username);
             }
         },
         
         [TYPE_ACTION_MOVE]:event => {
-            const username = event._uid,
-                account = getAccountByUsername(username);
-            if (account) {
+            const username = verifyUserIdHasAccount(event);
+            if (username) {
                 const characterId = event.msg.id,
                     character = getCharacterById(characterId);
                 if (character) {
                     if (character.getUserId() === username) {
                         const now = event[ATTR_TIME],
-                            loc = character.getLocArr(),
+                            locArr = character.getLocArr(),
                             newLockMovement = now + character.getMovementSpeed();
                         character.set(FIELD_LOCK_MOVEMENT, newLockMovement);
                         
                         // FIXME: need character facing to calculate move correctly
                         switch (event.msg.direction) {
                             case 'forward':
-                                loc[2] -= 1;
+                                locArr[2] -= 1;
                                 break;
                             case 'back':
-                                loc[2] += 1;
+                                locArr[2] += 1;
                                 break;
                             case 'left':
-                                loc[1] -= 1;
+                                locArr[1] -= 1;
                                 break;
                             case 'right':
-                                loc[1] += 1;
+                                locArr[1] += 1;
                                 break;
                         }
                         
                         // Send movement change
                         addMessageToUser(username, {type:TYPE_RESULT_MOVE, msg:{
                             id:character.id,
-                            newLoc:loc,
+                            newLoc:locArr,
                             [FIELD_LOCK_MOVEMENT]:newLockMovement
                         }, [ATTR_TIME]:now});
                         
@@ -137,8 +148,56 @@ const orb = require('./orb.js'),
                 } else {
                     warningMessageToUser(username, 'Character not found for ', characterId);
                 }
-            } else {
-                errorMessageToUser(username, 'Account not found for ', username);
+            }
+        },
+        
+        
+        [TYPE_ALTER_CELL]:event => {
+            const username = verifyUserIdHasAccount(event);
+            if (username) {
+                const characterId = event.msg.id,
+                    character = getCharacterById(characterId);
+                if (character) {
+                    if (character.getUserId() === username) {
+                        const now = event[ATTR_TIME],
+                            locArr = character.getLocArr(), // FIXME: get copy
+                            newLockAction = now + 1;
+                        character.set(FIELD_LOCK_ACTION, newLockAction);
+                        
+                        // FIXME: need character facing to calculate move correctly
+                        switch (event.msg.direction) {
+                            case 'here':
+                                break;
+                        }
+                        
+                        // Get Cell and alter it
+                        const locId = locArrToId(locArr),
+                            cell = getCellData(locId),
+                            {prop, value} = event.msg;
+                        if (cell) {
+                            cell[prop] = value;
+                        } else {
+                            const newCell = makeEmptyCell();
+                            newCell[prop] = value;
+                            setCellDatum(locId, newCell);
+                        }
+                        
+                        // Send Result
+                        addMessageToUser(username, {type:TYPE_RESULT_ALTER_CELL, msg:{
+                            id:character.id,
+                            [FIELD_LOCK_ACTION]:newLockAction
+                        }, [ATTR_TIME]:now});
+                        
+                        // Send new cell data
+                        addMessageToUser(username, {type:TYPE_CELL_DATA, msg:getCellDataForCharacter(character), [ATTR_TIME]:now});
+                        
+                        // FIXME: how to notify all other characters that can sense this character
+                    } else {
+                        warningMessageToUser(username, 'Character not found in your account ', characterId);
+                    }
+                } else {
+                    warningMessageToUser(username, 'Character not found for ', characterId);
+                }
             }
         },
     };

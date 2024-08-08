@@ -4,6 +4,7 @@
         gameMap,
         
         rightPanel,
+        alterCellBtn,
         
         websocket,
         character;
@@ -15,7 +16,14 @@
             global:{keys:GlobalKeys}
         } = M,
         
-        {character:{FIELD_NAME}} = common,
+        {
+            character:{
+                FIELD_NAME, FIELD_LOCK_MOVEMENT, FIELD_LOCK_ACTION
+            },
+            greek:{
+                TYPE_EXIT_WORLD, TYPE_ALTER_CELL
+            }
+        } = common,
         
         {
             TextBtn, componentUtil,
@@ -41,6 +49,9 @@
                 
                 character = model.getCharacterInPlay();
                 gameMap.setCharacter(character);
+                
+                const hasCreatorPerm = character.hasPermission('creator');
+                alterCellBtn.setVisible(hasCreatorPerm);
                 
                 titleHeader.setTitle('Playing As: <b>' + character[FIELD_NAME] + '</b>');
                 
@@ -96,15 +107,30 @@
             }, [SizeToParent]);
             
             new pkg.CharacterCooldownRadialGuage(rightPanel, {
-                propTargetName:common.character.FIELD_LOCK_MOVEMENT, tooltip:'Movement Cooldown'
+                propTargetName:FIELD_LOCK_MOVEMENT, tooltip:'Movement Cooldown'
             });
+            
+            new pkg.CharacterCooldownRadialGuage(rightPanel, {
+                propTargetName:FIELD_LOCK_ACTION, tooltip:'Action Cooldown'
+            });
+            
+            
+            alterCellBtn = new TextBtn(rightPanel, {text:'Alter Cell', visible:false}, [{
+                doActivated: () => {
+                    if (!character.doAction(TYPE_ALTER_CELL, {direction:'here', prop:'c', value:'a1'})) {
+                        pkg.growl('info',"You can't act right now.");
+                    }
+                }
+            }]);
+            
+            new M.WrappingLayout(rightPanel, {spacing:2*spacing, lineSpacing:2*spacing});
         },
         
         buildFooter: footer => {
             new TextBtn(footer, {valign:'middle', text:pkg.FA_CHEVRON_LEFT + ' Exit to Lobby'}, [{
                 doActivated:() => {
                     pkg.app.lockUI('Leaving Ouroboros...', true);
-                    websocket.sendTypedMessage(common.greek.TYPE_EXIT_WORLD, {id:character.id});
+                    websocket.sendTypedMessage(TYPE_EXIT_WORLD, {id:character.getId()});
                 }
             }]);
         }

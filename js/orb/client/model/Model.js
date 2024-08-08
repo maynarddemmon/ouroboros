@@ -11,16 +11,33 @@
         {
             greek:{TYPE_ACTION_MOVE},
             character:{
-                FIELD_LOCK_MOVEMENT, FIELD_LOC, FIELD_PERMISSIONS
+                FIELD_ID, FIELD_NAME, FIELD_USER_ID, FIELD_IS_IN_WORLD, FIELD_IS_ZOMBIE, 
+                FIELD_LOCK_MOVEMENT, FIELD_LOC, FIELD_MOVEMENT_SPEED, FIELD_PERMISSIONS,
+                FIELD_LOCK_ACTION
             }
         } = common
         
         CharacterModel = new JS.Class('CharacterModel', Eventable, {
             // Accessors ///////////////////////////////////////////////////////
+            [generateSetterName(FIELD_ID)]: function(v) {this.set(FIELD_ID, v, true);},
+            getId: function() {return this[FIELD_ID];},
+            [generateSetterName(FIELD_USER_ID)]: function(v) {this.set(FIELD_USER_ID, v, true);},
+            getUserId: function() {return this[FIELD_USER_ID];},
+            [generateSetterName(FIELD_NAME)]: function(v) {this.set(FIELD_NAME, v, true);},
+            getName: function() {return this[FIELD_NAME];},
+            [generateSetterName(FIELD_IS_ZOMBIE)]: function(v) {this.set(FIELD_IS_ZOMBIE, v, true);},
+            isZombie: function() {return this[FIELD_IS_ZOMBIE];},
+            [generateSetterName(FIELD_PERMISSIONS)]: function(v) {this.set(FIELD_PERMISSIONS, v, true);},
+            [generateSetterName(FIELD_IS_IN_WORLD)]: function(v) {this.set(FIELD_IS_IN_WORLD, v, true);},
+            isInWorld: function() {return this[FIELD_IS_IN_WORLD];},
+            [generateSetterName(FIELD_LOC)]: function(v) {this.set(FIELD_LOC, v, true);},
+            getLocArr: function() {return this[FIELD_LOC];},
             [generateSetterName(FIELD_LOCK_MOVEMENT)]: function(v) {this.set(FIELD_LOCK_MOVEMENT, v, true);},
-            [generateSetterName(FIELD_LOC)]:           function(v) {this.set(FIELD_LOC, v, true);},
-            [generateSetterName(FIELD_PERMISSIONS)]:   function(v) {this.set(FIELD_PERMISSIONS, v, true);},
-            
+            getLockMovement: function() {return this[FIELD_LOCK_MOVEMENT];},
+            [generateSetterName(FIELD_MOVEMENT_SPEED)]: function(v) {this.set(FIELD_MOVEMENT_SPEED, v, true);},
+            getMovementSpeed: function() {return this[FIELD_MOVEMENT_SPEED];},
+            [generateSetterName(FIELD_LOCK_ACTION)]: function(v) {this.set(FIELD_LOCK_ACTION, v, true);},
+            getLockAction: function() {return this[FIELD_LOCK_ACTION];},
             
             // Methods /////////////////////////////////////////////////////////
             canMove: function() {
@@ -39,9 +56,25 @@
                 return false;
             },
             
+            canAct: function() {
+                return this[FIELD_LOCK_ACTION] == null || this[FIELD_LOCK_ACTION] <= model.worldClockTime;
+            },
+            
+            doAction: function(type, params) {
+                if (this.canAct()) {
+                    // Pre-emptive indefinite lock. Will be updated once the
+                    // server handles the character's action.
+                    this[FIELD_LOCK_ACTION] = Number.MAX_SAFE_INTEGER;
+                    
+                    pkg.websocket.sendTypedMessage(type, {id:this.id, ...params});
+                    return true;
+                }
+                return false;
+            },
+            
             hasPermission: function(permId) {
                 const permissions = this[FIELD_PERMISSIONS];
-                return permissions ? permssions.includes(permId) : false;
+                return permissions ? permissions.includes(permId) : false;
             }
         }),
         
