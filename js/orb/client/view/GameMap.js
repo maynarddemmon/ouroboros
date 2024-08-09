@@ -8,7 +8,7 @@
         
         mathRound = Math.round,
         
-        {View, Reusable, TrackActivesPool, debounce} = myt,
+        {View, Reusable, MouseOverAndDown, TrackActivesPool, debounce} = myt,
         
         {
             character:{FIELD_LOC},
@@ -29,7 +29,14 @@
         getCellViewForLocId = locId => cellViewsByLocId.get(locId),
         
         Entity = new JSClass('Entity', View, {
-            includes:[Reusable],
+            include:[Reusable, MouseOverAndDown],
+            
+            initNode: function(parent, attrs) {
+                this.mouseOver = this.mouseDown = false;
+                
+                attrs.zIndex = 2;
+                this.callSuper(parent, attrs);
+            },
             
             setEntity: function(v) {
                 this.entity = v;
@@ -77,9 +84,11 @@
         }),
         
         Cell = new JSClass('Cell', View, {
-            includes:[Reusable],
+            include:[Reusable, MouseOverAndDown],
             
             initNode: function(parent, attrs) {
+                this.mouseOver = this.mouseDown = false;
+                
                 attrs.width = attrs.height = cellSize;
                 this.callSuper(parent, attrs);
             },
@@ -90,6 +99,20 @@
                     cellViewsByLocId.set(cell.locId, this);
                 }
                 if (this.inited) this.redraw();
+            },
+            
+            setMouseDown: function(v) {
+                if (v !== this.mouseDown) {
+                    this.callSuper(v);
+                    this.parent.doMouseDownCell(this.mouseDown, this.cell, this);
+                }
+            },
+            
+            setMouseOver: function(v) {
+                if (v !== this.mouseOver) {
+                    this.callSuper(v);
+                    this.parent.doMouseOverCell(this.mouseOver, this.cell, this);
+                }
             },
             
             redraw: function() {
@@ -135,6 +158,10 @@
         
         
         // Methods /////////////////////////////////////////////////////////////
+        doMouseOverCell: (isOver, cell, cellView) => {},
+        doMouseDownCell: (isDown, cell, cellView) => {},
+        doCharacterCell: (character, cell, cellView) => {},
+        
         refreshMap: debounce(() => {
             cellPool.putActives();
             cellViewsByLocId.clear();
@@ -157,6 +184,8 @@
                         cellView = cellPool.getInstance();
                     
                     cellView.callSetters({x:posX, y:posY, cell:cellDatum});
+                    
+                    if (x === 0 && y === 0) gameMap.doCharacterCell(character, cellDatum, cellView);
                     
                     posY += cellSize;
                 }

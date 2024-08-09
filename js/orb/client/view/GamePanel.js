@@ -1,6 +1,9 @@
 (pkg => {
     let titleHeader,
         contentView,
+        
+        myLocInfo,
+        otherLocInfo,
         gameMap,
         
         rightPanel,
@@ -13,7 +16,7 @@
     const I18N = BABEL.get,
         M = myt,
         {
-            View, Text, SpacedLayout, ResizeLayout, SizeToParent, 
+            View, Text, PaddedText, SpacedLayout, ResizeLayout, SizeToParent, 
             InputSelect,
             global:{keys:GlobalKeys}
         } = M,
@@ -26,7 +29,8 @@
             greek:{
                 TYPE_EXIT_WORLD, TYPE_ALTER_CELL
             },
-            composition
+            composition,
+            util:{locIdToArr}
         } = common,
         
         {
@@ -34,6 +38,21 @@
             theme:{padding, spacing},
             model
         } = pkg,
+        
+        clearLocInfo = locInfo => {
+            locInfo.setText();
+        },
+        
+        updateLocInfo = (locInfo, cell) => {
+            const locArr = locIdToArr(cell.locId),
+                mapDatum = model.getMapDatum(locArr[0]);
+            locInfo.setText(
+                mapDatum.name + ' / level:' + locArr[3] + 
+                ' / x:' + locArr[1] +
+                ' / y:' + locArr[2] +
+                ' / ' + composition[cell.c].name
+            );
+        },
         
         doArrowKey = (domEvent, direction) => {
             domEvent.preventDefault();
@@ -106,30 +125,55 @@
             header.sendSubviewBehind(exitBtn, header.titleView, header.getFirstLayout());
             
             new View(header, {layoutHint:1});
+            
+            const makeCooldown = propTargetName => {
+                new PaddedText(header, {valign:'middle', text:I18N('btnTxt-' + propTargetName), paddingLeft:12});
+                new pkg.CharacterCooldownRadialGuage(header, {
+                    y:4, propTargetName:propTargetName, tooltip:I18N('btnTip-' + propTargetName)
+                });
+            };
+            makeCooldown(FIELD_LOCK_MOVEMENT);
+            makeCooldown(FIELD_LOCK_ACTION);
+            makeCooldown(FIELD_LOCK_REACT);
+            makeCooldown(FIELD_LOCK_FREE);
+            
+            new View(header, {width:10});
         },
         
         buildContent: content => {
-            gameMap = new pkg.GameMap(content);
+            const leftPanel = new View(content, {});
             
-            const rightPanelX = gameMap.x + gameMap.width + padding;
+            myLocInfo = new Text(leftPanel, {x:spacing, height:20});
+            otherLocInfo = new Text(leftPanel, {x:spacing, height:20});
+            
+            gameMap = new pkg.GameMap(leftPanel, {}, [{
+                doMouseOverCell: (isOver, cell, cellView) => {
+                    if (isOver) {
+                        updateLocInfo(otherLocInfo, cell);
+                        cellView.setBorder([1, 'dashed', '#888']);
+                        cellView.setZIndex(1);
+                    } else {
+                        clearLocInfo(otherLocInfo);
+                        cellView.setBorder();
+                        cellView.setZIndex(0);
+                    }
+                },
+                doCharacterCell: (character, cell, cellView) => {
+                    updateLocInfo(myLocInfo, cell);
+                },
+            }]);
+            
+            new SpacedLayout(leftPanel, {axis:'y', inset:spacing, spacing:spacing, collapseParent:true});
+            
+            leftPanel.setWidth(gameMap.width);
+            
+            
+            const rightPanelX = leftPanel.x + leftPanel.width + padding;
             rightPanel = new View(content, {
-                x:rightPanelX, y:padding,
+                x:rightPanelX, y:spacing,
                 percentOfParentWidth:100, percentOfParentWidthOffset:-(rightPanelX + padding),
-                percentOfParentHeight:100, percentOfParentHeightOffset:-2*padding,
+                percentOfParentHeight:100, percentOfParentHeightOffset:-2*spacing
             }, [SizeToParent]);
-            
-            new pkg.CharacterCooldownRadialGuage(rightPanel, {
-                propTargetName:FIELD_LOCK_MOVEMENT, tooltip:'Movement Cooldown'
-            });
-            new pkg.CharacterCooldownRadialGuage(rightPanel, {
-                propTargetName:FIELD_LOCK_ACTION, tooltip:'Action Cooldown'
-            });
-            new pkg.CharacterCooldownRadialGuage(rightPanel, {
-                propTargetName:FIELD_LOCK_REACT, tooltip:'Reaction Cooldown'
-            });
-            new pkg.CharacterCooldownRadialGuage(rightPanel, {
-                propTargetName:FIELD_LOCK_FREE, tooltip:'Free Action Cooldown'
-            });
             
             alterCellBtn = new TextBtn(rightPanel, {text:'Alter Cell', layoutHint:'break', visible:false}, [{
                 doActivated: () => {

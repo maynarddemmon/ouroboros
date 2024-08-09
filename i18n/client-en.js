@@ -18,4 +18,12 @@ LOCALE_JSON = {
     'title-lobby':'Logged in as <b>$0</b>',
     'title-reg':'Create Account',
     'username':'Username',
+    'btnTxt-lockMove':'Move',
+    'btnTip-lockMove':'Movement Cooldown.',
+    'btnTxt-lockAct':'Action',
+    'btnTip-lockAct':'Action Cooldown.',
+    'btnTxt-lockFree':'Free',
+    'btnTip-lockFree':'Free Action Cooldown.',
+    'btnTxt-lockReact':'React',
+    'btnTip-lockReact':'Reaction Cooldown.',
 };

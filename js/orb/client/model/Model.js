@@ -191,6 +191,7 @@
             getMapData: () => mapData ?? (mapData = {}),
             getCellData: () => cellData ?? (cellData = {}),
             
+            getMapDatum: mapId => mapData[mapId],
             getCellDatum: locId => cellData[locId],
             
             clearMapAndCellData: () => {

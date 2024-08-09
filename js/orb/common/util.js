@@ -55,6 +55,7 @@
             },
             
             // Map Functions
+            locIdToArr: locId => locId.split(','),
             locArrToId: locArr => locArr.join(),
             locArrToMapId: locArr => '' + locArr[0],
         };

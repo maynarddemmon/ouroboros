@@ -148,7 +148,7 @@ orb = (() => {
                 
                 colorBgRow:'#ddd',
                 colorBgHeader:'#ccc',
-                colorBgPanel:'#000',
+                colorBgPanel:'#fff',
                 colorBgMiddleComp:'#eee',
                 colorBgInput:'#fff',
                 colorBgF:'#fff',
