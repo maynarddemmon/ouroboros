@@ -3,6 +3,17 @@
         permissions:{
             PERM_CREATOR:'creator'
         },
+        
+        account:{
+            FIELD_USERNAME:'username', // Also used to store username in the HTTP session.
+            FIELD_PASSWORD:'password',
+            FIELD_LAST_LOGIN:'lastLogin',
+            FIELD_AUTH_FAIL_COUNT:'authFailCount',
+            FIELD_AUTHENTICATED:'authenticated',
+            FIELD_WEBSOCKET:'websocket',
+            FIELD_SOCKET_TOKEN:'socketToken'
+        },
+        
         character:{
             FIELD_ID:'id',
             FIELD_USER_ID:'uid',

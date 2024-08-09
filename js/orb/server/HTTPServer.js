@@ -1,15 +1,26 @@
 let app,
     rootFile,
     httpServer,
+    memoryStore,
     shuttingDown = false;
 
 const fs = require('fs'),
     express = require('express'),
     session = require('express-session'),
+    MemoryStore = require('memorystore')(session),
     
-    {IS_PROD, CACHE_BUST, httpPort, socketUrl, makePath, generateSecret} = require('./orb.js'),
+    {
+        IS_PROD, CACHE_BUST, httpPort, socketUrl, sessionSecret,
+        makePath, readDataFile, saveDataToFile
+    } = require('./orb.js'),
+    
+    {
+        account:{FIELD_USERNAME, FIELD_SOCKET_TOKEN}
+    } = require('../common/common.js'),
     
     accountService = require('./AccountService.js'),
+    
+    FILENAME_SESSIONS = 'sessions',
     
     sendJSONResponse = (res, success, message, data) => {
         message ??= success ? 'success' : 'failure';
@@ -34,7 +45,16 @@ const fs = require('fs'),
         
         // Use Sessions. Sessions are not persistent across server restarts since there
         // is no persistent storage for them.
-        app.use(session({secret:generateSecret(), resave:false, saveUninitialized:false}));
+        memoryStore = new MemoryStore({
+            checkPeriod: 86400000 // prune expired entries every 24h
+        });
+        app.use(session({
+            secret:sessionSecret,
+            cookie:{maxAge: 86400000},
+            resave:false,
+            saveUninitialized:false,
+            store:memoryStore
+        }));
         
         // Serve Static files
         for (const dirName of ['lib','css','img','i18n', IS_PROD ? null : 'js/orb/client', IS_PROD ? null : 'js/orb/common']) {
@@ -56,17 +76,16 @@ const fs = require('fs'),
             }
             
             // Escape values for injection into the HTML.
-            let username = req.session.username;;
-            const userAccount = accountService.getAccountByUsername(username),
-                socketToken = userAccount ? userAccount.socketToken : null;
-            
-            const responseData = rootFile.replaceAll(
-                    '{{USERNAME}}', escapeStringForResponse(username)
-                ).replaceAll(
-                    '{{SOCKET_TOKEN}}', escapeStringForResponse(socketToken)
-                ).replaceAll(
-                    '{{SOCKET_URL}}', escapeStringForResponse(socketUrl)
-                );
+            const username = req.session[FIELD_USERNAME],
+                userAccount = accountService.getAccountByUsername(username),
+                socketToken = userAccount ? userAccount[FIELD_SOCKET_TOKEN] : null,
+                responseData = rootFile.replaceAll(
+                        '{{USERNAME}}', escapeStringForResponse(username)
+                    ).replaceAll(
+                        '{{SOCKET_TOKEN}}', escapeStringForResponse(socketToken)
+                    ).replaceAll(
+                        '{{SOCKET_URL}}', escapeStringForResponse(socketUrl)
+                    );
             res.send(responseData);
         });
         
@@ -135,13 +154,34 @@ const fs = require('fs'),
         });
         
         console.log('HTTP Server Starting Up...');
-        httpServer = app.listen(httpPort, () => {
+        const whenReadyFunc = () => {
             console.log(
                 '  Ouroboros HTTP Server listening on port: ' + httpPort + '\n' +
                 '       IS_PROD: ' + IS_PROD + '\n' + 
                 '    CACHE_BUST: ' + CACHE_BUST
             );
             resolve();
+        };
+        httpServer = app.listen(httpPort, () => {
+            // Restore Sessions
+            console.log('  Restoring HTTP Sessions...');
+            const jsonData = readDataFile(FILENAME_SESSIONS);
+            if (jsonData) {
+                for (const sessionId in jsonData) {
+                    memoryStore.set(
+                        sessionId, jsonData[sessionId], 
+                        err => {
+                            if (err) console.error('Error Restoring Session: ', err);
+                        }
+                    );
+                }
+                memoryStore.length((err, len) => {
+                    console.log('    Restored ' + len + ' HTTP sessions.');
+                    whenReadyFunc();
+                });
+            } else {
+                whenReadyFunc();
+            }
         });
     },
     
@@ -154,9 +194,20 @@ const fs = require('fs'),
             return;
         }
         
-        httpServer.close(() => {
-            console.log('  HTTP Server Closed');
-            resolve();
+        console.log('  Saving Sessions');
+        memoryStore.all((err, sessions) => {
+            if (err) {
+                console.error('Saving sessions failed because: ', err);
+                // Don't reject because we should still try to shutdown the
+                // HTTP server.
+            } else {
+                saveDataToFile(FILENAME_SESSIONS, sessions);
+            }
+            
+            httpServer.close(() => {
+                console.log('  HTTP Server Closed');
+                resolve();
+            });
         });
     };
 

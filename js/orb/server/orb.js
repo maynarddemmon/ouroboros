@@ -84,6 +84,7 @@ const path = require('path'),
         
         // Set from cfg/override.json
         salt:'',
+        sessionSecret:'',
         
         // Set from cfg/base.json
         httpPort: null,

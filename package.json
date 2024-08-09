@@ -11,6 +11,7 @@
     "dependencies": {
         "express": "4.19.2",
         "express-session": "1.18.0",
+        "memorystore": "1.6.7",
         "ws" : "8.18.0",
         "pino": "9.3.1",
         "json5": "2.2.3",

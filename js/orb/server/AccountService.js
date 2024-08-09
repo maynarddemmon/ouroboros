@@ -10,13 +10,12 @@ const {scryptSync} = require('crypto'),
     
     FILENAME_ACCOUNTS = 'accounts',
     
-    FIELD_USERNAME = 'username',
-    FIELD_PASSWORD = 'password',
-    FIELD_LAST_LOGIN = 'lastLogin',
-    FIELD_AUTH_FAIL_COUNT = 'authFailCount',
-    FIELD_AUTHENTICATED = 'authenticated',
-    FIELD_WEBSOCKET = 'websocket',
-    FIELD_SOCKET_TOKEN = 'socketToken',
+    {
+        account:{
+            FIELD_USERNAME, FIELD_PASSWORD, FIELD_LAST_LOGIN, FIELD_AUTH_FAIL_COUNT,
+            FIELD_AUTHENTICATED, FIELD_WEBSOCKET, FIELD_SOCKET_TOKEN
+        }
+    } = require('../common/common.js'),
     
     // An object holding all user accounts.
     accountsByUsername = {},
@@ -152,12 +151,15 @@ const {scryptSync} = require('crypto'),
                     password = datum[FIELD_PASSWORD];
                 if (username && password) {
                     const authFailCount = datum[FIELD_AUTH_FAIL_COUNT],
+                        socketToken = datum[FIELD_SOCKET_TOKEN],
                         account = makeEmptyAccount();
                     account[FIELD_USERNAME] = username;
                     account[FIELD_PASSWORD] = password;
+                    account[FIELD_SOCKET_TOKEN] = socketToken;
                     account[FIELD_LAST_LOGIN] = datum[FIELD_LAST_LOGIN];
                     account[FIELD_AUTH_FAIL_COUNT] = authFailCount || 0;
                     accountsByUsername[username] = account;
+                    if (socketToken) accountsBySocketToken[socketToken] = account;
                     
                     if (isAuthFailLimitExceeded(authFailCount)) {
                         lockedAccounts.push(account);
@@ -184,11 +186,13 @@ const {scryptSync} = require('crypto'),
         for (const key in accountsByUsername) {
             const account = accountsByUsername[key],
                 authFailCount = account[FIELD_AUTH_FAIL_COUNT],
+                socketToken = account[FIELD_SOCKET_TOKEN],
                 datum = {
                     [FIELD_USERNAME]:account[FIELD_USERNAME], 
                     [FIELD_PASSWORD]:account[FIELD_PASSWORD], 
                     [FIELD_LAST_LOGIN]:account[FIELD_LAST_LOGIN]
                 };
+            if (socketToken) datum[FIELD_SOCKET_TOKEN] = socketToken;
             if (authFailCount > 0) datum[FIELD_AUTH_FAIL_COUNT] = authFailCount;
             dataToSave.push(datum);
         }
