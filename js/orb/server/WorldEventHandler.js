@@ -2,7 +2,7 @@ const orb = require('./orb.js'),
     {getAccountByUsername, addMessageToUser} = require('./AccountService.js'),
     {getCharactersByUserId, getCharacterById, doCharacterExitWorld} = require('./CharacterService.js'),
     {
-        getCellData, makeEmptyCell, setCellDatum, 
+        getCellDatum, makeEmptyCell, setCellDatum, 
         getCellDataForCharacter, getMapDataForCharacter
     } = require('./WorldMap.js'),
     {
@@ -14,8 +14,8 @@ const orb = require('./orb.js'),
     } = require('../common/SocketProtocol.js'),
     {
         character:{
-            FIELD_IS_IN_WORLD, FIELD_PERMISSIONS,
-            FIELD_LOCK_MOVEMENT, FIELD_LOCK_ACTION, FIELD_LOCK_REACT, FIELD_LOCK_FREE
+            FIELD_IN_WORLD, FIELD_PERMISSIONS, FIELD_LOC,
+            FIELD_LOCK_MOVE, FIELD_LOCK_ACTION, FIELD_LOCK_REACT, FIELD_LOCK_FREE
         }
     } = require('../common/common.js'),
     
@@ -87,11 +87,11 @@ const orb = require('./orb.js'),
                         if (usersCharacter.isInWorld()) {
                             //warningMessageToUser(username, 'Character already in world ', characterId);
                         } else {
-                            usersCharacter.set(FIELD_IS_IN_WORLD, true);
+                            usersCharacter.set(FIELD_IN_WORLD, true);
                         }
                         character = usersCharacter;
                     } else {
-                        usersCharacter.set(FIELD_IS_IN_WORLD, false);
+                        usersCharacter.set(FIELD_IN_WORLD, false);
                     }
                 }
                 
@@ -134,10 +134,11 @@ const orb = require('./orb.js'),
         
         [TYPE_ACTION_MOVE]:event => {
             performAction(
-                event, FIELD_LOCK_MOVEMENT, 'getMovementSpeed', 
+                event, FIELD_LOCK_MOVE, 'getMoveSpeed', 
                 (username, character, now, newLockAction) => {
-                    const locArr = character.getLocArr();
+                    const locArr = character.getLocArr(true);
                     
+                    // Calculate desired new location
                     // FIXME: need character facing to calculate move correctly
                     switch (event.msg.direction) {
                         case 'forward': locArr[2] -= 1; break;
@@ -146,11 +147,23 @@ const orb = require('./orb.js'),
                         case 'right': locArr[1] += 1; break;
                     }
                     
+                    // Determine if the new location will allow the character
+                    const locId = locArrToId(locArr),
+                        cell = getCellDatum(locId);
+                    if (cell) {
+                        // FIXME: need to call a function on a new Cell class
+                        // cell.mayMoveInto(character);
+                        console.log('check cell for move: ', cell)
+                    }
+                    
+                    // Apply Change to Character
+                    character.set(FIELD_LOC, locArr);
+                    
                     // Send movement change
                     addMessageToUser(username, {type:TYPE_RESULT_MOVE, msg:{
                         id:character.id,
                         newLoc:locArr,
-                        [FIELD_LOCK_MOVEMENT]:newLockAction
+                        [FIELD_LOCK_MOVE]:newLockAction
                     }, [ATTR_TIME]:now});
                     
                     // Send new cell data
@@ -175,7 +188,7 @@ const orb = require('./orb.js'),
                     
                     // Get Cell and alter it
                     const locId = locArrToId(locArr),
-                        cell = getCellData(locId),
+                        cell = getCellDatum(locId),
                         {prop, value} = event.msg;
                     if (cell) {
                         cell[prop] = value;

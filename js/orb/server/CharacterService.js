@@ -10,9 +10,9 @@ const orb = require('./orb.js'),
     
     {
         character:{
-            FIELD_ID, FIELD_NAME, FIELD_USER_ID, FIELD_IS_IN_WORLD, FIELD_IS_ZOMBIE, 
-            FIELD_LOC, FIELD_MOVEMENT_SPEED, FIELD_PERMISSIONS,
-            FIELD_LOCK_MOVEMENT, FIELD_LOCK_ACTION, FIELD_LOCK_FREE, FIELD_LOCK_REACT
+            FIELD_ID, FIELD_NAME, FIELD_USER_ID, FIELD_IN_WORLD, FIELD_ZOMBIE, 
+            FIELD_LOC, FIELD_MOVE_SPEED, FIELD_PERMISSIONS,
+            FIELD_LOCK_MOVE, FIELD_LOCK_ACTION, FIELD_LOCK_FREE, FIELD_LOCK_REACT
         }
     } = require('../common/common.js'),
     
@@ -25,11 +25,11 @@ const orb = require('./orb.js'),
             attrs[FIELD_USER_ID] ??= null;
             attrs[FIELD_PERMISSIONS] ??= null;
             attrs[FIELD_NAME] ??= '';
-            attrs[FIELD_IS_ZOMBIE] ??= false;
-            attrs[FIELD_IS_IN_WORLD] ??= false;
+            attrs[FIELD_ZOMBIE] ??= false;
+            attrs[FIELD_IN_WORLD] ??= false;
             attrs[FIELD_LOC] ??= [0,0,0,0];
-            attrs[FIELD_MOVEMENT_SPEED] ??= 3;
-            attrs[FIELD_LOCK_MOVEMENT] ??= 0;
+            attrs[FIELD_MOVE_SPEED] ??= 3;
+            attrs[FIELD_LOCK_MOVE] ??= 0;
             attrs[FIELD_LOCK_ACTION] ??= 0;
             attrs[FIELD_LOCK_REACT] ??= 0;
             attrs[FIELD_LOCK_FREE] ??= 0;
@@ -45,23 +45,27 @@ const orb = require('./orb.js'),
         getUserId: function() {return this[FIELD_USER_ID];},
         [generateSetterName(FIELD_NAME)]: function(v) {this.set(FIELD_NAME, v, true);},
         getName: function() {return this[FIELD_NAME];},
-        [generateSetterName(FIELD_IS_ZOMBIE)]: function(v) {this.set(FIELD_IS_ZOMBIE, v, true);},
-        isZombie: function() {return this[FIELD_IS_ZOMBIE];},
-        [generateSetterName(FIELD_PERMISSIONS)]: function(v) {this.set(FIELD_PERMISSIONS, v, true);},
-        [generateSetterName(FIELD_IS_IN_WORLD)]: function(v) {this.set(FIELD_IS_IN_WORLD, v, true);},
-        isInWorld: function() {return this[FIELD_IS_IN_WORLD];},
+        [generateSetterName(FIELD_ZOMBIE)]: function(v) {this.set(FIELD_ZOMBIE, v, true);},
+        isZombie: function() {return this[FIELD_ZOMBIE];},
+        [generateSetterName(FIELD_IN_WORLD)]: function(v) {this.set(FIELD_IN_WORLD, v, true);},
+        isInWorld: function() {return this[FIELD_IN_WORLD];},
         [generateSetterName(FIELD_LOC)]: function(v) {this.set(FIELD_LOC, v, true);},
-        getLocArr: function() {return this[FIELD_LOC];},
-        [generateSetterName(FIELD_LOCK_MOVEMENT)]: function(v) {this.set(FIELD_LOCK_MOVEMENT, v, true);},
-        getLockMovement: function() {return this[FIELD_LOCK_MOVEMENT];},
-        [generateSetterName(FIELD_MOVEMENT_SPEED)]: function(v) {this.set(FIELD_MOVEMENT_SPEED, v, true);},
-        getMovementSpeed: function() {return this[FIELD_MOVEMENT_SPEED];},
+        getLocArr: function(asCopy) {
+            const locArr = this[FIELD_LOC];
+            return asCopy ? locArr.slice() : locArr;
+        },
+        [generateSetterName(FIELD_LOCK_MOVE)]: function(v) {this.set(FIELD_LOCK_MOVE, v, true);},
+        getLockMove: function() {return this[FIELD_LOCK_MOVE];},
+        [generateSetterName(FIELD_MOVE_SPEED)]: function(v) {this.set(FIELD_MOVE_SPEED, v, true);},
+        getMoveSpeed: function() {return this[FIELD_MOVE_SPEED];},
         [generateSetterName(FIELD_LOCK_ACTION)]: function(v) {this.set(FIELD_LOCK_ACTION, v, true);},
         getLockAction: function() {return this[FIELD_LOCK_ACTION];},
         [generateSetterName(FIELD_LOCK_FREE)]: function(v) {this.set(FIELD_LOCK_FREE, v, true);},
         getLockFree: function() {return this[FIELD_LOCK_FREE];},
         [generateSetterName(FIELD_LOCK_REACT)]: function(v) {this.set(FIELD_LOCK_REACT, v, true);},
         getLockReact: function() {return this[FIELD_LOCK_REACT];},
+        
+        [generateSetterName(FIELD_PERMISSIONS)]: function(v) {this.set(FIELD_PERMISSIONS, v, true);},
         
         getFreeActionSpeed: function() {
             return 1;
@@ -125,7 +129,7 @@ const orb = require('./orb.js'),
     
     doCharacterExitWorld = character => {
         if (character.isInWorld()) {
-            character.set(FIELD_IS_IN_WORLD, false);
+            character.set(FIELD_IN_WORLD, false);
             return true;
         } else {
             return false;
@@ -243,7 +247,7 @@ module.exports = {
     convertAllCharactersToZombiesForAccount: userId => {
         const existingCharacters = getCharactersByUserId(userId);
         let i = existingCharacters.length;
-        while (i) existingCharacters[--i].set(FIELD_IS_ZOMBIE, true);
+        while (i) existingCharacters[--i].set(FIELD_ZOMBIE, true);
         return true;
     }
 };

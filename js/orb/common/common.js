@@ -7,12 +7,12 @@
             FIELD_ID:'id',
             FIELD_USER_ID:'uid',
             FIELD_NAME:'name',
-            FIELD_IS_ZOMBIE:'zombie',
+            FIELD_ZOMBIE:'zombie',
             FIELD_PERMISSIONS:'perms',
-            FIELD_IS_IN_WORLD:'inWorld',
+            FIELD_IN_WORLD:'inWorld',
             FIELD_LOC:'loc',
-            FIELD_MOVEMENT_SPEED:'moveSpeed',
-            FIELD_LOCK_MOVEMENT:'lockMove',
+            FIELD_MOVE_SPEED:'moveSpeed',
+            FIELD_LOCK_MOVE:'lockMove',
             FIELD_LOCK_ACTION:'lockAct',
             FIELD_LOCK_FREE:'lockFree',
             FIELD_LOCK_REACT:'lockReact'
@@ -22,23 +22,27 @@
             // Void
             v1:{
                 name:'void',
-                mapColor:'#101'
+                mapColor:'#101',
+                solidity:0
             },
             v2:{
                 name:'nothingness',
-                mapColor:'#112'
+                mapColor:'#112',
+                solidity:0
             },
             
             // Air
             a1:{
                 name:'empty space',
-                mapColor:'#ccf'
+                mapColor:'#ccf',
+                solidity:0
             },
             
             // Earth
             s1:{
                 name:'stone',
-                mapColor:'#888'
+                mapColor:'#888',
+                solidity:1
             }
         }
     };

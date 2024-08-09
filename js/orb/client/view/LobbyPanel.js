@@ -13,7 +13,7 @@
         
         {
             character:{
-                FIELD_NAME, FIELD_IS_IN_WORLD
+                FIELD_NAME, FIELD_IN_WORLD
             },
             greek:{
                 TYPE_ENTER_WORLD, TYPE_CREATE_CHARACTER, TYPE_DELETE_CHARACTER
@@ -45,7 +45,7 @@
                 let inWorldCharacter;
                 for (let i = 0; i < maxCharacters; i++) {
                     const character = characters[i];
-                    if (character && character[FIELD_IS_IN_WORLD]) inWorldCharacter = character;
+                    if (character && character[FIELD_IN_WORLD]) inWorldCharacter = character;
                     new CharacterRow(characterContainer, {character:character});
                 }
                 
@@ -96,7 +96,7 @@
                             console.log('FIXME', self.character);
                         }
                     }]);
-                    new Text(self, {valign:'middle', text:(character[FIELD_IS_IN_WORLD] ? pkg.FA_GLOBE + ' ' : '') + character[FIELD_NAME], layoutHint:1});
+                    new Text(self, {valign:'middle', text:(character[FIELD_IN_WORLD] ? pkg.FA_GLOBE + ' ' : '') + character[FIELD_NAME], layoutHint:1});
                     self.deleteBtn = new TextBtn(self, {valign:'middle', text:'Delete Character', width:150}, [{
                         doActivated:() => {
                             pkg.showDeleteDialog(

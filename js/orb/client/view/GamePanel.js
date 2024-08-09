@@ -24,7 +24,7 @@
         {
             character:{
                 FIELD_NAME, 
-                FIELD_LOCK_MOVEMENT, FIELD_LOCK_ACTION, FIELD_LOCK_FREE, FIELD_LOCK_REACT
+                FIELD_LOCK_MOVE, FIELD_LOCK_ACTION, FIELD_LOCK_FREE, FIELD_LOCK_REACT
             },
             greek:{
                 TYPE_EXIT_WORLD, TYPE_ALTER_CELL
@@ -82,6 +82,11 @@
                 this.attachToDom(GlobalKeys, '_keyDown', 'keydown', true);
             } else {
                 this.detachFromDom(GlobalKeys, '_keyDown', 'keydown', true);
+                if (gameMap) {
+                    gameMap.setCharacter();
+                    clearLocInfo(myLocInfo);
+                    clearLocInfo(otherLocInfo);
+                }
             }
         },
         
@@ -116,7 +121,7 @@
         },
         
         buildHeader: header => {
-            const exitBtn = new TextBtn(header, {valign:'middle', text:pkg.FA_CHEVRON_LEFT + ' Exit to Lobby'}, [{
+            const exitBtn = new TextBtn(header, {valign:'middle', text:pkg.FA_CHEVRON_LEFT + I18N('btn-exitToLobby')}, [{
                 doActivated:() => {
                     pkg.app.lockUI('Leaving Ouroboros...', true);
                     websocket.sendTypedMessage(TYPE_EXIT_WORLD, {id:character.getId()});
@@ -132,7 +137,7 @@
                     y:4, propTargetName:propTargetName, tooltip:I18N('btnTip-' + propTargetName)
                 });
             };
-            makeCooldown(FIELD_LOCK_MOVEMENT);
+            makeCooldown(FIELD_LOCK_MOVE);
             makeCooldown(FIELD_LOCK_ACTION);
             makeCooldown(FIELD_LOCK_REACT);
             makeCooldown(FIELD_LOCK_FREE);

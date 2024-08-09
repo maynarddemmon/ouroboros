@@ -26,4 +26,5 @@ LOCALE_JSON = {
     'btnTip-lockFree':'Free Action Cooldown.',
     'btnTxt-lockReact':'React',
     'btnTip-lockReact':'Reaction Cooldown.',
+    'btn-exitToLobby' : ' Lobby',
 };

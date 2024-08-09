@@ -163,6 +163,8 @@
         doCharacterCell: (character, cell, cellView) => {},
         
         refreshMap: debounce(() => {
+            if (!character) return;
+            
             cellPool.putActives();
             cellViewsByLocId.clear();
             

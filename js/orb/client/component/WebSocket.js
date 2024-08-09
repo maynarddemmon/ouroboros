@@ -14,7 +14,7 @@
             },
             character:{
                 FIELD_LOC, 
-                FIELD_LOCK_MOVEMENT, FIELD_LOCK_ACTION, FIELD_LOCK_REACT, FIELD_LOCK_FREE
+                FIELD_LOCK_MOVE, FIELD_LOCK_ACTION, FIELD_LOCK_REACT, FIELD_LOCK_FREE
             }
         } = common,
         
@@ -453,7 +453,7 @@
                     characterInPlay = model.getCharacterInPlay();
                 model.updateWorldClockTime(response[ATTR_TIME]);
                 if (characterInPlay) {
-                    characterInPlay.set(FIELD_LOCK_MOVEMENT, msg[FIELD_LOCK_MOVEMENT]);
+                    characterInPlay.set(FIELD_LOCK_MOVE, msg[FIELD_LOCK_MOVE]);
                     characterInPlay.set(FIELD_LOC, msg.newLoc);
                     pkg.gameMap.refreshMap();
                 }

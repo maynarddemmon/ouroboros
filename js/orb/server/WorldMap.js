@@ -7,7 +7,7 @@ const orb = require('./orb.js'),
     FILENAME_WORLD_MAP = 'world_map',
     
     getMapData = mapId => mapData[mapId],
-    getCellData = locId => cellData[locId],
+    getCellDatum = locId => cellData[locId],
     
     live = (resolve, reject) => {
         console.log('Restoring World Maps...');
@@ -35,7 +35,7 @@ const orb = require('./orb.js'),
     },
     
     worldMap = module.exports = {
-        getCellData:getCellData,
+        getCellDatum:getCellDatum,
         
         makeEmptyCell: () => {
             return {
@@ -77,7 +77,7 @@ const orb = require('./orb.js'),
                     for (let y = -DISTANCE; y <= DISTANCE; y++) {
                         locArrCopy[2] = locArr[2] + y;
                         const locId = locArrToId(locArrCopy);
-                        accum[locId] = getCellData(locId);
+                        accum[locId] = getCellDatum(locId);
                     }
                 }
             }
