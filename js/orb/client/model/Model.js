@@ -11,7 +11,7 @@
         {
             greek:{TYPE_ACTION_MOVE},
             character:{
-                FIELD_ID, FIELD_NAME, FIELD_USER_ID, FIELD_IN_WORLD, FIELD_ZOMBIE, 
+                FIELD_ID, FIELD_NAME, FIELD_USER_ID, FIELD_IN_WORLD, FIELD_ZOMBIE, FIELD_SPIRIT,
                 FIELD_LOC, FIELD_MOVE_SPEED, FIELD_PERMISSIONS,
                 FIELD_LOCK_MOVE, FIELD_LOCK_ACTION, FIELD_LOCK_REACT, FIELD_LOCK_FREE
             }
@@ -27,7 +27,8 @@
             getName: function() {return this[FIELD_NAME];},
             [generateSetterName(FIELD_ZOMBIE)]: function(v) {this.set(FIELD_ZOMBIE, v, true);},
             isZombie: function() {return this[FIELD_ZOMBIE];},
-            [generateSetterName(FIELD_PERMISSIONS)]: function(v) {this.set(FIELD_PERMISSIONS, v, true);},
+            [generateSetterName(FIELD_SPIRIT)]: function(v) {this.set(FIELD_SPIRIT, v, true);},
+            isSpirit: function() {return this[FIELD_SPIRIT];},
             [generateSetterName(FIELD_IN_WORLD)]: function(v) {this.set(FIELD_IN_WORLD, v, true);},
             isInWorld: function() {return this[FIELD_IN_WORLD];},
             [generateSetterName(FIELD_LOC)]: function(v) {this.set(FIELD_LOC, v, true);},
@@ -42,6 +43,8 @@
             getLockFree: function() {return this[FIELD_LOCK_FREE];},
             [generateSetterName(FIELD_LOCK_REACT)]: function(v) {this.set(FIELD_LOCK_REACT, v, true);},
             getLockReact: function() {return this[FIELD_LOCK_REACT];},
+            
+            [generateSetterName(FIELD_PERMISSIONS)]: function(v) {this.set(FIELD_PERMISSIONS, v, true);},
             
             // Methods /////////////////////////////////////////////////////////
             canMove: function() {

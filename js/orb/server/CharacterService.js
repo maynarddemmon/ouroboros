@@ -10,9 +10,12 @@ const orb = require('./orb.js'),
     
     {
         character:{
-            FIELD_ID, FIELD_NAME, FIELD_USER_ID, FIELD_IN_WORLD, FIELD_ZOMBIE, 
+            FIELD_ID, FIELD_NAME, FIELD_USER_ID, FIELD_IN_WORLD, FIELD_ZOMBIE, FIELD_SPIRIT,
             FIELD_LOC, FIELD_MOVE_SPEED, FIELD_PERMISSIONS,
             FIELD_LOCK_MOVE, FIELD_LOCK_ACTION, FIELD_LOCK_FREE, FIELD_LOCK_REACT
+        },
+        permissions:{
+            PERM_CREATOR
         }
     } = require('../common/common.js'),
     
@@ -26,6 +29,7 @@ const orb = require('./orb.js'),
             attrs[FIELD_PERMISSIONS] ??= null;
             attrs[FIELD_NAME] ??= '';
             attrs[FIELD_ZOMBIE] ??= false;
+            attrs[FIELD_SPIRIT] ??= false;
             attrs[FIELD_IN_WORLD] ??= false;
             attrs[FIELD_LOC] ??= [0,0,0,0];
             attrs[FIELD_MOVE_SPEED] ??= 3;
@@ -47,6 +51,11 @@ const orb = require('./orb.js'),
         getName: function() {return this[FIELD_NAME];},
         [generateSetterName(FIELD_ZOMBIE)]: function(v) {this.set(FIELD_ZOMBIE, v, true);},
         isZombie: function() {return this[FIELD_ZOMBIE];},
+        [generateSetterName(FIELD_SPIRIT)]: function(v) {this.set(FIELD_SPIRIT, v, true);},
+        isSpirit: function() {
+            // Creators are treated like spirits.
+            return this[FIELD_SPIRIT] || this.hasPermission(PERM_CREATOR);
+        },
         [generateSetterName(FIELD_IN_WORLD)]: function(v) {this.set(FIELD_IN_WORLD, v, true);},
         isInWorld: function() {return this[FIELD_IN_WORLD];},
         [generateSetterName(FIELD_LOC)]: function(v) {this.set(FIELD_LOC, v, true);},
@@ -72,6 +81,10 @@ const orb = require('./orb.js'),
         },
         
         // Methods /////////////////////////////////////////////////////////////
+        hasPermission: function(permId) {
+            const permissions = this[FIELD_PERMISSIONS];
+            return permissions ? permissions.includes(permId) : false;
+        }
     }),
     
     // An object holding all characters by object id
@@ -136,7 +149,9 @@ const orb = require('./orb.js'),
         }
     },
     
-    restoreCharactersOnStartup = () => {
+    live = (resolve, reject) => {
+        console.log('Restoring Characters...');
+        
         const jsonData = orb.readDataFile(FILENAME_CHARACTERS);
         if (jsonData) {
             let count = 0;
@@ -150,11 +165,7 @@ const orb = require('./orb.js'),
             }
             console.log('  Restored ' + count + ' character(s).');
         }
-    },
-    
-    live = (resolve, reject) => {
-        console.log('Restoring Characters...');
-        restoreCharactersOnStartup();
+        
         resolve();
     },
     

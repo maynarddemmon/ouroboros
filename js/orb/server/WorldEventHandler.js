@@ -2,11 +2,11 @@ const orb = require('./orb.js'),
     {getAccountByUsername, addMessageToUser} = require('./AccountService.js'),
     {getCharactersByUserId, getCharacterById, doCharacterExitWorld} = require('./CharacterService.js'),
     {
-        getCellDatum, makeEmptyCell, setCellDatum, 
+        getCell, setCell, makeCell, 
         getCellDataForCharacter, getMapDataForCharacter
     } = require('./WorldMap.js'),
     {
-        TYPE_WARNING, TYPE_ERROR, TYPE_ENTER_WORLD, TYPE_EXIT_WORLD,
+        TYPE_WARNING, TYPE_ERROR, TYPE_SERVERINFO, TYPE_ENTER_WORLD, TYPE_EXIT_WORLD,
         TYPE_MAP_DATA, TYPE_CELL_DATA,
         TYPE_ACTION_MOVE, TYPE_RESULT_MOVE,
         TYPE_ALTER_CELL, TYPE_RESULT_ALTER_CELL, TYPE_ALTER_CHARACTER,
@@ -31,13 +31,18 @@ const orb = require('./orb.js'),
         addMessageToUser(username, {type:TYPE_ERROR, msg:msg});
     },
     
+    infoMessageToUser = (username, msg) => {
+        console.warn(msg);
+        addMessageToUser(username, {type:TYPE_SERVERINFO, msg:msg});
+    },
+    
     verifyUserIdHasAccount = event => {
         const userId = event._uid,
             account = getAccountByUsername(userId);
         if (account) {
             return userId;
         } else {
-            errorMessageToUser(userId, 'Account not found for ', userId);
+            errorMessageToUser(userId, 'Account not found for ' + userId);
             return null;
         }
     },
@@ -63,10 +68,10 @@ const orb = require('./orb.js'),
                         }, [ATTR_TIME]:now});
                     }
                 } else {
-                    warningMessageToUser(username, 'Character not found in your account ', characterId);
+                    warningMessageToUser(username, 'Character not found in your account ' + characterId);
                 }
             } else {
-                warningMessageToUser(username, 'Character not found for ', characterId);
+                warningMessageToUser(username, 'Character not found for ' + characterId);
             }
         }
     },
@@ -85,7 +90,7 @@ const orb = require('./orb.js'),
                     const usersCharacter = usersCharacters[--i];
                     if (usersCharacter.id === characterId) {
                         if (usersCharacter.isInWorld()) {
-                            //warningMessageToUser(username, 'Character already in world ', characterId);
+                            //warningMessageToUser(username, 'Character already in world ' + characterId);
                         } else {
                             usersCharacter.set(FIELD_IN_WORLD, true);
                         }
@@ -101,7 +106,7 @@ const orb = require('./orb.js'),
                     addMessageToUser(username, {type:TYPE_MAP_DATA, msg:getMapDataForCharacter(character), [ATTR_TIME]:now});
                     addMessageToUser(username, {type:TYPE_CELL_DATA, msg:getCellDataForCharacter(character), [ATTR_TIME]:now});
                 } else {
-                    warningMessageToUser(username, 'Character not found for ', characterId);
+                    warningMessageToUser(username, 'Character not found for ' + characterId);
                 }
             }
         },
@@ -117,7 +122,7 @@ const orb = require('./orb.js'),
                     const usersCharacter = usersCharacters[--i];
                     if (usersCharacter.id === characterId) {
                         if (!doCharacterExitWorld(usersCharacter)) {
-                            warningMessageToUser(username, 'Character already not in world ', characterId);
+                            warningMessageToUser(username, 'Character already not in world ' + characterId);
                         }
                         character = usersCharacter;
                         break;
@@ -127,7 +132,7 @@ const orb = require('./orb.js'),
                 if (character) {
                     addMessageToUser(username, {type:TYPE_EXIT_WORLD, msg:{character:character}, [ATTR_TIME]:event[ATTR_TIME]});
                 } else {
-                    warningMessageToUser(username, 'Character not found for ', characterId);
+                    warningMessageToUser(username, 'Character not found for ' + characterId);
                 }
             }
         },
@@ -149,27 +154,28 @@ const orb = require('./orb.js'),
                     
                     // Determine if the new location will allow the character
                     const locId = locArrToId(locArr),
-                        cell = getCellDatum(locId);
-                    if (cell) {
-                        // FIXME: need to call a function on a new Cell class
-                        // cell.mayMoveInto(character);
-                        console.log('check cell for move: ', cell)
+                        cell = getCell(locId, true);
+                    if (cell.mayMoveInto(character)) {
+                        // Apply Change to Character
+                        character.set(FIELD_LOC, locArr);
+                        
+                        // Send movement change
+                        addMessageToUser(username, {type:TYPE_RESULT_MOVE, msg:{
+                            id:character.id,
+                            newLoc:locArr,
+                            [FIELD_LOCK_MOVE]:newLockAction
+                        }, [ATTR_TIME]:now});
+                        
+                        // Send new cell data
+                        addMessageToUser(username, {type:TYPE_CELL_DATA, msg:getCellDataForCharacter(character), [ATTR_TIME]:now});
+                        
+                        // FIXME: how to notify all other characters that can sense this character
+                    } else {
+                        addMessageToUser(username, {type:TYPE_ALTER_CHARACTER, msg:{
+                            id:character.id, p:FIELD_LOCK_MOVE, v:newLockAction
+                        }, [ATTR_TIME]:now});
+                        infoMessageToUser(username, 'Movement to that location not allowed.');
                     }
-                    
-                    // Apply Change to Character
-                    character.set(FIELD_LOC, locArr);
-                    
-                    // Send movement change
-                    addMessageToUser(username, {type:TYPE_RESULT_MOVE, msg:{
-                        id:character.id,
-                        newLoc:locArr,
-                        [FIELD_LOCK_MOVE]:newLockAction
-                    }, [ATTR_TIME]:now});
-                    
-                    // Send new cell data
-                    addMessageToUser(username, {type:TYPE_CELL_DATA, msg:getCellDataForCharacter(character), [ATTR_TIME]:now});
-                    
-                    // FIXME: how to notify all other characters that can sense this character
                 }
             );
         },
@@ -188,14 +194,14 @@ const orb = require('./orb.js'),
                     
                     // Get Cell and alter it
                     const locId = locArrToId(locArr),
-                        cell = getCellDatum(locId),
+                        cell = getCell(locId, false),
                         {prop, value} = event.msg;
                     if (cell) {
                         cell[prop] = value;
                     } else {
-                        const newCell = makeEmptyCell();
-                        newCell[prop] = value;
-                        setCellDatum(locId, newCell);
+                        const newCell = makeCell();
+                        newCell.set(prop, value);
+                        setCell(locId, newCell);
                     }
                     
                     // Send Result

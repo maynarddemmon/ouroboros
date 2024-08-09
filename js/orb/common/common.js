@@ -19,6 +19,7 @@
             FIELD_USER_ID:'uid',
             FIELD_NAME:'name',
             FIELD_ZOMBIE:'zombie',
+            FIELD_SPIRIT:'spirit',
             FIELD_PERMISSIONS:'perms',
             FIELD_IN_WORLD:'inWorld',
             FIELD_LOC:'loc',
@@ -29,17 +30,21 @@
             FIELD_LOCK_REACT:'lockReact'
         },
         
+        cell:{
+            FIELD_COMPOSITION:'c',
+        },
+        
         composition:{
             // Void
             v1:{
                 name:'void',
                 mapColor:'#101',
-                solidity:0
+                solidity:-1
             },
             v2:{
                 name:'nothingness',
                 mapColor:'#112',
-                solidity:0
+                solidity:-1
             },
             
             // Air
