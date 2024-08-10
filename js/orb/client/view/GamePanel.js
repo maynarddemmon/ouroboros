@@ -158,6 +158,7 @@
                 doMouseOverCell: (isOver, cell, cellView) => {
                     if (isOver) {
                         updateLocInfo(otherLocInfo, cell);
+                        // FIXME: use a highlight view rather than changing border.
                         cellView.setBorder([1, 'dashed', '#888']);
                         cellView.setZIndex(1);
                     } else {

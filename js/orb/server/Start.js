@@ -101,9 +101,9 @@ const loggingService = require('./LoggingService.js'),
             () =>   loggingService.lifeCycle(isBirth)).then(
             () =>     socketServer.lifeCycle(isBirth)).then(
             () =>   accountService.lifeCycle(isBirth)).then(
-            () => characterService.lifeCycle(isBirth)).then(
             () =>         worldMap.lifeCycle(isBirth)).then(
             () =>       worldClock.lifeCycle(isBirth)).then(
+            () => characterService.lifeCycle(isBirth)).then( // After worldMap so characters can add to Cells.
             () =>       httpServer.lifeCycle(isBirth)).then(
             () => {
                 if (isBirth) {

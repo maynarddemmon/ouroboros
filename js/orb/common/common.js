@@ -14,8 +14,11 @@
             FIELD_SOCKET_TOKEN:'socketToken'
         },
         
-        character:{
+        entity:{
             FIELD_ID:'id',
+        },
+        
+        character:{
             FIELD_USER_ID:'uid',
             FIELD_NAME:'name',
             FIELD_ZOMBIE:'zombie',
@@ -32,6 +35,7 @@
         
         cell:{
             FIELD_COMPOSITION:'c',
+            FIELD_ENTITIES:'e',
         },
         
         composition:{

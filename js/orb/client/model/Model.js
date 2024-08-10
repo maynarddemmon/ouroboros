@@ -10,8 +10,9 @@
         
         {
             greek:{TYPE_ACTION_MOVE},
+            entity:{FIELD_ID},
             character:{
-                FIELD_ID, FIELD_NAME, FIELD_USER_ID, FIELD_IN_WORLD, FIELD_ZOMBIE, FIELD_SPIRIT,
+                FIELD_NAME, FIELD_USER_ID, FIELD_IN_WORLD, FIELD_ZOMBIE, FIELD_SPIRIT,
                 FIELD_LOC, FIELD_MOVE_SPEED, FIELD_PERMISSIONS,
                 FIELD_LOCK_MOVE, FIELD_LOCK_ACTION, FIELD_LOCK_REACT, FIELD_LOCK_FREE
             }

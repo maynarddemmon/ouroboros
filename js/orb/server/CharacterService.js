@@ -9,8 +9,9 @@ const orb = require('./orb.js'),
     } = require('../../../lib/tym.js'),
     
     {
+        entity:{FIELD_ID},
         character:{
-            FIELD_ID, FIELD_NAME, FIELD_USER_ID, FIELD_IN_WORLD, FIELD_ZOMBIE, FIELD_SPIRIT,
+            FIELD_NAME, FIELD_USER_ID, FIELD_IN_WORLD, FIELD_ZOMBIE, FIELD_SPIRIT,
             FIELD_LOC, FIELD_MOVE_SPEED, FIELD_PERMISSIONS,
             FIELD_LOCK_MOVE, FIELD_LOCK_ACTION, FIELD_LOCK_FREE, FIELD_LOCK_REACT
         },
@@ -18,6 +19,8 @@ const orb = require('./orb.js'),
             PERM_CREATOR
         }
     } = require('../common/common.js'),
+    {isValidLocArr} = require('../common/util.js'),
+    worldMap = require('./WorldMap.js'),
     
     FILENAME_CHARACTERS = 'characters',
     
@@ -58,7 +61,18 @@ const orb = require('./orb.js'),
         },
         [generateSetterName(FIELD_IN_WORLD)]: function(v) {this.set(FIELD_IN_WORLD, v, true);},
         isInWorld: function() {return this[FIELD_IN_WORLD];},
-        [generateSetterName(FIELD_LOC)]: function(v) {this.set(FIELD_LOC, v, true);},
+        [generateSetterName(FIELD_LOC)]: function(v) {
+            if (isValidLocArr(v)) {
+                const curLocArr = this[FIELD_LOC],
+                    curCell = curLocArr ? worldMap.getCellByLocArr(curLocArr) : null,
+                    newCell = worldMap.getCellByLocArr(v, true);
+                this.set(FIELD_LOC, v, true);
+                if (curCell) curCell.removeEntity(this);
+                newCell.addEntity(this);
+            } else {
+                console.error('Attempt to set invalid locArr on character: ', v, this);
+            }
+        },
         getLocArr: function(asCopy) {
             const locArr = this[FIELD_LOC];
             return asCopy ? locArr.slice() : locArr;
@@ -84,6 +98,23 @@ const orb = require('./orb.js'),
         hasPermission: function(permId) {
             const permissions = this[FIELD_PERMISSIONS];
             return permissions ? permissions.includes(permId) : false;
+        },
+        
+        getAsData: function() {
+            // FIXME: need to iterate over a list of fields to save. This is
+            // currently only safe to call during die.
+            delete this.inited;
+            return this
+        },
+        
+        /** Gets data that the provided character can see/hear/sense about this
+            character. */
+        getAsDataForCharacter: function(character) {
+            const retval = {};
+            for (const propName of [FIELD_NAME, FIELD_IN_WORLD, FIELD_ZOMBIE, FIELD_SPIRIT]) {
+                retval[propName] = this[propName];
+            }
+            return retval;
         }
     }),
     
@@ -178,11 +209,11 @@ const orb = require('./orb.js'),
         }
         
         // Save Characters
-        const data = Object.values(charactersById);
-        for (const datum of data) {
-            delete datum.inited;
+        const characterData = [];
+        for (const characterId in charactersById) {
+            characterData.push(charactersById[characterId].getAsData());
         }
-        orb.saveDataToFile(FILENAME_CHARACTERS, data);
+        orb.saveDataToFile(FILENAME_CHARACTERS, characterData);
         
         resolve();
     };

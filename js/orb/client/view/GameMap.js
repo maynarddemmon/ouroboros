@@ -13,7 +13,8 @@
         {
             character:{FIELD_LOC},
             util:{locArrToId},
-            composition
+            composition,
+            cell:{FIELD_COMPOSITION, FIELD_ENTITIES}
         } = common,
         
         {
@@ -47,10 +48,8 @@
                 this.setBgColor('#f00');
             },
             
-            updatePosition: function(position) {
-                const entityLocId = locArrToId(this.entity[FIELD_LOC]),
-                    cell = getCellViewForLocId(entityLocId);
-                if (cell) {
+            updatePosition: function(position, cellView) {
+                if (cellView) {
                     let adjX = 0,
                         adjY = 0;
                     switch (position) {
@@ -77,8 +76,8 @@
                             adjX = halfCellSize - this.width / 2;
                             adjY = halfCellSize - this.height / 2;
                     }
-                    this.setX(cell.x + adjX);
-                    this.setY(cell.y + adjY);
+                    this.setX(cellView.x + adjX);
+                    this.setY(cellView.y + adjY);
                 }
             }
         }),
@@ -117,7 +116,7 @@
             
             redraw: function() {
                 const cell = this.cell,
-                    cellComposition = composition[cell.c];
+                    cellComposition = composition[cell[FIELD_COMPOSITION]];
                 this.setBgColor(cellComposition.mapColor);
             }
         });
@@ -167,6 +166,7 @@
             
             cellPool.putActives();
             cellViewsByLocId.clear();
+            entityPool.putActives();
             
             const centerX = mathRound(gameMap.width / 2),
                 centerY = mathRound(gameMap.height / 2),
@@ -182,27 +182,33 @@
                     locArrCopy[2] = locArr[2] + y;
                     
                     const locId = locArrToId(locArrCopy),
-                        cellDatum = model.getCellDatum(locId) ?? {locId:locId, c:myt.getRandomInt(1,2) > 1 ? 'v1' : 'v2'},
+                        cellDatum = model.getCellDatum(locId) ?? {locId:locId, [FIELD_COMPOSITION]:myt.getRandomInt(1,2) > 1 ? 'v1' : 'v2'},
                         cellView = cellPool.getInstance();
                     
                     cellView.callSetters({x:posX, y:posY, cell:cellDatum});
                     
-                    if (x === 0 && y === 0) gameMap.doCharacterCell(character, cellDatum, cellView);
+                    const entities = cellDatum[FIELD_ENTITIES];
+                    if (entities) {
+                        for (const entity of entities) {
+                            const entityView = entityPool.getInstance();
+                            entityView.setEntity(entity);
+                            entityView.updatePosition('center', cellView);
+                        }
+                    }
+                    
+                    if (x === 0 && y === 0) {
+                        const characterView = entityPool.getInstance();
+                        characterView.setEntity(character);
+                        characterView.updatePosition('center', cellView);
+                        
+                        gameMap.doCharacterCell(character, cellDatum, cellView);
+                    }
                     
                     posY += cellSize;
                 }
                 posX += cellSize;
                 posY -= mapSize;
             }
-            
-            // Update Entitites
-            entityPool.putActives();
-            
-            const characterView = entityPool.getInstance();
-            characterView.setEntity(character);
-            characterView.updatePosition('center');
-            
-            // FIXME other entities
         }, 50)
     });
 })(orb);

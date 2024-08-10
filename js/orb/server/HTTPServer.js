@@ -46,11 +46,13 @@ const fs = require('fs'),
         // Use Sessions. Sessions are not persistent across server restarts since there
         // is no persistent storage for them.
         memoryStore = new MemoryStore({
-            checkPeriod: 86400000 // prune expired entries every 24h
+            checkPeriod: 3600000, // prune expired entries every hour
+            max:10000 // Seems like a reasonable maximum number of sessions
         });
         app.use(session({
             secret:sessionSecret,
-            cookie:{maxAge: 86400000},
+            cookie:{maxAge: 86400000}, // 24 hours
+            rolling:true,
             resave:false,
             saveUninitialized:false,
             store:memoryStore

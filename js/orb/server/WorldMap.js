@@ -15,9 +15,7 @@ const orb = require('./orb.js'),
     } = require('../../../lib/tym.js'),
     
     {
-        cell:{
-            FIELD_COMPOSITION
-        },
+        cell:{FIELD_COMPOSITION, FIELD_ENTITIES},
         composition
     } = require('../common/common.js'),
     {locArrToId, locArrToMapId} = require('../common/util.js'),
@@ -48,10 +46,26 @@ const orb = require('./orb.js'),
         
         
         // Methods /////////////////////////////////////////////////////////////
-        getAsData: function(isForSave) {
+        getAsData: function() {
             return {
                 [FIELD_COMPOSITION]:this[FIELD_COMPOSITION]
+            };
+        },
+        getAsDataForCharacter: function(character) {
+            const retval = this.getAsData(),
+                entities = this.entities;
+            if (entities && entities.size > 0) {
+                const values = entities.values(),
+                    characterId = character.getId(),
+                    accum = [];
+                for (const entity of values) {
+                    if (entity.getId() !== characterId) {
+                        accum.push(entity.getAsDataForCharacter(character));
+                    }
+                }
+                if (accum.length > 0) retval[FIELD_ENTITIES] = accum;
             }
+            return retval;
         },
         
         mayMoveInto: function(character) {
@@ -64,13 +78,30 @@ const orb = require('./orb.js'),
                 return solidity >= 0 && solidity < 1;
             }
         },
+        
+        // Entities //
+        getEntitiesMap: function() {return this.entities ??= new Map();},
+        addEntity: function(entity) {
+            this.getEntitiesMap().set(entity.getId(), entity);
+        },
+        removeEntity: function(entity) {return this.removeEntityById(entity.getId());},
+        removeEntityById: function(entityId) {
+            const entities = this.getEntitiesMap(),
+                removedEntity = entities.get(entityId);
+            if (removedEntity) {
+                entities.delete(entityId);
+                return removedEntity;
+            }
+        }
     }),
     
     getMapData = mapId => mapData[mapId],
-    getCell = (locId, returnDefault) => {
-        return cells[locId] ?? (returnDefault ? makeCell() : null);
+    getCell = (locId, returnDefault) => cells[locId] ?? (returnDefault ? makeCell() : null),
+    getCellByLocArr = (locArr, returnDefault) => getCell(locArrToId(locArr), returnDefault),
+    setCell = (locId, cell) => {
+        cells[locId] = cell;
+        cell.locId = locId;
     },
-    setCell = (locId, cell) => {cells[locId] = cell;},
     makeCell = params => new Cell(params),
     
     live = (resolve, reject) => {
@@ -102,7 +133,7 @@ const orb = require('./orb.js'),
         
         const cellData = {};
         for (const locId in cells) {
-            cellData[locId] = cells[locId].getAsData(true);
+            cellData[locId] = cells[locId].getAsData();
         }
         
         orb.saveDataToFile(FILENAME_WORLD_MAP, {
@@ -117,6 +148,7 @@ const orb = require('./orb.js'),
     
     worldMap = module.exports = {
         getCell:getCell,
+        getCellByLocArr:getCellByLocArr,
         setCell:setCell,
         makeCell:makeCell,
         
@@ -152,7 +184,7 @@ const orb = require('./orb.js'),
                         locArrCopy[2] = locArr[2] + y;
                         const locId = locArrToId(locArrCopy),
                             cell = getCell(locId, true);
-                        accum[locId] =cell.getAsData(false);
+                        accum[locId] = cell.getAsDataForCharacter(character);
                     }
                 }
             }
