@@ -9,6 +9,8 @@
         rightPanel,
         alterCellBtn,
         alterCellCompositionSelector,
+        teleportBtn,
+        teleportLocField,
         
         websocket,
         character;
@@ -34,7 +36,7 @@
         } = common,
         
         {
-            TextBtn, componentUtil,
+            TextBtn, componentUtil, FormInputText,
             theme:{padding, spacing},
             model
         } = pkg,
@@ -74,8 +76,9 @@
                 gameMap.setCharacter(character);
                 
                 const hasCreatorPerm = character.hasPermission('creator');
-                alterCellBtn.setVisible(hasCreatorPerm);
-                alterCellCompositionSelector.setVisible(hasCreatorPerm);
+                for (const view of [alterCellBtn, alterCellCompositionSelector, teleportBtn, teleportLocField]) {
+                    view.setVisible(hasCreatorPerm);
+                }
                 
                 titleHeader.setTitle('Playing As: <b>' + character[FIELD_NAME] + '</b>');
                 
@@ -101,7 +104,7 @@
                 srcView = M.DomObserver.getSourceViewFromEvent(domEvent);
             if (
                 // Don't handle keys from native form elements.
-                !srcView || !srcView.isA(M.BaseInputText) || !srcView.isA(M.InputSelect)
+                !srcView || !(srcView.isA(M.BaseInputText) || srcView.isA(M.InputSelect))
             ) {
                 switch (M.KeyObservable.getCodeFromEvent(event)) {
                     case GlobalKeys.CODE_ARROW_LEFT:  return doArrowKey(domEvent, 'left');
@@ -180,6 +183,7 @@
                 percentOfParentHeight:100, percentOfParentHeightOffset:-2*spacing
             }, [SizeToParent]);
             
+            // Alter Cell
             alterCellBtn = new TextBtn(rightPanel, {text:'Alter Cell', layoutHint:'break', visible:false}, [{
                 doActivated: () => {
                     if (!character.doFree(TYPE_ALTER_CELL, {direction:'here', prop:'c', value:alterCellCompositionSelector.value})) {
@@ -195,6 +199,20 @@
             alterCellCompositionSelector = new InputSelect(rightPanel, {
                 visible:false, height:28, options:options
             });
+            
+            // Teleport
+            teleportBtn = new TextBtn(rightPanel, {text:'Teleport', visible:false}, [{
+                doActivated: () => {
+                    const value = teleportLocField.value;
+                    if (value && value.length >= 7 && !character.doMove(value)) {
+                        pkg.growl('info',"You can't move right now.");
+                    }
+                }
+            }]);
+            teleportLocField = new FormInputText(rightPanel, {
+                width:100, visible:false, maxLength:24, allowedChars:'-,0123456789',
+                acceleratorScope:'root'
+            },[{doAccept:teleportBtn.doActivated}]);
             
             new M.WrappingLayout(rightPanel, {spacing:12, lineSpacing:20});
         }

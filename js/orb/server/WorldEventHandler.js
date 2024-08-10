@@ -16,10 +16,11 @@ const orb = require('./orb.js'),
         character:{
             FIELD_IN_WORLD, FIELD_PERMISSIONS, FIELD_LOC,
             FIELD_LOCK_MOVE, FIELD_LOCK_ACTION, FIELD_LOCK_REACT, FIELD_LOCK_FREE
-        }
+        },
+        permissions:{PERM_CREATOR}
     } = require('../common/common.js'),
     
-    {locArrToId} = require('../common/util.js'),
+    {locArrToId, locIdToArr, isValidLocArr} = require('../common/util.js'),
     
     warningMessageToUser = (username, msg) => {
         console.warn(msg);
@@ -141,15 +142,28 @@ const orb = require('./orb.js'),
             performAction(
                 event, FIELD_LOCK_MOVE, 'getMoveSpeed', 
                 (username, character, now, newLockAction) => {
-                    const locArr = character.getLocArr(true);
+                    let locArr = character.getLocArr(true);
                     
                     // Calculate desired new location
                     // FIXME: need character facing to calculate move correctly
-                    switch (event.msg.direction) {
+                    const direction = event.msg.direction;
+                    switch (direction) {
                         case 'forward': locArr[2] -= 1; break;
                         case 'back': locArr[2] += 1; break;
                         case 'left': locArr[1] -= 1; break;
                         case 'right': locArr[1] += 1; break;
+                        default:
+                            // Treat the direction as a locId
+                            if (character.hasPermission(PERM_CREATOR)) {
+                                locArr = locIdToArr(direction);
+                                if (!isValidLocArr(locArr)) {
+                                    addMessageToUser(username, {type:TYPE_ALTER_CHARACTER, msg:{
+                                        id:character.id, p:FIELD_LOCK_MOVE, v:newLockAction
+                                    }, [ATTR_TIME]:now});
+                                    infoMessageToUser(username, 'Movement to invalid location not allowed.');
+                                    return;
+                                }
+                            }
                     }
                     
                     // Determine if the new location will allow the character
