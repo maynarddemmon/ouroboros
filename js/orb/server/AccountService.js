@@ -16,6 +16,7 @@ const {scryptSync} = require('crypto'),
             FIELD_AUTHENTICATED, FIELD_WEBSOCKET, FIELD_SOCKET_TOKEN
         }
     } = require('../common/common.js'),
+    {TYPE_NOW} = require('../common/SocketProtocol.js'),
     
     // An object holding all user accounts.
     accountsByUsername = {},
@@ -27,11 +28,13 @@ const {scryptSync} = require('crypto'),
     // a regular interval.
     lockedAccounts = [],
     
-    // Holds messages to be sent back to clients using the websocket associated with a user's account.
-    // Only currently connected users can be messaged via this mechanism.
+    // Holds typed messages to be sent back to clients using the websocket 
+    // associated with a user's account. Only currently connected users can be 
+    // messaged via this mechanism. Acts as a buffer for outgoing socket
+    // communication.
     outgoingMessagesByUsername = {},
     
-    getMessagesByUsername = username => outgoingMessagesByUsername[username],
+    //getMessagesByUsername = username => outgoingMessagesByUsername[username],
     getMessagesByUsernameLazy = username => outgoingMessagesByUsername[username] ?? (outgoingMessagesByUsername[username] = []),
     
     isAuthFailLimitExceeded = authFailCount => {
@@ -374,7 +377,8 @@ const {scryptSync} = require('crypto'),
             }
         },
         
-        drainOutgoingMessages: () => {
+        drainOutgoingMessages: now => {
+            const nowMsg = JSON.stringify({type:TYPE_NOW, msg:now});
             for (const username in outgoingMessagesByUsername) {
                 const msgs = outgoingMessagesByUsername[username],
                     len = msgs.length;
@@ -383,6 +387,9 @@ const {scryptSync} = require('crypto'),
                     if (account) {
                         const websocket = account[FIELD_WEBSOCKET];
                         if (websocket) {
+                            // Send the game "now" as well.
+                            websocket.send(nowMsg);
+                            
                             if (len === 1) {
                                 websocket.send(JSON.stringify(msgs.pop()));
                             } else if (len > 1) {

@@ -8,8 +8,8 @@ const orb = require('./orb.js'),
     {
         TYPE_WARNING, TYPE_ERROR, TYPE_SERVERINFO, TYPE_ENTER_WORLD, TYPE_EXIT_WORLD,
         TYPE_MAP_DATA, TYPE_CELL_DATA,
-        TYPE_ACTION_MOVE, TYPE_RESULT_MOVE,
-        TYPE_ALTER_CELL, TYPE_RESULT_ALTER_CELL, TYPE_ALTER_CHARACTER,
+        TYPE_ACTION_MOVE,
+        TYPE_ALTER_CELL, TYPE_ALTER_CHARACTER,
         ATTR_TIME
     } = require('../common/SocketProtocol.js'),
     {
@@ -55,19 +55,19 @@ const orb = require('./orb.js'),
                 character = getCharacterById(characterId);
             if (character) {
                 if (character.getUserId() === username) {
-                    const now = event[ATTR_TIME],
-                        curLockValue = character.get(lockProperty);
-                    if (now >= curLockValue) { // FIXME: remove -5
-                        const cooldown = character[cooldownFuncName](),
-                            newLockAction = now + cooldown;
-                        character.set(lockProperty, newLockAction);
-                        actionFunc(username, character, now, newLockAction);
-                    } else {
-                        // Send the cooldown to the user since their's may be wrong.
-                        addMessageToUser(username, {type:TYPE_ALTER_CHARACTER, msg:{
-                            id:character.id, p:lockProperty, v:curLockValue
-                        }, [ATTR_TIME]:now});
+                    const now = event[ATTR_TIME];
+                    let curLockValue = character.get(lockProperty);
+                    if (now >= curLockValue) {
+                        curLockValue = now + character[cooldownFuncName]();
+                        character.set(lockProperty, curLockValue);
+                        actionFunc(username, character, now);
                     }
+                    
+                    // Always send the cooldown to the user since it has either
+                    // been updated or the value the client had was stale.
+                    addMessageToUser(username, {type:TYPE_ALTER_CHARACTER, msg:{
+                        id:characterId, p:lockProperty, v:curLockValue
+                    }});
                 } else {
                     warningMessageToUser(username, 'Character not found in your account ' + characterId);
                 }
@@ -102,10 +102,9 @@ const orb = require('./orb.js'),
                 }
                 
                 if (character) {
-                    const now = event[ATTR_TIME];
-                    addMessageToUser(username, {type:TYPE_ENTER_WORLD, msg:{character:character}, [ATTR_TIME]:now});
-                    addMessageToUser(username, {type:TYPE_MAP_DATA, msg:getMapDataForCharacter(character), [ATTR_TIME]:now});
-                    addMessageToUser(username, {type:TYPE_CELL_DATA, msg:getCellDataForCharacter(character), [ATTR_TIME]:now});
+                    addMessageToUser(username, {type:TYPE_ENTER_WORLD, msg:{character:character}});
+                    addMessageToUser(username, {type:TYPE_MAP_DATA, msg:getMapDataForCharacter(character)});
+                    addMessageToUser(username, {type:TYPE_CELL_DATA, msg:getCellDataForCharacter(character)});
                 } else {
                     warningMessageToUser(username, 'Character not found for ' + characterId);
                 }
@@ -131,7 +130,7 @@ const orb = require('./orb.js'),
                 }
                 
                 if (character) {
-                    addMessageToUser(username, {type:TYPE_EXIT_WORLD, msg:{character:character}, [ATTR_TIME]:event[ATTR_TIME]});
+                    addMessageToUser(username, {type:TYPE_EXIT_WORLD, msg:{character:character}});
                 } else {
                     warningMessageToUser(username, 'Character not found for ' + characterId);
                 }
@@ -141,7 +140,7 @@ const orb = require('./orb.js'),
         [TYPE_ACTION_MOVE]:event => {
             performAction(
                 event, FIELD_LOCK_MOVE, 'getMoveSpeed', 
-                (username, character, now, newLockAction) => {
+                (username, character, now) => {
                     let locArr = character.getLocArr(true);
                     
                     // Calculate desired new location
@@ -157,9 +156,6 @@ const orb = require('./orb.js'),
                             if (character.hasPermission(PERM_CREATOR)) {
                                 locArr = locIdToArr(direction);
                                 if (!isValidLocArr(locArr)) {
-                                    addMessageToUser(username, {type:TYPE_ALTER_CHARACTER, msg:{
-                                        id:character.id, p:FIELD_LOCK_MOVE, v:newLockAction
-                                    }, [ATTR_TIME]:now});
                                     infoMessageToUser(username, 'Movement to invalid location not allowed.');
                                     return;
                                 }
@@ -174,20 +170,15 @@ const orb = require('./orb.js'),
                         character.set(FIELD_LOC, locArr);
                         
                         // Send movement change
-                        addMessageToUser(username, {type:TYPE_RESULT_MOVE, msg:{
-                            id:character.id,
-                            newLoc:locArr,
-                            [FIELD_LOCK_MOVE]:newLockAction
-                        }, [ATTR_TIME]:now});
+                        addMessageToUser(username, {type:TYPE_ALTER_CHARACTER, msg:{
+                            id:character.id, p:FIELD_LOC, v:locArr
+                        }});
                         
                         // Send new cell data
-                        addMessageToUser(username, {type:TYPE_CELL_DATA, msg:getCellDataForCharacter(character), [ATTR_TIME]:now});
+                        addMessageToUser(username, {type:TYPE_CELL_DATA, msg:getCellDataForCharacter(character)});
                         
                         // FIXME: how to notify all other characters that can sense this character
                     } else {
-                        addMessageToUser(username, {type:TYPE_ALTER_CHARACTER, msg:{
-                            id:character.id, p:FIELD_LOCK_MOVE, v:newLockAction
-                        }, [ATTR_TIME]:now});
                         infoMessageToUser(username, 'Movement to that location not allowed.');
                     }
                 }
@@ -196,8 +187,8 @@ const orb = require('./orb.js'),
         
         [TYPE_ALTER_CELL]:event => {
             performAction(
-                event, FIELD_LOCK_ACTION, 'getFreeActionSpeed', // FIXME: lock free action
-                (username, character, now, newLockAction) => {
+                event, FIELD_LOCK_FREE, 'getFreeActionSpeed',
+                (username, character, now) => {
                     const locArr = character.getLocArr(); // FIXME: get copy
                     
                     // FIXME: need character facing to calculate move correctly
@@ -211,21 +202,15 @@ const orb = require('./orb.js'),
                         cell = getCell(locId, false),
                         {prop, value} = event.msg;
                     if (cell) {
-                        cell[prop] = value;
+                        cell.set(prop, value);
                     } else {
                         const newCell = makeCell();
                         newCell.set(prop, value);
                         setCell(locId, newCell);
                     }
                     
-                    // Send Result
-                    addMessageToUser(username, {type:TYPE_RESULT_ALTER_CELL, msg:{
-                        id:character.id,
-                        [FIELD_LOCK_FREE]:newLockAction
-                    }, [ATTR_TIME]:now});
-                    
                     // Send new cell data
-                    addMessageToUser(username, {type:TYPE_CELL_DATA, msg:getCellDataForCharacter(character), [ATTR_TIME]:now});
+                    addMessageToUser(username, {type:TYPE_CELL_DATA, msg:getCellDataForCharacter(character)});
                     
                     // FIXME: how to notify all other characters that can sense this character
                 }

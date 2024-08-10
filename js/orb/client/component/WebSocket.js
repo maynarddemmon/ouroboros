@@ -5,11 +5,11 @@
         
         {
             greek:{
-                TYPE_WARNING, TYPE_ERROR, TYPE_SERVERINFO,
+                TYPE_WARNING, TYPE_ERROR, TYPE_SERVERINFO, TYPE_NOW,
                 TYPE_LOBBY, TYPE_CREATE_CHARACTER, TYPE_DELETE_CHARACTER,
                 TYPE_ENTER_WORLD, TYPE_EXIT_WORLD,
                 TYPE_MAP_DATA, TYPE_CELL_DATA,
-                TYPE_RESULT_MOVE, TYPE_RESULT_ALTER_CELL, TYPE_ALTER_CHARACTER,
+                TYPE_ALTER_CHARACTER,
                 ATTR_TIME
             },
             character:{
@@ -409,8 +409,11 @@
             }, TYPE_SERVERINFO);
             
             websocket.registerListener(response => {
+                model.updateWorldClockTime(response.msg);
+            }, TYPE_NOW);
+            
+            websocket.registerListener(response => {
                 const {character} = response.msg;
-                model.updateWorldClockTime(response[ATTR_TIME]);
                 if (character) {
                     const characterModel = model.replaceCharacterFromData(character);
                     if (characterModel) {
@@ -425,7 +428,6 @@
             
             websocket.registerListener(response => {
                 const {character} = response.msg;
-                model.updateWorldClockTime(response[ATTR_TIME]);
                 if (character) {
                     if (model.replaceCharacterFromData(character)) {
                         model.setCharacterInPlay();
@@ -439,42 +441,16 @@
             }, TYPE_EXIT_WORLD);
             
             websocket.registerListener(response => {
-                model.updateWorldClockTime(response[ATTR_TIME]);
                 model.storeMapData(response.msg);
             }, TYPE_MAP_DATA);
             
             websocket.registerListener(response => {
-                model.updateWorldClockTime(response[ATTR_TIME]);
                 model.storeCellData(response.msg);
             }, TYPE_CELL_DATA);
             
             websocket.registerListener(response => {
-                const msg = response.msg,
-                    characterInPlay = model.getCharacterInPlay();
-                model.updateWorldClockTime(response[ATTR_TIME]);
-                if (characterInPlay) {
-                    characterInPlay.set(FIELD_LOCK_MOVE, msg[FIELD_LOCK_MOVE]);
-                    characterInPlay.set(FIELD_LOC, msg.newLoc);
-                    pkg.gameMap.refreshMap();
-                }
-            }, TYPE_RESULT_MOVE);
-            
-            websocket.registerListener(response => {
-                const msg = response.msg,
-                    characterInPlay = model.getCharacterInPlay();
-                model.updateWorldClockTime(response[ATTR_TIME]);
-                if (characterInPlay) {
-                    characterInPlay.set(FIELD_LOCK_FREE, msg[FIELD_LOCK_FREE]);
-                    pkg.gameMap.refreshMap();
-                }
-            }, TYPE_RESULT_ALTER_CELL);
-            
-            websocket.registerListener(response => {
-                const msg = response.msg,
-                    newNow = response[ATTR_TIME],
-                    character = model.getCharacterById(msg.id);
-                if (newNow) model.updateWorldClockTime(newNow);
-                if (character) character.set(msg.p, msg.v);
+                const msg = response.msg;
+                model.getCharacterById(msg.id)?.set(msg.p, msg.v);
             }, TYPE_ALTER_CHARACTER);
             
             return websocket;

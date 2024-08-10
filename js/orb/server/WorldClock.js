@@ -62,7 +62,7 @@ const orb = require('./orb.js'),
         }
         
         // Send outgoing messages
-        drainOutgoingMessages();
+        drainOutgoingMessages(now);
         
         // Move time forward
         console.log('tick', now, Date.now() - start);
