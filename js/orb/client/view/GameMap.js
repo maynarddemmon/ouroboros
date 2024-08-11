@@ -29,7 +29,7 @@
         cellViewsByLocId = new Map(),
         getCellViewForLocId = locId => cellViewsByLocId.get(locId),
         
-        Entity = new JSClass('Entity', View, {
+        EntityView = new JSClass('EntityView', View, {
             include:[Reusable, MouseOverAndDown],
             
             initNode: function(parent, attrs) {
@@ -39,13 +39,24 @@
                 this.callSuper(parent, attrs);
             },
             
+            clean: function() {
+                this.setVisible(false);
+            },
+            
             setEntity: function(v) {
-                this.entity = v;
+                const entity = this.entity = v;
                 
                 this.setWidth(entitySizeM);
                 this.setHeight(entitySizeM);
                 this.setRoundedCorners(entitySizeM / 2);
-                this.setBgColor('#f00');
+                
+                let bgColor = '#f00';
+                if (entity.isSpirit?.()) {
+                    bgColor = '#00f';
+                }
+                
+                this.setVisible(true);
+                this.setBgColor(bgColor);
             },
             
             updatePosition: function(position, cellView) {
@@ -82,7 +93,7 @@
             }
         }),
         
-        Cell = new JSClass('Cell', View, {
+        CellView = new JSClass('CellView', View, {
             include:[Reusable, MouseOverAndDown],
             
             initNode: function(parent, attrs) {
@@ -90,6 +101,10 @@
                 
                 attrs.width = attrs.height = cellSize;
                 this.callSuper(parent, attrs);
+            },
+            
+            clean: function() {
+                this.setVisible(false);
             },
             
             setCell: function(v) {
@@ -117,6 +132,7 @@
             redraw: function() {
                 const cell = this.cell,
                     cellComposition = composition[cell[FIELD_COMPOSITION]];
+                this.setVisible(true);
                 this.setBgColor(cellComposition.mapColor);
             }
         });
@@ -132,8 +148,8 @@
             
             gameMap.callSuper(parent, attrs);
             
-            cellPool = new TrackActivesPool(Cell, gameMap);
-            entityPool = new TrackActivesPool(Entity, gameMap);
+            cellPool = new TrackActivesPool(CellView, gameMap);
+            entityPool = new TrackActivesPool(EntityView, gameMap);
             
             gameMap.constrain('refreshMap', [
                 model, 'cellChanged', model, 'mapChanged',
@@ -165,8 +181,8 @@
             if (!character) return;
             
             cellPool.putActives();
-            cellViewsByLocId.clear();
             entityPool.putActives();
+            cellViewsByLocId.clear();
             
             const centerX = mathRound(gameMap.width / 2),
                 centerY = mathRound(gameMap.height / 2),
@@ -189,9 +205,10 @@
                     
                     const entities = cellDatum[FIELD_ENTITIES];
                     if (entities) {
-                        for (const entity of entities) {
-                            const entityView = entityPool.getInstance();
-                            entityView.setEntity(entity);
+                        for (const entityDatum of entities) {
+                            const entityView = entityPool.getInstance(),
+                                entityModel = model.makeEntityFromData(entityDatum);
+                            entityView.setEntity(entityModel);
                             entityView.updatePosition('center', cellView);
                         }
                     }

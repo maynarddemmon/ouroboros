@@ -9,43 +9,26 @@
         } = myt,
         
         {
+            CommonEntityModelMixin,
+            CommonCharacterModelMixin,
             greek:{TYPE_ACTION_MOVE},
-            entity:{FIELD_ID},
             character:{
-                FIELD_NAME, FIELD_USER_ID, FIELD_IN_WORLD, FIELD_ZOMBIE, FIELD_SPIRIT,
-                FIELD_LOC, FIELD_MOVE_SPEED, FIELD_PERMISSIONS,
                 FIELD_LOCK_MOVE, FIELD_LOCK_ACTION, FIELD_LOCK_REACT, FIELD_LOCK_FREE
+            },
+            permissions:{
+                PERM_CREATOR
             }
         } = common
         
-        CharacterModel = new JS.Class('CharacterModel', Eventable, {
-            // Accessors ///////////////////////////////////////////////////////
-            [generateSetterName(FIELD_ID)]: function(v) {this.set(FIELD_ID, v, true);},
-            getId: function() {return this[FIELD_ID];},
-            [generateSetterName(FIELD_USER_ID)]: function(v) {this.set(FIELD_USER_ID, v, true);},
-            getUserId: function() {return this[FIELD_USER_ID];},
-            [generateSetterName(FIELD_NAME)]: function(v) {this.set(FIELD_NAME, v, true);},
-            getName: function() {return this[FIELD_NAME];},
-            [generateSetterName(FIELD_ZOMBIE)]: function(v) {this.set(FIELD_ZOMBIE, v, true);},
-            isZombie: function() {return this[FIELD_ZOMBIE];},
-            [generateSetterName(FIELD_SPIRIT)]: function(v) {this.set(FIELD_SPIRIT, v, true);},
-            isSpirit: function() {return this[FIELD_SPIRIT];},
-            [generateSetterName(FIELD_IN_WORLD)]: function(v) {this.set(FIELD_IN_WORLD, v, true);},
-            isInWorld: function() {return this[FIELD_IN_WORLD];},
-            [generateSetterName(FIELD_LOC)]: function(v) {this.set(FIELD_LOC, v, true);},
-            getLocArr: function() {return this[FIELD_LOC];},
-            [generateSetterName(FIELD_LOCK_MOVE)]: function(v) {this.set(FIELD_LOCK_MOVE, v, true);},
-            getLockMove: function() {return this[FIELD_LOCK_MOVE];},
-            [generateSetterName(FIELD_MOVE_SPEED)]: function(v) {this.set(FIELD_MOVE_SPEED, v, true);},
-            getMoveSpeed: function() {return this[FIELD_MOVE_SPEED];},
-            [generateSetterName(FIELD_LOCK_ACTION)]: function(v) {this.set(FIELD_LOCK_ACTION, v, true);},
-            getLockAction: function() {return this[FIELD_LOCK_ACTION];},
-            [generateSetterName(FIELD_LOCK_FREE)]: function(v) {this.set(FIELD_LOCK_FREE, v, true);},
-            getLockFree: function() {return this[FIELD_LOCK_FREE];},
-            [generateSetterName(FIELD_LOCK_REACT)]: function(v) {this.set(FIELD_LOCK_REACT, v, true);},
-            getLockReact: function() {return this[FIELD_LOCK_REACT];},
+        entityData = {},
+        
+        EntityModel = new JS.Class('EntityModel', Eventable, {
+            include:[CommonEntityModelMixin]
+        }),
+        
+        CharacterModel = new JS.Class('CharacterModel', EntityModel, {
+            include:[CommonCharacterModelMixin],
             
-            [generateSetterName(FIELD_PERMISSIONS)]: function(v) {this.set(FIELD_PERMISSIONS, v, true);},
             
             // Methods /////////////////////////////////////////////////////////
             canMove: function() {
@@ -94,15 +77,24 @@
                     return true;
                 }
                 return false;
-            },
-            
-            hasPermission: function(permId) {
-                const permissions = this[FIELD_PERMISSIONS];
-                return permissions ? permissions.includes(permId) : false;
             }
         }),
         
         model = pkg.model = new JS.Singleton('Model', Node, {
+            // Entity:start
+            getEntity: id => entityData[id],
+            setEntity: (id, entity) => entityData[id] = entity,
+            removeEntity: id => delete entityData[id],
+            makeEntityFromData: (datum, storeIt) => {
+                const entity = new EntityModel(datum);
+                if (storeIt) {
+                    const id = entity.getId();
+                    if (id) model.setEntity(id, entity);
+                }
+                return entity;
+            },
+            // Entity:end
+            
             // Characters:start
             setMaxCharacters: v => {
                 model.set('maxCharacters', v, true);

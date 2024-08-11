@@ -9,9 +9,11 @@ const orb = require('./orb.js'),
     } = require('../../../lib/tym.js'),
     
     {
-        entity:{FIELD_ID},
+        CommonEntityModelMixin,
+        CommonCharacterModelMixin,
+        entity:{FIELD_ID, FIELD_SPIRIT, FIELD_ZOMBIE},
         character:{
-            FIELD_NAME, FIELD_USER_ID, FIELD_IN_WORLD, FIELD_ZOMBIE, FIELD_SPIRIT,
+            FIELD_NAME, FIELD_USER_ID, FIELD_IN_WORLD,
             FIELD_LOC, FIELD_MOVE_SPEED, FIELD_PERMISSIONS,
             FIELD_LOCK_MOVE, FIELD_LOCK_ACTION, FIELD_LOCK_FREE, FIELD_LOCK_REACT
         },
@@ -24,15 +26,29 @@ const orb = require('./orb.js'),
     
     FILENAME_CHARACTERS = 'characters',
     
-    Character = new JS.Class('Character', Eventable, {
+    EntityModel = new JS.Class('EntityModel', Eventable, {
+        include:[CommonEntityModelMixin],
+        
+        
         // Life Cycle //////////////////////////////////////////////////////////
         init: function(attrs) {
             attrs[FIELD_ID] ??= null;
+            attrs[FIELD_SPIRIT] ??= false;
+            attrs[FIELD_ZOMBIE] ??= false;
+            
+            this.callSuper(attrs);
+        },
+    }),
+    
+    Character = new JS.Class('Character', EntityModel, {
+        include:[CommonCharacterModelMixin],
+        
+        
+        // Life Cycle //////////////////////////////////////////////////////////
+        init: function(attrs) {
             attrs[FIELD_USER_ID] ??= null;
             attrs[FIELD_PERMISSIONS] ??= null;
             attrs[FIELD_NAME] ??= '';
-            attrs[FIELD_ZOMBIE] ??= false;
-            attrs[FIELD_SPIRIT] ??= false;
             attrs[FIELD_IN_WORLD] ??= false;
             attrs[FIELD_LOC] ??= [0,0,0,0];
             attrs[FIELD_MOVE_SPEED] ??= 3;
@@ -46,60 +62,24 @@ const orb = require('./orb.js'),
         
         
         // Accessors ///////////////////////////////////////////////////////////
-        [generateSetterName(FIELD_ID)]: function(v) {this.set(FIELD_ID, v, true);},
-        getId: function() {return this[FIELD_ID];},
-        [generateSetterName(FIELD_USER_ID)]: function(v) {this.set(FIELD_USER_ID, v, true);},
-        getUserId: function() {return this[FIELD_USER_ID];},
-        [generateSetterName(FIELD_NAME)]: function(v) {this.set(FIELD_NAME, v, true);},
-        getName: function() {return this[FIELD_NAME];},
-        [generateSetterName(FIELD_ZOMBIE)]: function(v) {this.set(FIELD_ZOMBIE, v, true);},
-        isZombie: function() {return this[FIELD_ZOMBIE];},
-        [generateSetterName(FIELD_SPIRIT)]: function(v) {this.set(FIELD_SPIRIT, v, true);},
-        isSpirit: function() {
-            // Creators are treated like spirits.
-            return this[FIELD_SPIRIT] || this.hasPermission(PERM_CREATOR);
-        },
-        [generateSetterName(FIELD_IN_WORLD)]: function(v) {this.set(FIELD_IN_WORLD, v, true);},
-        isInWorld: function() {return this[FIELD_IN_WORLD];},
         [generateSetterName(FIELD_LOC)]: function(v) {
             if (isValidLocArr(v)) {
                 const curLocArr = this[FIELD_LOC],
                     curCell = curLocArr ? worldMap.getCellByLocArr(curLocArr) : null,
                     newCell = worldMap.getCellByLocArr(v, true);
-                this.set(FIELD_LOC, v, true);
+                this.callSuper(v);
                 if (curCell) curCell.removeEntity(this);
                 newCell.addEntity(this);
             } else {
                 console.error('Attempt to set invalid locArr on character: ', v, this);
             }
         },
-        getLocArr: function(asCopy) {
-            const locArr = this[FIELD_LOC];
-            return asCopy ? locArr.slice() : locArr;
-        },
-        [generateSetterName(FIELD_LOCK_MOVE)]: function(v) {this.set(FIELD_LOCK_MOVE, v, true);},
-        getLockMove: function() {return this[FIELD_LOCK_MOVE];},
-        [generateSetterName(FIELD_MOVE_SPEED)]: function(v) {this.set(FIELD_MOVE_SPEED, v, true);},
-        getMoveSpeed: function() {return this[FIELD_MOVE_SPEED];},
-        [generateSetterName(FIELD_LOCK_ACTION)]: function(v) {this.set(FIELD_LOCK_ACTION, v, true);},
-        getLockAction: function() {return this[FIELD_LOCK_ACTION];},
-        [generateSetterName(FIELD_LOCK_FREE)]: function(v) {this.set(FIELD_LOCK_FREE, v, true);},
-        getLockFree: function() {return this[FIELD_LOCK_FREE];},
-        [generateSetterName(FIELD_LOCK_REACT)]: function(v) {this.set(FIELD_LOCK_REACT, v, true);},
-        getLockReact: function() {return this[FIELD_LOCK_REACT];},
-        
-        [generateSetterName(FIELD_PERMISSIONS)]: function(v) {this.set(FIELD_PERMISSIONS, v, true);},
         
         getFreeActionSpeed: function() {
             return 1;
         },
         
         // Methods /////////////////////////////////////////////////////////////
-        hasPermission: function(permId) {
-            const permissions = this[FIELD_PERMISSIONS];
-            return permissions ? permissions.includes(permId) : false;
-        },
-        
         getAsData: function() {
             // FIXME: need to iterate over a list of fields to save. This is
             // currently only safe to call during die.
@@ -111,9 +91,12 @@ const orb = require('./orb.js'),
             character. */
         getAsDataForCharacter: function(character) {
             const retval = {};
-            for (const propName of [FIELD_NAME, FIELD_IN_WORLD, FIELD_ZOMBIE, FIELD_SPIRIT]) {
-                retval[propName] = this[propName];
+            for (const propName of [FIELD_NAME]) {
+                retval[propName] = this.get(propName);
             }
+            retval[FIELD_IN_WORLD] = this.isInWorld();
+            retval[FIELD_ZOMBIE] = this.isZombie();
+            retval[FIELD_SPIRIT] = this.isSpirit();
             return retval;
         }
     }),
