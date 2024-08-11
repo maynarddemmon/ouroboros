@@ -1,12 +1,16 @@
 let accessLog,
+    characterService,
     accountUnlockerIntervalId = null;
 
 const {scryptSync} = require('crypto'),
     orb = require('./orb.js'),
     {salt, authFailLimit, accountUnlockerInterval} = orb,
     
-    characterService = require('./CharacterService.js'),
     {getAccessLog} = require('./LoggingService.js'),
+    
+    getCharacterService = () => {
+        return characterService ??= require('./CharacterService.js');
+    },
     
     FILENAME_ACCOUNTS = 'accounts',
     
@@ -310,7 +314,7 @@ const {scryptSync} = require('crypto'),
                     accessLog.info('Deleting Account:' + username);
                     
                     closeSocketForAccount(existingAccount);
-                    characterService.convertAllCharactersToZombiesForAccount(username);
+                    getCharacterService().convertAllCharactersToZombiesForAccount(username);
                     delete accountsByUsername[username];
                     
                     retval.success = true;

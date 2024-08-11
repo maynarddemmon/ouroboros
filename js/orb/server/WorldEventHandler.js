@@ -2,12 +2,12 @@ const orb = require('./orb.js'),
     {getAccountByUsername, addMessageToUser} = require('./AccountService.js'),
     {getCharactersByUserId, getCharacterById, doCharacterExitWorld} = require('./CharacterService.js'),
     {
-        getCell, setCell, makeCell, 
-        getCellDataForCharacter, getMapDataForCharacter
+        getCell, setCell, makeCell, updateListenersForCharacter, getCellByLocArr,
+        getMapDataForCharacter
     } = require('./WorldMap.js'),
     {
         TYPE_WARNING, TYPE_ERROR, TYPE_SERVERINFO, TYPE_ENTER_WORLD, TYPE_EXIT_WORLD,
-        TYPE_MAP_DATA, TYPE_CELL_DATA,
+        TYPE_MAP_DATA,
         TYPE_ACTION_MOVE,
         TYPE_ALTER_CELL, TYPE_ALTER_CHARACTER,
         ATTR_TIME
@@ -104,7 +104,9 @@ const orb = require('./orb.js'),
                 if (character) {
                     addMessageToUser(username, {type:TYPE_ENTER_WORLD, msg:{character:character}});
                     addMessageToUser(username, {type:TYPE_MAP_DATA, msg:getMapDataForCharacter(character)});
-                    addMessageToUser(username, {type:TYPE_CELL_DATA, msg:getCellDataForCharacter(character)});
+                    
+                    const newCell = getCellByLocArr(character.getLocArr(), true);
+                    updateListenersForCharacter(character, newCell);
                 } else {
                     warningMessageToUser(username, 'Character not found for ' + characterId);
                 }
@@ -173,11 +175,6 @@ const orb = require('./orb.js'),
                         addMessageToUser(username, {type:TYPE_ALTER_CHARACTER, msg:{
                             id:character.id, p:FIELD_LOC, v:locArr
                         }});
-                        
-                        // Send new cell data
-                        addMessageToUser(username, {type:TYPE_CELL_DATA, msg:getCellDataForCharacter(character)});
-                        
-                        // FIXME: how to notify all other characters that can sense this character
                     } else {
                         infoMessageToUser(username, 'Movement to that location not allowed.');
                     }
@@ -208,11 +205,6 @@ const orb = require('./orb.js'),
                         newCell.set(prop, value);
                         setCell(locId, newCell);
                     }
-                    
-                    // Send new cell data
-                    addMessageToUser(username, {type:TYPE_CELL_DATA, msg:getCellDataForCharacter(character)});
-                    
-                    // FIXME: how to notify all other characters that can sense this character
                 }
             );
         },
