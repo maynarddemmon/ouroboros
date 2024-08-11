@@ -1,14 +1,12 @@
 const {maxCharactersPerUser} = require('./orb.js'),
     characterService = require('./CharacterService.js'),
     {doEventNext, doEventNow, getTick, getNow} = require('./WorldClock.js'),
-    greek = require('../common/SocketProtocol.js'),
-    
     {
         TYPE_LOBBY, TYPE_CREATE_CHARACTER, TYPE_DELETE_CHARACTER,
         TYPE_ENTER_WORLD, TYPE_EXIT_WORLD,
         TYPE_ACTION_MOVE, TYPE_ALTER_CELL,
         ATTR_TIME
-    } = greek,
+    } = require('../common/SocketProtocol.js'),
     
     doEventNextHandler = (username, type, msg) => {
         doEventNext({_uid:username, type:type, msg:msg});

@@ -65,13 +65,18 @@
                 this.setHeight(entitySizeM);
                 this.setRoundedCorners(entitySizeM / 2);
                 
-                let bgColor = '#f00';
-                if (entity.isSpirit?.()) {
+                let bgColor = '#f00',
+                    zIndex = 2;
+                if (entity === character) {
+                    bgColor = '#ff0';
+                    zIndex = 3;
+                } else if (entity.isSpirit?.()) {
                     bgColor = '#00f';
                 }
                 
                 this.setVisible(true);
                 this.setBgColor(bgColor);
+                this.setZIndex(zIndex);
             },
             
             setCellView: function(v) {

@@ -20,7 +20,7 @@ const orb = require('./orb.js'),
     } = require('../common/common.js'),
     {locIdToArr, locArrToId, locArrToMapId} = require('../common/util.js'),
     {TYPE_CELL_DATA} = require('../common/SocketProtocol.js'),
-    {addMessageToUser} = require('./AccountService.js'),
+    accountService = require('./AccountService.js'),
     
     FILENAME_WORLD_MAP = 'world_map',
     
@@ -99,7 +99,7 @@ const orb = require('./orb.js'),
             
             const self = this;
             self.getChangeListeners().forEach(character => {
-                addMessageToUser(character.getUserId(), {
+                accountService.addMessageToUser(character.getUserId(), {
                     type:TYPE_CELL_DATA, msg:{[self.locId]:self.getAsDataForCharacter(character)}
                 });
             });
@@ -124,13 +124,71 @@ const orb = require('./orb.js'),
     }),
     
     getMapData = mapId => mapData[mapId],
+    
+    coerceToLocId = locArrOrId => (typeof locArrOrId === 'string' ? locArrOrId : locArrToId(locArrOrId)),
+    cellExistsForId = locId => getCell(locId) != null,
+    cellExistsForArr = locArr => getCellByLocArr(locArr) != null,
+    cellExists = locArrOrId => cellExistsForId(locArrToId(locArr)),
+    
+    makeCell = params => new Cell(params),
     getCell = (locId, returnDefault) => cells[locId] ?? (returnDefault ? makeCell() : null),
-    getCellByLocArr = (locArr, returnDefault) => getCell(locArrToId(locArr), returnDefault),
+    getCellByLocArr = locArr => getCell(locArrToId(locArr)),
     setCell = (locId, cell) => {
         cells[locId] = cell;
         cell.locId = locId;
+        return cell;
     },
-    makeCell = params => new Cell(params),
+    
+    getCellsToObserve = (character, newCell) => {
+        const retval = [];
+        if (newCell) {
+            const distance = character.getMonitorDistance();
+            if (distance >= 0) {
+                // FIXME: for now do a fixed NxN grid around the character
+                const locArr = locIdToArr(newCell.locId),
+                    locArrCopy = locArr.slice();
+                for (let x = -distance; x <= distance; x++) {
+                    locArrCopy[1] = locArr[1] + x;
+                    for (let y = -distance; y <= distance; y++) {
+                        locArrCopy[2] = locArr[2] + y;
+                        retval.push(getCell(locArrToId(locArrCopy), true));
+                    }
+                }
+            }
+        }
+        return retval;
+    },
+    
+    intersectCellArrays = (arrA, arrB) => {
+        const map = {},
+            inBoth = [],
+            inAOnly = [],
+            inBOnly = [];
+        
+        // Fill the map with elements from arrA
+        for (const cell of arrA) {
+            map[cell.locId] = [1, cell]; // Mark elements from arrA
+        }
+        
+        // Process arrB and simultaneously determine the intersection 
+        // and unique elements
+        for (const cell of arrB) {
+            if (map[cell.locId]) {
+                inBoth.push(cell);
+                map[cell.locId][0] = 0; // Mark as found in both arrays
+            } else {
+                inBOnly.push(cell);
+            }
+        }
+        
+        // Elements remaining in the map with value 1 are unique to arrA
+        for (const locId in map) {
+            const entry = map[locId];
+            if (entry[0] === 1) inAOnly.push(entry[1]);
+        }
+        
+        return {inAOnly, inBoth, inBOnly};
+    },
     
     live = (resolve, reject) => {
         console.log('Restoring World Maps...');
@@ -176,50 +234,7 @@ const orb = require('./orb.js'),
         resolve();
     },
     
-    intersectCellArrays = (arrA, arrB) => {
-        const map = {},
-            intersection = [],
-            uniqueInArrA = [],
-            uniqueInArrB = [];
-        
-        // Fill the map with elements from arrA
-        arrA.forEach(cell => {
-            map[cell.locId] = [1, cell]; // Mark elements from arrA
-        });
-        
-        // Process arrB and simultaneously determine the intersection 
-        // and unique elements
-        arrB.forEach(cell => {
-            if (map[cell.locId]) {
-                intersection.push(cell);
-                map[cell.locId][0] = 0; // Mark as found in both arrays
-            } else {
-                uniqueInArrB.push(cell);
-            }
-        });
-        
-        // Elements remaining in the map with value 1 are unique to arrA
-        for (const locId in map) {
-            const entry = map[locId];
-            if (entry[0] === 1) {
-                uniqueInArrA.push(entry[1]);
-            }
-        }
-        
-        return {
-            inAOnly:uniqueInArrA,
-            inBoth:intersection,
-            inBOnly:uniqueInArrB
-        }
-    },
-    
     worldMap = module.exports = {
-        getCell:getCell,
-        getCellByLocArr:getCellByLocArr,
-        setCell:setCell,
-        makeCell:makeCell,
-        
-        
         lifeCycle: isBirth => new Promise((resolve, reject) => {
             if (isBirth) {
                 live(resolve, reject);
@@ -230,35 +245,22 @@ const orb = require('./orb.js'),
         
         isReady:false,
         
-        getCellsToObserve: function(character, newCell) {
-            const retval = [];
-            if (newCell) {
-                const distance = character.getMonitorDistance();
-                if (distance >= 0) {
-                    // FIXME: for now do a fixed NxN grid around the character
-                    const locArr = locIdToArr(newCell.locId),
-                        locArrCopy = locArr.slice();
-                    for (let x = -distance; x <= distance; x++) {
-                        locArrCopy[1] = locArr[1] + x;
-                        for (let y = -distance; y <= distance; y++) {
-                            locArrCopy[2] = locArr[2] + y;
-                            retval.push(getCell(locArrToId(locArrCopy), true));
-                        }
-                    }
-                }
-            }
-            return retval;
+        getCell:getCell,
+        getCellByLocArr:getCellByLocArr,
+        cellExistsForArr:cellExistsForArr,
+        makeAndSetCell: (locArrOrId, params) => setCell(coerceToLocId(locArrOrId), makeCell(params)),
+        
+        clearListenersForCharacter: function(character) {
+            worldMap.updateListenersForCharacter(character);
         },
         
         updateListenersForCharacter: function(character, newCell) {
             const observedCells = character.getObservedCells(),
-                newObservedCells = worldMap.getCellsToObserve(character, newCell),
+                newObservedCells = getCellsToObserve(character, newCell),
                 {inAOnly, inBoth, inBOnly} = intersectCellArrays(observedCells, newObservedCells);
             
             // Stop Observing
-            for (const cell of inAOnly) {
-                cell.removeChangeListener(character);
-            }
+            for (const cell of inAOnly) cell.removeChangeListener(character);
             
             // Start Observing
             if (inBOnly.length > 0) {
@@ -269,7 +271,7 @@ const orb = require('./orb.js'),
                 }
                 
                 // Send data for new cells the listener immediately
-                addMessageToUser(character.getUserId(), {type:TYPE_CELL_DATA, msg:msgAccum});
+                accountService.addMessageToUser(character.getUserId(), {type:TYPE_CELL_DATA, msg:msgAccum});
             }
             
             // Quickly update observedCells in character

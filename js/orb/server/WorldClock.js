@@ -6,7 +6,7 @@ let now,
 const orb = require('./orb.js'),
     {getEventLog} = require('./LoggingService.js'),
     worldEventHandler = require('./WorldEventHandler.js'),
-    {drainOutgoingMessages} = require('./AccountService.js'),
+    accountService = require('./AccountService.js'),
     {ATTR_TIME} = require('../common/SocketProtocol.js'),
     
     FILENAME_WORLD_CLOCK = 'world_clock',
@@ -39,12 +39,15 @@ const orb = require('./orb.js'),
     getQueueLazy = tickTime => queues[tickTime] ?? (queues[tickTime] = []),
     
     doTick = () => {
-        const start = Date.now();
+        const start = Date.now(); // DEBUG
+        let queueLen = 0; // DEBUG
         
         // Handle Events
         const queue = getQueue(now);
         if (queue) {
-            for (let i = 0; i < queue.length; i++) {
+            const len = queue.length;
+            queueLen = len; // DEBUG
+            for (let i = 0; i < len; i++) {
                 // Handle Event
                 const event = queue[i],
                     handler = worldEventHandler[event.type];
@@ -62,10 +65,11 @@ const orb = require('./orb.js'),
         }
         
         // Send outgoing messages
-        drainOutgoingMessages(now);
+        accountService.drainOutgoingMessages(now);
         
         // Move time forward
-        console.log('tick', now, Date.now() - start);
+        console.log('tick', now, queueLen, Date.now() - start); // DEBUG
+        
         now++;
     },
     
@@ -88,11 +92,7 @@ const orb = require('./orb.js'),
     
     die = (resolve, reject) => {
         console.log('Save World Clock');
-        
-        orb.saveDataToFile(FILENAME_WORLD_CLOCK, {
-            now:now
-        });
-        
+        orb.saveDataToFile(FILENAME_WORLD_CLOCK, {now:now});
         resolve();
     },
     
@@ -122,9 +122,6 @@ const orb = require('./orb.js'),
         },
         
         // Event Queue //
-        NOW:NOW,
-        NEXT:NEXT,
-        
         doEventNow: event => {
             worldClock.doEventAt(NOW, event);
         },

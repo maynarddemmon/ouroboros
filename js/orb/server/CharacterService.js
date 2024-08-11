@@ -8,6 +8,7 @@ const orb = require('./orb.js'),
         }
     } = require('../../../lib/tym.js'),
     
+    worldMap = require('./WorldMap.js'),
     {
         CommonEntityModelMixin,
         CommonCharacterModelMixin,
@@ -17,12 +18,10 @@ const orb = require('./orb.js'),
             FIELD_LOC, FIELD_MOVE_SPEED, FIELD_PERMISSIONS,
             FIELD_LOCK_MOVE, FIELD_LOCK_ACTION, FIELD_LOCK_FREE, FIELD_LOCK_REACT
         },
-        permissions:{
-            PERM_CREATOR
-        }
+        permissions:{PERM_CREATOR},
+        cell:{FIELD_COMPOSITION}
     } = require('../common/common.js'),
     {isValidLocArr} = require('../common/util.js'),
-    worldMap = require('./WorldMap.js'),
     
     FILENAME_CHARACTERS = 'characters',
     
@@ -70,8 +69,10 @@ const orb = require('./orb.js'),
             if (isValidLocArr(v)) {
                 const curLocArr = this[FIELD_LOC],
                     curCell = curLocArr ? worldMap.getCellByLocArr(curLocArr) : null,
-                    newCell = worldMap.getCellByLocArr(v, true);
+                    newCell = worldMap.cellExistsForArr(v) ? worldMap.getCellByLocArr(v) : worldMap.makeAndSetCell(v, {[FIELD_COMPOSITION]:'v3'});
+                
                 this.callSuper(v);
+                
                 if (curCell) curCell.removeEntity(this);
                 newCell.addEntity(this);
                 if (characterService.isReady) worldMap.updateListenersForCharacter(this, newCell);
