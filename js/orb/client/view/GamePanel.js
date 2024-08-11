@@ -4,6 +4,7 @@
         
         myLocInfo,
         otherLocInfo,
+        entityInfo,
         gameMap,
         
         rightPanel,
@@ -41,18 +42,33 @@
             model
         } = pkg,
         
-        clearLocInfo = locInfo => {
-            locInfo.setText();
-        },
+        clearLocInfo = infoTxt => {infoTxt.setText();},
         
-        updateLocInfo = (locInfo, cell) => {
+        updateLocInfo = (infoTxt, cell) => {
             const locArr = locIdToArr(cell.locId),
                 mapDatum = model.getMapDatum(locArr[0]);
-            locInfo.setText(
+            infoTxt.setText(
                 mapDatum.name + ' / level:' + locArr[3] + 
                 ' / x:' + locArr[1] +
                 ' / y:' + locArr[2] +
                 ' / ' + composition[cell.c].name
+            );
+        },
+        
+        clearEntityInfo = infoTxt => {infoTxt.setText();},
+        
+        updateEntityInfo = (infoTxt, entity) => {
+            let extraInfo = '';
+            if (entity.isSpirit()) {
+                extraInfo = ' : Spirit';
+            } else if (entity.isZombie()) {
+                extraInfo = ' : Zombie';
+            }
+            if (entity.inWorld) {
+                extraInfo += ' : ' + ' Active Player';
+            }
+            infoTxt.setText(
+                'Entity: ' + entity.name + extraInfo
             );
         },
         
@@ -153,6 +169,7 @@
             
             myLocInfo = new Text(leftPanel, {x:spacing, height:20});
             otherLocInfo = new Text(leftPanel, {x:spacing, height:20});
+            entityInfo = new Text(leftPanel, {x:spacing, height:20});
             
             gameMap = new pkg.GameMap(leftPanel, {}, [{
                 doMouseOverCell: (isOver, cell, cellView) => {
@@ -169,6 +186,17 @@
                 },
                 doCharacterCell: (character, cell, cellView) => {
                     updateLocInfo(myLocInfo, cell);
+                },
+                
+                doMouseOverEntity: (isOver, entity, entityView) => {
+                    if (isOver) {
+                        updateEntityInfo(entityInfo, entity);
+                        // FIXME: use a highlight view rather than changing border.
+                        entityView.setBorder([1, 'dashed', '#888']);
+                    } else {
+                        clearEntityInfo(entityInfo);
+                        entityView.setBorder();
+                    }
                 },
             }]);
             

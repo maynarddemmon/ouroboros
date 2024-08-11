@@ -43,6 +43,21 @@
                 this.setVisible(false);
             },
             
+            setMouseDown: function(v) {
+                if (v !== this.mouseDown) {
+                    this.callSuper(v);
+                    this.parent.doMouseDownEntity(this.mouseDown, this.entity, this);
+                }
+            },
+            
+            setMouseOver: function(v) {
+                if (v !== this.mouseOver) {
+                    this.callSuper(v);
+                    this.parent.doMouseOverEntity(this.mouseOver, this.entity, this);
+                    this.cellView?.setMouseOver(v);
+                }
+            },
+            
             setEntity: function(v) {
                 const entity = this.entity = v;
                 
@@ -57,6 +72,10 @@
                 
                 this.setVisible(true);
                 this.setBgColor(bgColor);
+            },
+            
+            setCellView: function(v) {
+                this.cellView = v;
             },
             
             updatePosition: function(position, cellView) {
@@ -107,14 +126,6 @@
                 this.setVisible(false);
             },
             
-            setCell: function(v) {
-                const cell = this.cell = v;
-                if (cell) {
-                    cellViewsByLocId.set(cell.locId, this);
-                }
-                if (this.inited) this.redraw();
-            },
-            
             setMouseDown: function(v) {
                 if (v !== this.mouseDown) {
                     this.callSuper(v);
@@ -127,6 +138,14 @@
                     this.callSuper(v);
                     this.parent.doMouseOverCell(this.mouseOver, this.cell, this);
                 }
+            },
+            
+            setCell: function(v) {
+                const cell = this.cell = v;
+                if (cell) {
+                    cellViewsByLocId.set(cell.locId, this);
+                }
+                if (this.inited) this.redraw();
             },
             
             redraw: function() {
@@ -176,6 +195,8 @@
         doMouseOverCell: (isOver, cell, cellView) => {},
         doMouseDownCell: (isDown, cell, cellView) => {},
         doCharacterCell: (character, cell, cellView) => {},
+        doMouseOverEntity: (isOver, entity, entityView) => {},
+        doMouseDownEntity: (isDown, entity, entityView) => {},
         
         refreshMap: debounce(() => {
             if (!character) return;
@@ -209,6 +230,7 @@
                             const entityView = entityPool.getInstance(),
                                 entityModel = model.makeEntityFromData(entityDatum);
                             entityView.setEntity(entityModel);
+                            entityView.setCellView(cellView);
                             entityView.updatePosition('center', cellView);
                         }
                     }
@@ -216,6 +238,7 @@
                     if (x === 0 && y === 0) {
                         const characterView = entityPool.getInstance();
                         characterView.setEntity(character);
+                        characterView.setCellView(cellView);
                         characterView.updatePosition('center', cellView);
                         
                         gameMap.doCharacterCell(character, cellDatum, cellView);
