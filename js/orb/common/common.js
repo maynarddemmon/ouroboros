@@ -135,6 +135,11 @@
                     mapColor:'#112',
                     solidity:-1
                 },
+                v3:{
+                    name:'ether',
+                    mapColor:'#131',
+                    solidity:0
+                },
                 
                 // Air
                 a1:{

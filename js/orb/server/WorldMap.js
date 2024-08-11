@@ -18,7 +18,9 @@ const orb = require('./orb.js'),
         cell:{FIELD_COMPOSITION, FIELD_ENTITIES},
         composition
     } = require('../common/common.js'),
-    {locArrToId, locArrToMapId} = require('../common/util.js'),
+    {locIdToArr, locArrToId, locArrToMapId} = require('../common/util.js'),
+    {TYPE_CELL_DATA} = require('../common/SocketProtocol.js'),
+    accountService = require('./AccountService.js'),
     
     FILENAME_WORLD_MAP = 'world_map',
     
@@ -38,7 +40,10 @@ const orb = require('./orb.js'),
         
         
         // Accessors ///////////////////////////////////////////////////////////
-        [generateSetterName(FIELD_COMPOSITION)]: function(v) {this.set(FIELD_COMPOSITION, v, true);},
+        [generateSetterName(FIELD_COMPOSITION)]: function(v) {
+            this.set(FIELD_COMPOSITION, v, true);
+            this.notifyAllChangeListeners();
+        },
         getComposition: function() {return this[FIELD_COMPOSITION];},
         getCompositionObject: function() {
             return compositionsByCompId[this.getComposition()];
@@ -79,10 +84,32 @@ const orb = require('./orb.js'),
             }
         },
         
+        // ChangeListener //
+        getChangeListeners: function() {
+            return this._changeListeners ??= new Set();
+        },
+        addChangeListener: function(character) {
+            this.getChangeListeners().add(character);
+        },
+        removeChangeListener: function(character) {
+            this.getChangeListeners().delete(character);
+        },
+        notifyAllChangeListeners: function() {
+            if (!worldMap.isReady) return;
+            
+            const self = this;
+            self.getChangeListeners().forEach(character => {
+                accountService.addMessageToUser(character.getUserId(), {
+                    type:TYPE_CELL_DATA, msg:{[self.locId]:self.getAsDataForCharacter(character)}
+                });
+            });
+        },
+        
         // Entities //
         getEntitiesMap: function() {return this.entities ??= new Map();},
         addEntity: function(entity) {
             this.getEntitiesMap().set(entity.getId(), entity);
+            this.notifyAllChangeListeners();
         },
         removeEntity: function(entity) {return this.removeEntityById(entity.getId());},
         removeEntityById: function(entityId) {
@@ -90,19 +117,78 @@ const orb = require('./orb.js'),
                 removedEntity = entities.get(entityId);
             if (removedEntity) {
                 entities.delete(entityId);
+                this.notifyAllChangeListeners();
                 return removedEntity;
             }
         }
     }),
     
     getMapData = mapId => mapData[mapId],
+    
+    coerceToLocId = locArrOrId => (typeof locArrOrId === 'string' ? locArrOrId : locArrToId(locArrOrId)),
+    cellExistsForId = locId => getCell(locId) != null,
+    cellExistsForArr = locArr => getCellByLocArr(locArr) != null,
+    cellExists = locArrOrId => cellExistsForId(locArrToId(locArr)),
+    
+    makeCell = params => new Cell(params),
     getCell = (locId, returnDefault) => cells[locId] ?? (returnDefault ? makeCell() : null),
-    getCellByLocArr = (locArr, returnDefault) => getCell(locArrToId(locArr), returnDefault),
+    getCellByLocArr = locArr => getCell(locArrToId(locArr)),
     setCell = (locId, cell) => {
         cells[locId] = cell;
         cell.locId = locId;
+        return cell;
     },
-    makeCell = params => new Cell(params),
+    
+    getCellsToObserve = (character, newCell) => {
+        const retval = [];
+        if (newCell) {
+            const distance = character.getMonitorDistance();
+            if (distance >= 0) {
+                // FIXME: for now do a fixed NxN grid around the character
+                const locArr = locIdToArr(newCell.locId),
+                    locArrCopy = locArr.slice();
+                for (let x = -distance; x <= distance; x++) {
+                    locArrCopy[1] = locArr[1] + x;
+                    for (let y = -distance; y <= distance; y++) {
+                        locArrCopy[2] = locArr[2] + y;
+                        retval.push(getCell(locArrToId(locArrCopy), true));
+                    }
+                }
+            }
+        }
+        return retval;
+    },
+    
+    intersectCellArrays = (arrA, arrB) => {
+        const map = {},
+            inBoth = [],
+            inAOnly = [],
+            inBOnly = [];
+        
+        // Fill the map with elements from arrA
+        for (const cell of arrA) {
+            map[cell.locId] = [1, cell]; // Mark elements from arrA
+        }
+        
+        // Process arrB and simultaneously determine the intersection 
+        // and unique elements
+        for (const cell of arrB) {
+            if (map[cell.locId]) {
+                inBoth.push(cell);
+                map[cell.locId][0] = 0; // Mark as found in both arrays
+            } else {
+                inBOnly.push(cell);
+            }
+        }
+        
+        // Elements remaining in the map with value 1 are unique to arrA
+        for (const locId in map) {
+            const entry = map[locId];
+            if (entry[0] === 1) inAOnly.push(entry[1]);
+        }
+        
+        return {inAOnly, inBoth, inBOnly};
+    },
     
     live = (resolve, reject) => {
         console.log('Restoring World Maps...');
@@ -124,6 +210,8 @@ const orb = require('./orb.js'),
             }
             console.log('  Loaded ' + objectKeys(cells).length + ' cells.');
         }
+        
+        worldMap.isReady = true;
         
         resolve();
     },
@@ -147,12 +235,6 @@ const orb = require('./orb.js'),
     },
     
     worldMap = module.exports = {
-        getCell:getCell,
-        getCellByLocArr:getCellByLocArr,
-        setCell:setCell,
-        makeCell:makeCell,
-        
-        
         lifeCycle: isBirth => new Promise((resolve, reject) => {
             if (isBirth) {
                 live(resolve, reject);
@@ -161,32 +243,47 @@ const orb = require('./orb.js'),
             }
         }),
         
+        isReady:false,
+        
+        getCell:getCell,
+        getCellByLocArr:getCellByLocArr,
+        cellExistsForArr:cellExistsForArr,
+        makeAndSetCell: (locArrOrId, params) => setCell(coerceToLocId(locArrOrId), makeCell(params)),
+        
+        clearListenersForCharacter: function(character) {
+            worldMap.updateListenersForCharacter(character);
+        },
+        
+        updateListenersForCharacter: function(character, newCell) {
+            const observedCells = character.getObservedCells(),
+                newObservedCells = getCellsToObserve(character, newCell),
+                {inAOnly, inBoth, inBOnly} = intersectCellArrays(observedCells, newObservedCells);
+            
+            // Stop Observing
+            for (const cell of inAOnly) cell.removeChangeListener(character);
+            
+            // Start Observing
+            if (inBOnly.length > 0) {
+                const msgAccum = {};
+                for (const cell of inBOnly) {
+                    cell.addChangeListener(character);
+                    msgAccum[cell.locId] = cell.getAsDataForCharacter(character);
+                }
+                
+                // Send data for new cells the listener immediately
+                accountService.addMessageToUser(character.getUserId(), {type:TYPE_CELL_DATA, msg:msgAccum});
+            }
+            
+            // Quickly update observedCells in character
+            character.setObservedCells([...inBoth, ...inBOnly])
+        },
+        
         getMapDataForCharacter: character => {
             const locArr = character.getLocArr(),
                 accum = {};
             if (locArr) {
                 const mapId = locArrToMapId(locArr);
                 accum[mapId] = getMapData(mapId);
-            }
-            return accum;
-        },
-        
-        getCellDataForCharacter: character => {
-            const locArr = character.getLocArr(),
-                accum = {};
-            if (locArr) {
-                // FIXME: for now do a fixed NxN grid around the character
-                const DISTANCE = 9;
-                const locArrCopy = locArr.slice();
-                for (let x = -DISTANCE; x <= DISTANCE; x++) {
-                    locArrCopy[1] = locArr[1] + x;
-                    for (let y = -DISTANCE; y <= DISTANCE; y++) {
-                        locArrCopy[2] = locArr[2] + y;
-                        const locId = locArrToId(locArrCopy),
-                            cell = getCell(locId, true);
-                        accum[locId] = cell.getAsDataForCharacter(character);
-                    }
-                }
             }
             return accum;
         }

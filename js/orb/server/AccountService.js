@@ -1,22 +1,24 @@
 let accessLog,
+    characterService,
     accountUnlockerIntervalId = null;
 
 const {scryptSync} = require('crypto'),
     orb = require('./orb.js'),
     {salt, authFailLimit, accountUnlockerInterval} = orb,
     
-    characterService = require('./CharacterService.js'),
-    {getAccessLog} = require('./LoggingService.js'),
-    
-    FILENAME_ACCOUNTS = 'accounts',
-    
+    {TYPE_NOW} = require('../common/SocketProtocol.js'),
     {
         account:{
             FIELD_USERNAME, FIELD_PASSWORD, FIELD_LAST_LOGIN, FIELD_AUTH_FAIL_COUNT,
             FIELD_AUTHENTICATED, FIELD_WEBSOCKET, FIELD_SOCKET_TOKEN
         }
     } = require('../common/common.js'),
-    {TYPE_NOW} = require('../common/SocketProtocol.js'),
+    
+    getCharacterService = () => {
+        return characterService ??= require('./CharacterService.js');
+    },
+    
+    FILENAME_ACCOUNTS = 'accounts',
     
     // An object holding all user accounts.
     accountsByUsername = {},
@@ -142,7 +144,7 @@ const {scryptSync} = require('crypto'),
     },
     
     live = (resolve, reject) => {
-        accessLog = getAccessLog();
+        accessLog = require('./LoggingService.js').getAccessLog();
         
         console.log('Restoring User Accounts...');
         const jsonData = orb.readDataFile(FILENAME_ACCOUNTS);
@@ -310,7 +312,7 @@ const {scryptSync} = require('crypto'),
                     accessLog.info('Deleting Account:' + username);
                     
                     closeSocketForAccount(existingAccount);
-                    characterService.convertAllCharactersToZombiesForAccount(username);
+                    getCharacterService().convertAllCharactersToZombiesForAccount(username);
                     delete accountsByUsername[username];
                     
                     retval.success = true;

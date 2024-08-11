@@ -8,6 +8,7 @@ const orb = require('./orb.js'),
         }
     } = require('../../../lib/tym.js'),
     
+    worldMap = require('./WorldMap.js'),
     {
         CommonEntityModelMixin,
         CommonCharacterModelMixin,
@@ -17,12 +18,10 @@ const orb = require('./orb.js'),
             FIELD_LOC, FIELD_MOVE_SPEED, FIELD_PERMISSIONS,
             FIELD_LOCK_MOVE, FIELD_LOCK_ACTION, FIELD_LOCK_FREE, FIELD_LOCK_REACT
         },
-        permissions:{
-            PERM_CREATOR
-        }
+        permissions:{PERM_CREATOR},
+        cell:{FIELD_COMPOSITION}
     } = require('../common/common.js'),
     {isValidLocArr} = require('../common/util.js'),
-    worldMap = require('./WorldMap.js'),
     
     FILENAME_CHARACTERS = 'characters',
     
@@ -46,6 +45,8 @@ const orb = require('./orb.js'),
         
         // Life Cycle //////////////////////////////////////////////////////////
         init: function(attrs) {
+            this._observedCells = [];
+            
             attrs[FIELD_USER_ID] ??= null;
             attrs[FIELD_PERMISSIONS] ??= null;
             attrs[FIELD_NAME] ??= '';
@@ -62,14 +63,19 @@ const orb = require('./orb.js'),
         
         
         // Accessors ///////////////////////////////////////////////////////////
+        getMonitorDistance: () => 5,
+        
         [generateSetterName(FIELD_LOC)]: function(v) {
             if (isValidLocArr(v)) {
                 const curLocArr = this[FIELD_LOC],
                     curCell = curLocArr ? worldMap.getCellByLocArr(curLocArr) : null,
-                    newCell = worldMap.getCellByLocArr(v, true);
+                    newCell = worldMap.cellExistsForArr(v) ? worldMap.getCellByLocArr(v) : worldMap.makeAndSetCell(v, {[FIELD_COMPOSITION]:'v3'});
+                
                 this.callSuper(v);
+                
                 if (curCell) curCell.removeEntity(this);
                 newCell.addEntity(this);
+                if (characterService.isReady) worldMap.updateListenersForCharacter(this, newCell);
             } else {
                 console.error('Attempt to set invalid locArr on character: ', v, this);
             }
@@ -80,10 +86,27 @@ const orb = require('./orb.js'),
         },
         
         // Methods /////////////////////////////////////////////////////////////
+        getObservedCells: function() {return this._observedCells;},
+        setObservedCells: function(v) {this._observedCells = v;},
+        /*observeCell: function(cell) {
+            if (cell) this._observedCells.push(cell);
+        },
+        unobserveCell: function(cellToForget) {
+            const cells = this._observedCells,
+                len = cells.length;
+            while (i) {
+                if (cells[--i] === cellToForget) {
+                    splice(i, 1);
+                    break;
+                }
+            }
+        },*/
+        
         getAsData: function() {
             // FIXME: need to iterate over a list of fields to save. This is
             // currently only safe to call during die.
             delete this.inited;
+            delete this._observedCells;
             return this
         },
         
@@ -180,6 +203,7 @@ const orb = require('./orb.js'),
             console.log('  Restored ' + count + ' character(s).');
         }
         
+        characterService.isReady = true;
         resolve();
     },
     
@@ -199,80 +223,82 @@ const orb = require('./orb.js'),
         orb.saveDataToFile(FILENAME_CHARACTERS, characterData);
         
         resolve();
-    };
-
-module.exports = {
-    lifeCycle: isBirth => new Promise((resolve, reject) => {
-        if (isBirth) {
-            live(resolve, reject);
-        } else {
-            die(resolve, reject);
-        }
-    }),
-    
-    getCharacterById:getCharacterById,
-    getCharacterByName:getCharacterByName,
-    getCharactersByUserId:getCharactersByUserId,
-    
-    doCharacterExitWorld:doCharacterExitWorld,
-    
-    createCharacter: (userId, data) => {
-        const name = data[FIELD_NAME],
-            retval = {success:false};
-        if (!userId) {
-            retval.message = 'No userId provided.';
-        } else if (getCharacterByName(name)) {
-            retval.message = 'Character name already exists.';
-        } else {
-            const character = new Character({
-                [FIELD_ID]:orb.getGuidString('c'),
-                [FIELD_USER_ID]:userId,
-                [FIELD_NAME]:name,
-                [FIELD_LOC]:[0,2,2,0]
-            });
-            
-            if (storeCharacterInRepo(character)) {
-                retval.message = 'Character created successfully.';
-                retval.character = character;
-                retval.success = true;
-            } else {
-                retval.message = 'Character creation failed because account limit would be exceeded.';
-            }
-        }
-        return retval;
     },
     
-    deleteCharacter: (userId, id) => {
-        const retval = {success:false};
-        if (!userId) {
-            retval.message = 'No userId provided.';
-        } else if (!id) {
-            retval.message = 'No id provided.';
-        } else {
-            const character = getCharacterById(id);
-            if (character) {
-                if (character.getUserId() === userId) {
-                    if (removeCharacterFromRepo(character)) {
-                        retval.message = 'Character removed successfully.';
-                        retval[FIELD_ID] = id;
-                        retval.success = true;
+    characterService = module.exports = {
+        lifeCycle: isBirth => new Promise((resolve, reject) => {
+            if (isBirth) {
+                live(resolve, reject);
+            } else {
+                die(resolve, reject);
+            }
+        }),
+        
+        isReady:false,
+        
+        getCharacterById:getCharacterById,
+        getCharacterByName:getCharacterByName,
+        getCharactersByUserId:getCharactersByUserId,
+        
+        doCharacterExitWorld:doCharacterExitWorld,
+        
+        createCharacter: (userId, data) => {
+            const name = data[FIELD_NAME],
+                retval = {success:false};
+            if (!userId) {
+                retval.message = 'No userId provided.';
+            } else if (getCharacterByName(name)) {
+                retval.message = 'Character name already exists.';
+            } else {
+                const character = new Character({
+                    [FIELD_ID]:orb.getGuidString('c'),
+                    [FIELD_USER_ID]:userId,
+                    [FIELD_NAME]:name,
+                    [FIELD_LOC]:[0,2,2,0]
+                });
+                
+                if (storeCharacterInRepo(character)) {
+                    retval.message = 'Character created successfully.';
+                    retval.character = character;
+                    retval.success = true;
+                } else {
+                    retval.message = 'Character creation failed because account limit would be exceeded.';
+                }
+            }
+            return retval;
+        },
+        
+        deleteCharacter: (userId, id) => {
+            const retval = {success:false};
+            if (!userId) {
+                retval.message = 'No userId provided.';
+            } else if (!id) {
+                retval.message = 'No id provided.';
+            } else {
+                const character = getCharacterById(id);
+                if (character) {
+                    if (character.getUserId() === userId) {
+                        if (removeCharacterFromRepo(character)) {
+                            retval.message = 'Character removed successfully.';
+                            retval[FIELD_ID] = id;
+                            retval.success = true;
+                        } else {
+                            retval.message = 'Character deletion failed.';
+                        }
                     } else {
-                        retval.message = 'Character deletion failed.';
+                        retval.message = 'Character does not belong to the user.';
                     }
                 } else {
-                    retval.message = 'Character does not belong to the user.';
+                    retval.message = 'Character not found.';
                 }
-            } else {
-                retval.message = 'Character not found.';
             }
+            return retval;
+        },
+        
+        convertAllCharactersToZombiesForAccount: userId => {
+            const existingCharacters = getCharactersByUserId(userId);
+            let i = existingCharacters.length;
+            while (i) existingCharacters[--i].set(FIELD_ZOMBIE, true);
+            return true;
         }
-        return retval;
-    },
-    
-    convertAllCharactersToZombiesForAccount: userId => {
-        const existingCharacters = getCharactersByUserId(userId);
-        let i = existingCharacters.length;
-        while (i) existingCharacters[--i].set(FIELD_ZOMBIE, true);
-        return true;
-    }
-};
+    };

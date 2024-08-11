@@ -1,14 +1,13 @@
-let socketServer,
-    accessLog;
+let socketServer;
 
 const ws = require('ws'),
-    {socketPort} = require('./orb.js'),
-    {getAccountBySocketToken} = require('./AccountService.js'),
-    {getAccessLog} = require('./LoggingService.js'),
-    socketMessageHandler = require('./SocketMessageHandler.js'),
     
     live = (resolve, reject) => {
-        accessLog = getAccessLog();
+        const accountService = require('./AccountService.js'),
+            socketMessageHandler = require('./SocketMessageHandler.js'),
+            accessLog = require('./LoggingService.js').getAccessLog(),
+            socketPort = require('./orb.js').socketPort,
+            FIELD_WEBSOCKET = require('../common/common.js').account.FIELD_WEBSOCKET;
         
         console.log('Socket Server Starting Up...');
         
@@ -44,9 +43,9 @@ const ws = require('ws'),
                     // Build a scope for further message processing.
                     const socketToken = jsonData.token;
                     if (socketToken) {
-                        const account = getAccountBySocketToken(socketToken);
+                        const account = accountService.getAccountBySocketToken(socketToken);
                         if (account) {
-                            account.websocket = ws;
+                            account[FIELD_WEBSOCKET] = ws;
                             socketMessageHandler.handleMessage({account:account, data:jsonData});
                         } else {
                             console.warn('Socket Message without associated account');

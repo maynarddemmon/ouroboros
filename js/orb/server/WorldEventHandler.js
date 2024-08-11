@@ -1,13 +1,10 @@
 const orb = require('./orb.js'),
-    {getAccountByUsername, addMessageToUser} = require('./AccountService.js'),
-    {getCharactersByUserId, getCharacterById, doCharacterExitWorld} = require('./CharacterService.js'),
-    {
-        getCell, setCell, makeCell, 
-        getCellDataForCharacter, getMapDataForCharacter
-    } = require('./WorldMap.js'),
+    accountService = require('./AccountService.js'),
+    characterService = require('./CharacterService.js'),
+    worldMap = require('./WorldMap.js'),
     {
         TYPE_WARNING, TYPE_ERROR, TYPE_SERVERINFO, TYPE_ENTER_WORLD, TYPE_EXIT_WORLD,
-        TYPE_MAP_DATA, TYPE_CELL_DATA,
+        TYPE_MAP_DATA,
         TYPE_ACTION_MOVE,
         TYPE_ALTER_CELL, TYPE_ALTER_CHARACTER,
         ATTR_TIME
@@ -22,24 +19,23 @@ const orb = require('./orb.js'),
     
     {locArrToId, locIdToArr, isValidLocArr} = require('../common/util.js'),
     
-    warningMessageToUser = (username, msg) => {
-        console.warn(msg);
-        addMessageToUser(username, {type:TYPE_WARNING, msg:msg});
+    warningMessageToUser = (username, msg, extraInfo) => {
+        console.warn(msg, extraInfo);
+        accountService.addMessageToUser(username, {type:TYPE_WARNING, msg:msg});
     },
     
     errorMessageToUser = (username, msg) => {
         console.warn(msg);
-        addMessageToUser(username, {type:TYPE_ERROR, msg:msg});
+        accountService.addMessageToUser(username, {type:TYPE_ERROR, msg:msg});
     },
     
     infoMessageToUser = (username, msg) => {
-        console.warn(msg);
-        addMessageToUser(username, {type:TYPE_SERVERINFO, msg:msg});
+        accountService.addMessageToUser(username, {type:TYPE_SERVERINFO, msg:msg});
     },
     
     verifyUserIdHasAccount = event => {
         const userId = event._uid,
-            account = getAccountByUsername(userId);
+            account = accountService.getAccountByUsername(userId);
         if (account) {
             return userId;
         } else {
@@ -52,7 +48,7 @@ const orb = require('./orb.js'),
         const username = verifyUserIdHasAccount(event);
         if (username) {
             const characterId = event.msg.id,
-                character = getCharacterById(characterId);
+                character = characterService.getCharacterById(characterId);
             if (character) {
                 if (character.getUserId() === username) {
                     const now = event[ATTR_TIME];
@@ -65,7 +61,7 @@ const orb = require('./orb.js'),
                     
                     // Always send the cooldown to the user since it has either
                     // been updated or the value the client had was stale.
-                    addMessageToUser(username, {type:TYPE_ALTER_CHARACTER, msg:{
+                    accountService.addMessageToUser(username, {type:TYPE_ALTER_CHARACTER, msg:{
                         id:characterId, p:lockProperty, v:curLockValue
                     }});
                 } else {
@@ -84,7 +80,7 @@ const orb = require('./orb.js'),
             const username = verifyUserIdHasAccount(event);
             if (username) {
                 const characterId = event.msg.id,
-                    usersCharacters = getCharactersByUserId(username);
+                    usersCharacters = characterService.getCharactersByUserId(username);
                 let character,
                     i = usersCharacters.length;
                 while (i) {
@@ -102,9 +98,17 @@ const orb = require('./orb.js'),
                 }
                 
                 if (character) {
-                    addMessageToUser(username, {type:TYPE_ENTER_WORLD, msg:{character:character}});
-                    addMessageToUser(username, {type:TYPE_MAP_DATA, msg:getMapDataForCharacter(character)});
-                    addMessageToUser(username, {type:TYPE_CELL_DATA, msg:getCellDataForCharacter(character)});
+                    accountService.addMessageToUser(username, {type:TYPE_ENTER_WORLD, msg:{character:character}});
+                    accountService.addMessageToUser(username, {type:TYPE_MAP_DATA, msg:worldMap.getMapDataForCharacter(character)});
+                    
+                    worldMap.clearListenersForCharacter(character);
+                    const newCell = worldMap.getCellByLocArr(character.getLocArr());
+                    if (newCell) {
+                        worldMap.updateListenersForCharacter(character, newCell);
+                    } else {
+                        // FIXME: respawn?
+                        warningMessageToUser(username, "You're nowhere, and that's not so great :(", character);
+                    }
                 } else {
                     warningMessageToUser(username, 'Character not found for ' + characterId);
                 }
@@ -115,13 +119,13 @@ const orb = require('./orb.js'),
             const username = verifyUserIdHasAccount(event);
             if (username) {
                 const characterId = event.msg.id,
-                    usersCharacters = getCharactersByUserId(username);
+                    usersCharacters = characterService.getCharactersByUserId(username);
                 let character,
                     i = usersCharacters.length;
                 while (i) {
                     const usersCharacter = usersCharacters[--i];
                     if (usersCharacter.id === characterId) {
-                        if (!doCharacterExitWorld(usersCharacter)) {
+                        if (!characterService.doCharacterExitWorld(usersCharacter)) {
                             warningMessageToUser(username, 'Character already not in world ' + characterId);
                         }
                         character = usersCharacter;
@@ -130,7 +134,8 @@ const orb = require('./orb.js'),
                 }
                 
                 if (character) {
-                    addMessageToUser(username, {type:TYPE_EXIT_WORLD, msg:{character:character}});
+                    worldMap.clearListenersForCharacter(character);
+                    accountService.addMessageToUser(username, {type:TYPE_EXIT_WORLD, msg:{character:character}});
                 } else {
                     warningMessageToUser(username, 'Character not found for ' + characterId);
                 }
@@ -164,20 +169,15 @@ const orb = require('./orb.js'),
                     
                     // Determine if the new location will allow the character
                     const locId = locArrToId(locArr),
-                        cell = getCell(locId, true);
+                        cell = worldMap.getCell(locId, true);
                     if (cell.mayMoveInto(character)) {
                         // Apply Change to Character
                         character.set(FIELD_LOC, locArr);
                         
                         // Send movement change
-                        addMessageToUser(username, {type:TYPE_ALTER_CHARACTER, msg:{
+                        accountService.addMessageToUser(username, {type:TYPE_ALTER_CHARACTER, msg:{
                             id:character.id, p:FIELD_LOC, v:locArr
                         }});
-                        
-                        // Send new cell data
-                        addMessageToUser(username, {type:TYPE_CELL_DATA, msg:getCellDataForCharacter(character)});
-                        
-                        // FIXME: how to notify all other characters that can sense this character
                     } else {
                         infoMessageToUser(username, 'Movement to that location not allowed.');
                     }
@@ -189,30 +189,23 @@ const orb = require('./orb.js'),
             performAction(
                 event, FIELD_LOCK_FREE, 'getFreeActionSpeed',
                 (username, character, now) => {
-                    const locArr = character.getLocArr(); // FIXME: get copy
+                    const locArr = character.getLocArr(true),
+                        {prop, value, direction} = event.msg;
                     
-                    // FIXME: need character facing to calculate move correctly
-                    switch (event.msg.direction) {
-                        case 'here':
-                            break;
-                    }
+                    // FIXME: need character facing to calculate direction correctly
+                    /*switch (direction) {
+                        case 'here': break;
+                    }*/
                     
                     // Get Cell and alter it
                     const locId = locArrToId(locArr),
-                        cell = getCell(locId, false),
-                        {prop, value} = event.msg;
+                        cell = worldMap.getCell(locId);
                     if (cell) {
                         cell.set(prop, value);
                     } else {
-                        const newCell = makeCell();
-                        newCell.set(prop, value);
-                        setCell(locId, newCell);
+                        // FIXME: won't be testable until direction is supported.
+                        worldMap.makeAndSetCell(locId, {[prop]:value});
                     }
-                    
-                    // Send new cell data
-                    addMessageToUser(username, {type:TYPE_CELL_DATA, msg:getCellDataForCharacter(character)});
-                    
-                    // FIXME: how to notify all other characters that can sense this character
                 }
             );
         },
