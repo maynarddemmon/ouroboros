@@ -31,7 +31,98 @@
         FIELD_LOCK_MOVE = 'lockMove',
         FIELD_LOCK_ACTION = 'lockAct',
         FIELD_LOCK_FREE = 'lockFree',
-        FIELD_LOCK_REACT = 'lockReact'
+        FIELD_LOCK_REACT = 'lockReact',
+        
+        CIRCLE_0 = [[0,0]],
+        CIRCLE_1 = (() => {
+            let x = -1, y = 0;
+            return [
+                ...CIRCLE_0,
+                [++x,++y],[++x,--y],[--x,--y],[--x,++y]
+            ];
+        })(),
+        CIRCLE_2 = (() => {
+            let x = -1, y = 2;
+            return [
+                ...CIRCLE_1,
+                [++x,y],[++x,y],[x,--y],[++x,y],
+                [x,--y],[x,--y],[--x,y],[x,--y],
+                [--x,y],[--x,y],[x,++y],[--x,y],
+                [x,++y],[x,++y],[++x,y],[x,++y]
+            ];
+        })(),
+        CIRCLE_3 = (() => {
+            let x = -1, y = 3;
+            return [
+                ...CIRCLE_2,
+                [++x,y],[++x,y],[++x,--y],[++x,--y],
+                [x,--y],[x,--y],[--x,--y],[--x,--y],
+                [--x,y],[--x,y],[--x,++y],[--x,++y],
+                [x,++y],[x,++y],[++x,++y],[++x,++y]
+            ];
+        })(),
+        CIRCLE_4 = (() => {
+            let x = -1, y = 4;
+            return [
+                ...CIRCLE_3,
+                [++x,y],[++x,y],[++x,--y],[++x,y],[x,--y],[++x,--y],
+                [x,--y],[x,--y],[--x,--y],[x,--y],[--x,y],[--x,--y],
+                [--x,y],[--x,y],[--x,++y],[--x,y],[x,++y],[--x,++y],
+                [x,++y],[x,++y],[++x,++y],[x,++y],[++x,y],[++x,++y]
+            ];
+        })(),
+        CIRCLE_5 = (() => {
+            let x = -1, y = 5;
+            return [
+                ...CIRCLE_4,
+                [++x,y],[++x,y],[++x,y],[x,--y],[++x,y],[++x,--y],[x,--y],[++x,y],[x,--y],
+                [x,--y],[x,--y],[x,--y],[--x,y],[x,--y],[--x,--y],[--x,y],[x,--y],[--x,y],
+                [--x,y],[--x,y],[--x,y],[x,++y],[--x,y],[--x,++y],[x,++y],[--x,y],[x,++y],
+                [x,++y],[x,++y],[x,++y],[++x,y],[x,++y],[++x,++y],[++x,y],[x,++y],[++x,y]
+            ];
+        })(),
+        CIRCLE_6 = (() => {
+            let x = -1, y = 6;
+            return [
+                ...CIRCLE_5,
+                [++x,y],[++x,y],[++x,y],[++x,--y],[++x,y],[x,--y],[++x,y],[x,--y],[++x,--y],[x,--y],
+                [x,--y],[x,--y],[x,--y],[--x,--y],[x,--y],[--x,y],[x,--y],[--x,y],[--x,--y],[--x,y],
+                [--x,y],[--x,y],[--x,y],[--x,++y],[--x,y],[x,++y],[--x,y],[x,++y],[--x,++y],[x,++y],
+                [x,++y],[x,++y],[x,++y],[++x,++y],[x,++y],[++x,y],[x,++y],[++x,y],[++x,++y],[++x,y]
+            ];
+        })(),
+        CIRCLE_7 = (() => {
+            let x = -1, y = 7;
+            return [
+                ...CIRCLE_6,
+                [++x,y],[++x,y],[++x,y],[++x,--y],[++x,y],[++x,--y],[x,--y],[++x,y],[x,--y],[++x,--y],[x,--y],
+                [x,--y],[x,--y],[x,--y],[--x,--y],[x,--y],[--x,--y],[--x,y],[x,--y],[--x,y],[--x,--y],[--x,y],
+                [--x,y],[--x,y],[--x,y],[--x,++y],[--x,y],[--x,++y],[x,++y],[--x,y],[x,++y],[--x,++y],[x,++y],
+                [x,++y],[x,++y],[x,++y],[++x,++y],[x,++y],[++x,++y],[++x,y],[x,++y],[++x,y],[++x,++y],[++x,y]
+            ];
+        })(),
+        
+        CIRCLE_8 = (() => {
+            let x = -1, y = 8;
+            return [
+                ...CIRCLE_7,
+                [++x,y],[++x,y],[++x,y],[++x,--y],[++x,y],[++x,--y],[++x,--y],[x,--y],[++x,y],[x,--y],[++x,--y],[x,--y],
+                [x,--y],[x,--y],[x,--y],[--x,--y],[x,--y],[--x,--y],[--x,--y],[--x,y],[x,--y],[--x,y],[--x,--y],[--x,y],
+                [--x,y],[--x,y],[--x,y],[--x,++y],[--x,y],[--x,++y],[--x,++y],[x,++y],[--x,y],[x,++y],[--x,++y],[x,++y],
+                [x,++y],[x,++y],[x,++y],[++x,++y],[x,++y],[++x,++y],[++x,++y],[++x,y],[x,++y],[++x,y],[++x,++y],[++x,y]
+            ];
+        })(),
+        CIRCLE_9 = (() => {
+            let x = -1, y = 9;
+            return [
+                ...CIRCLE_8,
+                //   r       r       r        dr       r       r       d       r       d       r       d       r       d       d        rd       d
+                [++x,y],[++x,y],[++x,y],[++x,--y],[++x,y],[++x,y],[x,--y],[++x,y],[x,--y],[++x,y],[x,--y],[++x,y],[x,--y],[x,--y],[++x,--y],[x,--y],
+                [x,--y],[x,--y],[x,--y],[--x,--y],[x,--y],[x,--y],[--x,y],[x,--y],[--x,y],[x,--y],[--x,y],[x,--y],[--x,y],[--x,y],[--x,--y],[--x,y],
+                [--x,y],[--x,y],[--x,y],[--x,++y],[--x,y],[--x,y],[x,++y],[--x,y],[x,++y],[--x,y],[x,++y],[--x,y],[x,++y],[x,++y],[--x,++y],[x,++y],
+                [x,++y],[x,++y],[x,++y],[++x,++y],[x,++y],[x,++y],[++x,y],[x,++y],[++x,y],[x,++y],[++x,y],[x,++y],[++x,y],[++x,y],[++x,++y],[++x,y]
+            ];
+        })(),
         
         CommonEntityModelMixin = new JS.Module('CommonEntityModelMixin', {
             // Accessors ///////////////////////////////////////////////////////
@@ -84,6 +175,8 @@
         EXPORT = {
             CommonEntityModelMixin:CommonEntityModelMixin,
             CommonCharacterModelMixin:CommonCharacterModelMixin,
+            
+            cellOffsetsByDistance:[CIRCLE_0,CIRCLE_1,CIRCLE_2,CIRCLE_3,CIRCLE_4,CIRCLE_5,CIRCLE_6,CIRCLE_7,CIRCLE_8,CIRCLE_9],
             
             permissions:{
                 PERM_CREATOR:PERM_CREATOR

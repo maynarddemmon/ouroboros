@@ -44,7 +44,7 @@
             appView = pkg.app = this;
             G.register('app', appView);
             
-            attrs.minWidth = 1200;
+            attrs.minWidth = 1000;
             attrs.minHeight = 700;
             
             appView.callSuper(parent, attrs);

@@ -15,6 +15,7 @@ const orb = require('./orb.js'),
     } = require('../../../lib/tym.js'),
     
     {
+        cellOffsetsByDistance,
         cell:{FIELD_COMPOSITION, FIELD_ENTITIES},
         composition
     } = require('../common/common.js'),
@@ -143,16 +144,15 @@ const orb = require('./orb.js'),
         const retval = [];
         if (newCell) {
             const distance = character.getMonitorDistance();
-            if (distance >= 0) {
-                // FIXME: for now do a fixed NxN grid around the character
-                const locArr = locIdToArr(newCell.locId),
-                    locArrCopy = locArr.slice();
-                for (let x = -distance; x <= distance; x++) {
-                    locArrCopy[1] = locArr[1] + x;
-                    for (let y = -distance; y <= distance; y++) {
-                        locArrCopy[2] = locArr[2] + y;
-                        retval.push(getCell(locArrToId(locArrCopy), true));
-                    }
+            if (distance >= 0 && distance < cellOffsetsByDistance.length) {
+                const offsets = cellOffsetsByDistance[distance],
+                    locArr = locIdToArr(newCell.locId),
+                    baseX = locArr[1],
+                    baseY = locArr[2];
+                for (const offset of offsets) {
+                    locArr[1] = baseX + offset[0];
+                    locArr[2] = baseY + offset[1];
+                    retval.push(getCell(locArrToId(locArr), true));
                 }
             }
         }

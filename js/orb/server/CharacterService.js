@@ -63,7 +63,7 @@ const orb = require('./orb.js'),
         
         
         // Accessors ///////////////////////////////////////////////////////////
-        getMonitorDistance: () => 5,
+        getMonitorDistance: () => 3,
         
         [generateSetterName(FIELD_LOC)]: function(v) {
             if (isValidLocArr(v)) {
