@@ -1,4 +1,5 @@
-let mapData = {},
+let isReady = false,
+    mapData = {},
     cells = {},
     compositionsByCompId = {};
 
@@ -10,6 +11,7 @@ const orb = require('./orb.js'),
         JS:{Class:JSClass}, 
         tym:{
             Eventable,
+            getRandomInt,
             AccessorSupport:{generateSetterName}
         }
     } = require('../../../lib/tym.js'),
@@ -32,22 +34,26 @@ const orb = require('./orb.js'),
     }),
     
     Cell = new JSClass('Cell', Eventable, {
-        // Life Cycle //////////////////////////////////////////////////////////
-        init: function(attrs) {
-            attrs[FIELD_COMPOSITION] ??= 'v1';
-            
-            this.callSuper(attrs);
-        },
-        
-        
         // Accessors ///////////////////////////////////////////////////////////
         [generateSetterName(FIELD_COMPOSITION)]: function(v) {
             this.set(FIELD_COMPOSITION, v, true);
             this.notifyAllChangeListeners();
         },
+        setComposition: function(v) {this.set(FIELD_COMPOSITION, v);},
         getComposition: function() {return this[FIELD_COMPOSITION];},
         getCompositionObject: function() {
             return compositionsByCompId[this.getComposition()];
+        },
+        
+        isCompositionVoid: function() {return this.getCompositionObject().solidity === -1;},
+        isCompositionAether: function() {
+            switch (this.getComposition()) {
+                case 'v3':
+                case 'v4':
+                    return true;
+                default:
+                    return false;
+            }
         },
         
         
@@ -75,14 +81,7 @@ const orb = require('./orb.js'),
         },
         
         mayMoveInto: function(character) {
-            const isSpirit = character.isSpirit(),
-                comp = this.getCompositionObject(),
-                solidity = comp.getSolidity();
-            if (isSpirit) {
-                return true;
-            } else {
-                return solidity >= 0 && solidity < 1;
-            }
+            return orb.rules.characterMayMoveIntoCell(character, this);
         },
         
         // ChangeListener //
@@ -96,7 +95,7 @@ const orb = require('./orb.js'),
             this.getChangeListeners().delete(character);
         },
         notifyAllChangeListeners: function() {
-            if (!worldMap.isReady) return;
+            if (!isReady) return;
             
             const self = this;
             self.getChangeListeners().forEach(character => {
@@ -121,6 +120,40 @@ const orb = require('./orb.js'),
                 this.notifyAllChangeListeners();
                 return removedEntity;
             }
+        },
+        
+        getSpiritEntityCount: function(atLeast) {
+            return this.getEntityCount(entity => entity.isSpirit(), atLeast);
+        },
+        
+        getAstralProjectedEntityCount: function(atLeast) {
+            return this.getEntityCount(entity => entity.isAstralProjected(), atLeast);
+        },
+        
+        getCorporealEntityCount: function(atLeast) {
+            return this.getEntityCount(entity => !entity.isSpirit() && !entity.isAstralProjected(), atLeast);
+        },
+        
+        getEntityCount: function(filterFunc, atLeast) {
+            const entities = this.entities;
+            if (filterFunc) {
+                let count = 0;
+                if (entities) {
+                    for (const entity of entities.values()) {
+                        if (filterFunc(entity)) {
+                            count++;
+                            if (atLeast && count >= atLeast) return true;
+                        }
+                    }
+                }
+                return atLeast ? false : count;
+            } else {
+                if (atLeast) {
+                    return entities ? entities.size >= atLeast : false;
+                } else {
+                    return entities ? entities.size : 0;
+                }
+            }
         }
     }),
     
@@ -132,8 +165,18 @@ const orb = require('./orb.js'),
     cellExists = locArrOrId => cellExistsForId(locArrToId(locArr)),
     
     makeCell = params => new Cell(params),
-    getCell = (locId, returnDefault) => cells[locId] ?? (returnDefault ? makeCell() : null),
-    getCellByLocArr = locArr => getCell(locArrToId(locArr)),
+    makeAndSetCell = (locArrOrId, params) => setCell(coerceToLocId(locArrOrId), makeCell(params)),
+    makeAndSetMissingCell = locId => {
+        let comp;
+        switch (getRandomInt(0,1)) {
+            case 0: comp = 'v1'; break;
+            case 1: comp = 'v2'; break;
+        }
+        return makeAndSetCell(locId, {[FIELD_COMPOSITION]:comp});
+    },
+    
+    getCell = (locId, makeIfMissing) => cells[locId] ?? (makeIfMissing ? makeAndSetMissingCell(locId) : null),
+    getCellByLocArr = (locArr, makeIfMissing) => getCell(locArrToId(locArr), makeIfMissing),
     setCell = (locId, cell) => {
         cells[locId] = cell;
         cell.locId = locId;
@@ -211,7 +254,7 @@ const orb = require('./orb.js'),
             console.log('  Loaded ' + objectKeys(cells).length + ' cells.');
         }
         
-        worldMap.isReady = true;
+        isReady = true;
         
         resolve();
     },
@@ -243,12 +286,10 @@ const orb = require('./orb.js'),
             }
         }),
         
-        isReady:false,
-        
         getCell:getCell,
         getCellByLocArr:getCellByLocArr,
         cellExistsForArr:cellExistsForArr,
-        makeAndSetCell: (locArrOrId, params) => setCell(coerceToLocId(locArrOrId), makeCell(params)),
+        makeAndSetCell:makeAndSetCell,
         
         clearListenersForCharacter: function(character) {
             worldMap.updateListenersForCharacter(character);
@@ -270,7 +311,7 @@ const orb = require('./orb.js'),
                     msgAccum[cell.locId] = cell.getAsDataForCharacter(character);
                 }
                 
-                // Send data for new cells the listener immediately
+                // Send data for new cells to the listener immediately
                 accountService.addMessageToUser(character.getUserId(), {type:TYPE_CELL_DATA, msg:msgAccum});
             }
             

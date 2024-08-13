@@ -165,13 +165,7 @@
         },
         
         buildContent: content => {
-            const leftPanel = new View(content, {});
-            
-            myLocInfo = new Text(leftPanel, {x:spacing, height:20});
-            otherLocInfo = new Text(leftPanel, {x:spacing, height:20});
-            entityInfo = new Text(leftPanel, {x:spacing, height:20});
-            
-            gameMap = new pkg.GameMap(leftPanel, {}, [{
+            gameMap = new pkg.GameMap(content, {}, [{
                 doMouseOverCell: (isOver, cell, cellView) => {
                     if (isOver) {
                         updateLocInfo(otherLocInfo, cell);
@@ -200,17 +194,17 @@
                 },
             }]);
             
-            new SpacedLayout(leftPanel, {axis:'y', inset:spacing, spacing:spacing, collapseParent:true});
             
-            leftPanel.setWidth(gameMap.width);
-            
-            
-            const rightPanelX = leftPanel.x + leftPanel.width + padding;
+            const rightPanelX = gameMap.x + gameMap.width + padding;
             rightPanel = new View(content, {
                 x:rightPanelX, y:spacing,
                 percentOfParentWidth:100, percentOfParentWidthOffset:-(rightPanelX + padding),
                 percentOfParentHeight:100, percentOfParentHeightOffset:-2*spacing
             }, [SizeToParent]);
+            
+            myLocInfo = new Text(rightPanel, {height:20});
+            otherLocInfo = new Text(rightPanel, {height:20, layoutHint:'break'});
+            entityInfo = new Text(rightPanel, {height:20, layoutHint:'break'});
             
             // Alter Cell
             alterCellBtn = new TextBtn(rightPanel, {text:'Alter Cell', layoutHint:'break', visible:false}, [{

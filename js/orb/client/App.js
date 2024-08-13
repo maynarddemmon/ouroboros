@@ -45,7 +45,7 @@
             G.register('app', appView);
             
             attrs.minWidth = 1000;
-            attrs.minHeight = 700;
+            attrs.minHeight = 812;
             
             appView.callSuper(parent, attrs);
             appView.attachToDom(GlobalMouse, 'noop', 'contextmenu', true);

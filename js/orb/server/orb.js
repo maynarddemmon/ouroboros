@@ -151,5 +151,46 @@ const path = require('path'),
             return fs.watch(filePath, (eventType, filename) => {
                 if (eventType === 'change') handleFileChange();
             });
+        },
+        
+        // Game Rules
+        rules: {
+            doOnSpiritualChangeForCharacter: (character, cell) => {
+                if (!cell) cell = character.getCell();
+                if (cell.isCompositionVoid()) {
+                    if (character.isSpirit()) {
+                        cell.setComposition('v3');
+                    } else if (character.isAstralProjected()) {
+                        cell.setComposition('v4');
+                    }
+                } else if (cell.isCompositionAether()) {
+                    // Corporeal characters can change to astral cord but not
+                    // Vice versa.
+                    if (character.isAstralProjected()) {
+                        cell.setComposition('v4');
+                    }
+                }
+            },
+            characterMayMoveIntoCell: function(character, cell) {
+                const comp = cell.getCompositionObject(),
+                    solidity = comp.getSolidity(),
+                    entities = cell.getEntitiesMap();
+                if (character.isSpirit()) {
+                    // Only 1 spirit at a time in a cell
+                    return !cell.getSpiritEntityCount(1);
+                } else if (character.isAstralProjected()) {
+                    if (cell.isCompositionVoid()) {
+                        // Only 1 AstralProjected at a time in a cell
+                        return !cell.getAstralProjectedEntityCount(1);
+                    }
+                }
+                
+                if (solidity >= 0 && solidity < 1) {
+                    // Only 2 Corporeal at a time in a cell
+                    return !cell.getCorporealEntityCount(2);
+                }
+                
+                return false;
+            }
         }
     };

@@ -198,14 +198,8 @@ const orb = require('./orb.js'),
                     }*/
                     
                     // Get Cell and alter it
-                    const locId = locArrToId(locArr),
-                        cell = worldMap.getCell(locId);
-                    if (cell) {
-                        cell.set(prop, value);
-                    } else {
-                        // FIXME: won't be testable until direction is supported.
-                        worldMap.makeAndSetCell(locId, {[prop]:value});
-                    }
+            console.log('set', prop, value);
+                    worldMap.getCell(locArrToId(locArr), true).set(prop, value);
                 }
             );
         },

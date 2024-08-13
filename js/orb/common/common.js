@@ -21,6 +21,7 @@
         FIELD_ID ='id',
         FIELD_SPIRIT = 'spirit',
         FIELD_ZOMBIE = 'zombie',
+        FIELD_ASTRAL_PROJECTED = 'astral',
         
         FIELD_USER_ID = 'uid',
         FIELD_PERMISSIONS = 'perms',
@@ -33,89 +34,77 @@
         FIELD_LOCK_FREE = 'lockFree',
         FIELD_LOCK_REACT = 'lockReact',
         
-        CIRCLE_0 = [[0,0]],
-        CIRCLE_1 = (() => {
+        RING_0 = [[0,0]],
+        RING_1 = (() => {
             let x = -1, y = 0;
-            return [
-                ...CIRCLE_0,
-                [++x,++y],[++x,--y],[--x,--y],[--x,++y]
-            ];
+            return [[++x,++y],[++x,--y],[--x,--y],[--x,++y]];
         })(),
-        CIRCLE_2 = (() => {
+        RING_2 = (() => {
             let x = -1, y = 2;
             return [
-                ...CIRCLE_1,
                 [++x,y],[++x,y],[x,--y],[++x,y],
                 [x,--y],[x,--y],[--x,y],[x,--y],
                 [--x,y],[--x,y],[x,++y],[--x,y],
                 [x,++y],[x,++y],[++x,y],[x,++y]
             ];
         })(),
-        CIRCLE_3 = (() => {
+        RING_3 = (() => {
             let x = -1, y = 3;
             return [
-                ...CIRCLE_2,
                 [++x,y],[++x,y],[++x,--y],[++x,--y],
                 [x,--y],[x,--y],[--x,--y],[--x,--y],
                 [--x,y],[--x,y],[--x,++y],[--x,++y],
                 [x,++y],[x,++y],[++x,++y],[++x,++y]
             ];
         })(),
-        CIRCLE_4 = (() => {
+        RING_4 = (() => {
             let x = -1, y = 4;
             return [
-                ...CIRCLE_3,
                 [++x,y],[++x,y],[++x,--y],[++x,y],[x,--y],[++x,--y],
                 [x,--y],[x,--y],[--x,--y],[x,--y],[--x,y],[--x,--y],
                 [--x,y],[--x,y],[--x,++y],[--x,y],[x,++y],[--x,++y],
                 [x,++y],[x,++y],[++x,++y],[x,++y],[++x,y],[++x,++y]
             ];
         })(),
-        CIRCLE_5 = (() => {
+        RING_5 = (() => {
             let x = -1, y = 5;
             return [
-                ...CIRCLE_4,
                 [++x,y],[++x,y],[++x,y],[x,--y],[++x,y],[++x,--y],[x,--y],[++x,y],[x,--y],
                 [x,--y],[x,--y],[x,--y],[--x,y],[x,--y],[--x,--y],[--x,y],[x,--y],[--x,y],
                 [--x,y],[--x,y],[--x,y],[x,++y],[--x,y],[--x,++y],[x,++y],[--x,y],[x,++y],
                 [x,++y],[x,++y],[x,++y],[++x,y],[x,++y],[++x,++y],[++x,y],[x,++y],[++x,y]
             ];
         })(),
-        CIRCLE_6 = (() => {
+        RING_6 = (() => {
             let x = -1, y = 6;
             return [
-                ...CIRCLE_5,
                 [++x,y],[++x,y],[++x,y],[++x,--y],[++x,y],[x,--y],[++x,y],[x,--y],[++x,--y],[x,--y],
                 [x,--y],[x,--y],[x,--y],[--x,--y],[x,--y],[--x,y],[x,--y],[--x,y],[--x,--y],[--x,y],
                 [--x,y],[--x,y],[--x,y],[--x,++y],[--x,y],[x,++y],[--x,y],[x,++y],[--x,++y],[x,++y],
                 [x,++y],[x,++y],[x,++y],[++x,++y],[x,++y],[++x,y],[x,++y],[++x,y],[++x,++y],[++x,y]
             ];
         })(),
-        CIRCLE_7 = (() => {
+        RING_7 = (() => {
             let x = -1, y = 7;
             return [
-                ...CIRCLE_6,
                 [++x,y],[++x,y],[++x,y],[++x,--y],[++x,y],[++x,--y],[x,--y],[++x,y],[x,--y],[++x,--y],[x,--y],
                 [x,--y],[x,--y],[x,--y],[--x,--y],[x,--y],[--x,--y],[--x,y],[x,--y],[--x,y],[--x,--y],[--x,y],
                 [--x,y],[--x,y],[--x,y],[--x,++y],[--x,y],[--x,++y],[x,++y],[--x,y],[x,++y],[--x,++y],[x,++y],
                 [x,++y],[x,++y],[x,++y],[++x,++y],[x,++y],[++x,++y],[++x,y],[x,++y],[++x,y],[++x,++y],[++x,y]
             ];
         })(),
-        
-        CIRCLE_8 = (() => {
+        RING_8 = (() => {
             let x = -1, y = 8;
             return [
-                ...CIRCLE_7,
                 [++x,y],[++x,y],[++x,y],[++x,--y],[++x,y],[++x,--y],[++x,--y],[x,--y],[++x,y],[x,--y],[++x,--y],[x,--y],
                 [x,--y],[x,--y],[x,--y],[--x,--y],[x,--y],[--x,--y],[--x,--y],[--x,y],[x,--y],[--x,y],[--x,--y],[--x,y],
                 [--x,y],[--x,y],[--x,y],[--x,++y],[--x,y],[--x,++y],[--x,++y],[x,++y],[--x,y],[x,++y],[--x,++y],[x,++y],
                 [x,++y],[x,++y],[x,++y],[++x,++y],[x,++y],[++x,++y],[++x,++y],[++x,y],[x,++y],[++x,y],[++x,++y],[++x,y]
             ];
         })(),
-        CIRCLE_9 = (() => {
+        RING_9 = (() => {
             let x = -1, y = 9;
             return [
-                ...CIRCLE_8,
                 //   r       r       r        dr       r       r       d       r       d       r       d       r       d       d        rd       d
                 [++x,y],[++x,y],[++x,y],[++x,--y],[++x,y],[++x,y],[x,--y],[++x,y],[x,--y],[++x,y],[x,--y],[++x,y],[x,--y],[x,--y],[++x,--y],[x,--y],
                 [x,--y],[x,--y],[x,--y],[--x,--y],[x,--y],[x,--y],[--x,y],[x,--y],[--x,y],[x,--y],[--x,y],[x,--y],[--x,y],[--x,y],[--x,--y],[--x,y],
@@ -123,6 +112,17 @@
                 [x,++y],[x,++y],[x,++y],[++x,++y],[x,++y],[x,++y],[++x,y],[x,++y],[++x,y],[x,++y],[++x,y],[x,++y],[++x,y],[++x,y],[++x,++y],[++x,y]
             ];
         })(),
+        
+        CIRCLE_0 = RING_0,
+        CIRCLE_1 = [...CIRCLE_0, ...RING_1],
+        CIRCLE_2 = [...CIRCLE_1, ...RING_2],
+        CIRCLE_3 = [...CIRCLE_2, ...RING_3],
+        CIRCLE_4 = [...CIRCLE_3, ...RING_4],
+        CIRCLE_5 = [...CIRCLE_4, ...RING_5],
+        CIRCLE_6 = [...CIRCLE_5, ...RING_6],
+        CIRCLE_7 = [...CIRCLE_6, ...RING_7],
+        CIRCLE_8 = [...CIRCLE_7, ...RING_8],
+        CIRCLE_9 = [...CIRCLE_8, ...RING_9],
         
         CommonEntityModelMixin = new JS.Module('CommonEntityModelMixin', {
             // Accessors ///////////////////////////////////////////////////////
@@ -132,6 +132,8 @@
             isSpirit: function() {return this[FIELD_SPIRIT];},
             [generateSetterName(FIELD_ZOMBIE)]: function(v) {this.set(FIELD_ZOMBIE, v, true);},
             isZombie: function() {return this[FIELD_ZOMBIE];},
+            [generateSetterName(FIELD_ASTRAL_PROJECTED)]: function(v) {this.set(FIELD_ASTRAL_PROJECTED, v, true);},
+            isAstralProjected: function() {return this[FIELD_ASTRAL_PROJECTED];},
         }),
         
         CommonCharacterModelMixin = new JS.Module('CommonCharacterModelMixin', {
@@ -164,6 +166,7 @@
             
             [generateSetterName(FIELD_PERMISSIONS)]: function(v) {this.set(FIELD_PERMISSIONS, v, true);},
             
+            getObserveDistance: () => 3,
             
             // Methods /////////////////////////////////////////////////////////,
             hasPermission: function(permId) {
@@ -196,6 +199,7 @@
                 FIELD_ID:FIELD_ID,
                 FIELD_SPIRIT:FIELD_SPIRIT,
                 FIELD_ZOMBIE:FIELD_ZOMBIE,
+                FIELD_ASTRAL_PROJECTED:FIELD_ASTRAL_PROJECTED
             },
             
             character:{
@@ -217,20 +221,32 @@
             },
             
             composition:{
+                // Unknown
+                unk:{
+                    name:'unknown',
+                    mapColor:'#633',
+                    solidity:0
+                },
+                
                 // Void
                 v1:{
-                    name:'void',
-                    mapColor:'#101',
+                    name:'Void',
+                    mapColor:'#434',
                     solidity:-1
                 },
                 v2:{
-                    name:'nothingness',
-                    mapColor:'#112',
+                    name:'Null',
+                    mapColor:'#443',
                     solidity:-1
                 },
                 v3:{
-                    name:'ether',
-                    mapColor:'#131',
+                    name:'Æthoid',
+                    mapColor:'#545',
+                    solidity:0
+                },
+                v4:{
+                    name:'Æthrull',
+                    mapColor:'#554',
                     solidity:0
                 },
                 

@@ -161,7 +161,7 @@ orb = (() => {
             cfg:{
                 // Map
                 mapRange:9,
-                cellSize:32,
+                cellSize:40,
                 entitySizeM:16
             },
             

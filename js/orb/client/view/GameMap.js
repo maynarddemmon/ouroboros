@@ -11,6 +11,7 @@
         {View, Reusable, MouseOverAndDown, TrackActivesPool, debounce} = myt,
         
         {
+            cellOffsetsByDistance,
             character:{FIELD_LOC},
             util:{locArrToId},
             composition,
@@ -26,6 +27,7 @@
         halfMapSize = halfCellSize + (mapRange * cellSize),
         mapSize = 2*halfMapSize,
         
+        observedLocIds = new Set(),
         cellViewsByLocId = new Map(),
         getCellViewForLocId = locId => cellViewsByLocId.get(locId),
         
@@ -72,6 +74,8 @@
                     zIndex = 3;
                 } else if (entity.isSpirit?.()) {
                     bgColor = '#00f';
+                } else if (entity.isAstralProjected?.()) {
+                    bgColor = '#ccf';
                 }
                 
                 this.setVisible(true);
@@ -85,31 +89,31 @@
             
             updatePosition: function(position, cellView) {
                 if (cellView) {
+                    const inset = 3;
                     let adjX = 0,
-                        adjY = 0;
+                        adjY = 0,
+                        {width, height} = this;
                     switch (position) {
-                        case 'top':
+                        case 1: // topLeft
+                            adjX = inset;
+                            adjY = inset;
                             break;
-                        case 'right':
+                        case 2: // bottomRight
+                            adjX = cellSize - width - inset;
+                            adjY = cellSize - height - inset;
                             break;
-                        case 'bottom':
+                        case 3: // bottomLeft
+                            adjX = inset;
+                            adjY = cellSize - height - inset;
                             break;
-                        case 'left':
+                        case 4: // topRight
+                            adjX = cellSize - width - inset;
+                            adjY = inset;
                             break;
-                        
-                        case 'topRight':
-                            break;
-                        case 'topLeft':
-                            break;
-                        case 'bottomRight':
-                            break;
-                        case 'bottomLeft':
-                            break;
-                        
-                        case 'center':
+                        case 0: // center
                         default:
-                            adjX = halfCellSize - this.width / 2;
-                            adjY = halfCellSize - this.height / 2;
+                            adjX = halfCellSize - width / 2;
+                            adjY = halfCellSize - height / 2;
                     }
                     this.setX(cellView.x + adjX);
                     this.setY(cellView.y + adjY);
@@ -122,6 +126,7 @@
             
             initNode: function(parent, attrs) {
                 this.mouseOver = this.mouseDown = false;
+                attrs.observedByCharacter ??= false;
                 
                 attrs.width = attrs.height = cellSize;
                 this.callSuper(parent, attrs);
@@ -129,6 +134,7 @@
             
             clean: function() {
                 this.setVisible(false);
+                this.setObservedByCharacter(false);
             },
             
             setMouseDown: function(v) {
@@ -151,6 +157,10 @@
                     cellViewsByLocId.set(cell.locId, this);
                 }
                 if (this.inited) this.redraw();
+            },
+            
+            setObservedByCharacter: function(v) {
+                this.setOpacity(this.observedByCharacter = v ? 1 : 0.25);
             },
             
             redraw: function() {
@@ -212,41 +222,67 @@
             
             const centerX = mathRound(gameMap.width / 2),
                 centerY = mathRound(gameMap.height / 2),
-                locArr = character[FIELD_LOC],
-                locArrCopy = locArr.slice(),
-                posStartAdj = halfMapSize;
-                
+                locArr = character[FIELD_LOC].slice(),
+                baseX = locArr[1],
+                baseY = locArr[2],
+                posStartAdj = halfMapSize,
+                distance = character.getObserveDistance();
+            
+            // Make a lookup table of observed cell IDs.
+            observedLocIds.clear();
+            if (distance >= 0 && distance < cellOffsetsByDistance.length) {
+                const offsets = cellOffsetsByDistance[distance];
+                for (const offset of offsets) {
+                    locArr[1] = baseX + offset[0];
+                    locArr[2] = baseY + offset[1];
+                    observedLocIds.add(locArrToId(locArr));
+                }
+            }
+            
             let posX = centerX - posStartAdj,
                 posY = centerY - posStartAdj;
             for (let x = -mapRange; x <= mapRange; x++) {
-                locArrCopy[1] = locArr[1] + x;
+                locArr[1] = baseX + x;
                 for (let y = -mapRange; y <= mapRange; y++) {
-                    locArrCopy[2] = locArr[2] + y;
+                    locArr[2] = baseY + y;
                     
-                    const locId = locArrToId(locArrCopy),
-                        cellDatum = model.getCellDatum(locId) ?? {locId:locId, [FIELD_COMPOSITION]:myt.getRandomInt(1,2) > 1 ? 'v1' : 'v2'},
+                    const locId = locArrToId(locArr),
+                        isObserved = observedLocIds.has(locId),
+                        cellDatum = model.getCellDatum(locId) ?? {locId:locId, [FIELD_COMPOSITION]:'unk'},
                         cellView = cellPool.getInstance();
                     
-                    cellView.callSetters({x:posX, y:posY, cell:cellDatum});
+                    cellView.callSetters({x:posX, y:posY, cell:cellDatum, observedByCharacter:isObserved});
                     
-                    const entities = cellDatum[FIELD_ENTITIES];
-                    if (entities) {
-                        for (const entityDatum of entities) {
-                            const entityView = entityPool.getInstance(),
-                                entityModel = model.makeEntityFromData(entityDatum);
-                            entityView.setEntity(entityModel);
-                            entityView.setCellView(cellView);
-                            entityView.updatePosition('center', cellView);
-                        }
-                    }
-                    
+                    let posCount = 0,
+                        characterView;
                     if (x === 0 && y === 0) {
-                        const characterView = entityPool.getInstance();
+                        characterView = entityPool.getInstance();
                         characterView.setEntity(character);
                         characterView.setCellView(cellView);
-                        characterView.updatePosition('center', cellView);
+                        characterView.updatePosition(posCount++, cellView);
                         
                         gameMap.doCharacterCell(character, cellDatum, cellView);
+                    }
+                    
+                    if (isObserved) {
+                        const entities = cellDatum[FIELD_ENTITIES],
+                            len = entities?.length;
+                        if (len > 0) {
+                            if (characterView) {
+                                // Reposition character to not be in center.
+                                characterView.updatePosition(posCount++, cellView);
+                            } else if (len > 1) {
+                                posCount++;
+                            }
+                            
+                            for (const entityDatum of entities) {
+                                const entityView = entityPool.getInstance(),
+                                    entityModel = model.makeEntityFromData(entityDatum);
+                                entityView.setEntity(entityModel);
+                                entityView.setCellView(cellView);
+                                entityView.updatePosition(posCount++, cellView);
+                            }
+                        }
                     }
                     
                     posY += cellSize;

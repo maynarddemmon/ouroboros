@@ -12,7 +12,7 @@ const orb = require('./orb.js'),
     {
         CommonEntityModelMixin,
         CommonCharacterModelMixin,
-        entity:{FIELD_ID, FIELD_SPIRIT, FIELD_ZOMBIE},
+        entity:{FIELD_ID, FIELD_SPIRIT, FIELD_ZOMBIE, FIELD_ASTRAL_PROJECTED},
         character:{
             FIELD_NAME, FIELD_USER_ID, FIELD_IN_WORLD,
             FIELD_LOC, FIELD_MOVE_SPEED, FIELD_PERMISSIONS,
@@ -34,6 +34,7 @@ const orb = require('./orb.js'),
             attrs[FIELD_ID] ??= null;
             attrs[FIELD_SPIRIT] ??= false;
             attrs[FIELD_ZOMBIE] ??= false;
+            attrs[FIELD_ASTRAL_PROJECTED] ??= false;
             
             this.callSuper(attrs);
         },
@@ -65,11 +66,27 @@ const orb = require('./orb.js'),
         // Accessors ///////////////////////////////////////////////////////////
         getMonitorDistance: () => 3,
         
+        getCell: function() {
+            const curLocArr = this[FIELD_LOC];
+            return curLocArr ? worldMap.getCellByLocArr(curLocArr) : null;
+        },
+        
+        [generateSetterName(FIELD_SPIRIT)]: function(v) {
+            this.callSuper(v);
+            orb.rules.doOnSpiritualChangeForCharacter(this);
+        },
+        
+        [generateSetterName(FIELD_ASTRAL_PROJECTED)]: function(v) {
+            this.callSuper(v);
+            orb.rules.doOnSpiritualChangeForCharacter(this);
+        },
+        
         [generateSetterName(FIELD_LOC)]: function(v) {
             if (isValidLocArr(v)) {
-                const curLocArr = this[FIELD_LOC],
-                    curCell = curLocArr ? worldMap.getCellByLocArr(curLocArr) : null,
-                    newCell = worldMap.cellExistsForArr(v) ? worldMap.getCellByLocArr(v) : worldMap.makeAndSetCell(v, {[FIELD_COMPOSITION]:'v3'});
+                const curCell = this.getCell(),
+                    newCell = worldMap.getCellByLocArr(v, true);
+                
+                orb.rules.doOnSpiritualChangeForCharacter(this, newCell);
                 
                 this.callSuper(v);
                 
@@ -120,6 +137,7 @@ const orb = require('./orb.js'),
             retval[FIELD_IN_WORLD] = this.isInWorld();
             retval[FIELD_ZOMBIE] = this.isZombie();
             retval[FIELD_SPIRIT] = this.isSpirit();
+            retval[FIELD_ASTRAL_PROJECTED] = this.isAstralProjected();
             return retval;
         }
     }),
