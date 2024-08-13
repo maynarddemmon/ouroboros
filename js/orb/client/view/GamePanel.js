@@ -2,6 +2,7 @@
     let titleHeader,
         contentView,
         
+        mapInfo,
         myLocInfo,
         gameMap,
         
@@ -12,7 +13,8 @@
         teleportLocField,
         
         websocket,
-        character;
+        character,
+        curLocId;
     
     const I18N = BABEL.get,
         M = myt,
@@ -42,18 +44,17 @@
             cfg:{cellSize, entitySizeM}
         } = pkg,
         
-        clearLocInfo = infoTxt => {infoTxt.setText();},
-        
-        updateLocInfo = (infoTxt, cell) => {
-            infoTxt.setText('My Location: ' + getLocInfo(cell));
+        getMapInfo = cell => {
+            const locArr = locIdToArr(cell.locId),
+                mapId = locArr[0],
+                mapDatum = model.getMapDatum(mapId);
+            return (mapDatum ? mapDatum.name : 'Pocket Dimension ' + mapId) + ' - Level ' + locArr[3];
         },
         
         getLocInfo = cell => {
             const locArr = locIdToArr(cell.locId),
                 mapDatum = model.getMapDatum(locArr[0]);
-            return composition[cell[FIELD_COMPOSITION]].name + ' / ' +
-                mapDatum.name + ' / level:' + locArr[3] + 
-                ' / x:' + locArr[1] + ' / y:' + locArr[2];
+            return composition[cell[FIELD_COMPOSITION]].name + ' / x:' + locArr[1] + ' / y:' + locArr[2];
         },
         
         getEntityInfo = entity => {
@@ -69,9 +70,20 @@
             return entity.name + extraInfo;
         },
         
+        doMoveCharacter = direction => {
+            if (!character.doMove(direction)) {
+                gameMap.animateEntity(character.getId(), 'shake', 6);
+                // FIXME: msg into chat log? "You can't move right now."
+            }
+        },
+        notifyCanNotAct = entity => {
+            gameMap.animateEntity(entity.getId(), 'shake', 6);
+            // FIXME: msg into chat log? "You can't act right now."
+        },
+        
         doArrowKey = (domEvent, direction) => {
             domEvent.preventDefault();
-            if (!character.doMove(direction)) pkg.growl('info',"You can't move right now.");
+            doMoveCharacter(direction);
         },
         
         buildEntityHighlightView = parent => {
@@ -133,17 +145,24 @@
                 border:[borderWidth, 'solid', shadowColor]
             });
             infoContainer = new View(hv, {x:cellSize + bw4x, height:cellSize + bw4x, bgColor:color});
-            infoTxt = new Text(hv, {x:cellSize + bw4x + spacing, valign:'middle'});
+            infoTxt = new Text(hv, {x:cellSize + bw4x + spacing, valign:'middle', textColor:'#000'});
             return hv;
         };
     
     pkg.GamePanel = new JS.Class('GamePanel', pkg.BaseStackablePanel, {
-        // Accessors ///////////////////////////////////////////////////////////
-        setVisible: function(v) {
-            pkg.gamePanel = this;
+        // Life Cycle //////////////////////////////////////////////////////////
+        initNode: function(parent, attrs) {
+            gamePanel = pkg.gamePanel = this;
             
-            this.callSuper(v);
-            if (this.visible) {
+            gamePanel.callSuper();
+        },
+        
+        
+        // Accessors ///////////////////////////////////////////////////////////
+        setVisible: v => {
+            gamePanel.callSuper(v);
+            
+            if (gamePanel.visible) {
                 websocket = pkg.websocketUtil.connectToWebsocket();
                 componentUtil.reparentWorldClockView(titleHeader);
                 componentUtil.reparenSocketStatusIndicator(titleHeader);
@@ -158,18 +177,16 @@
                 
                 titleHeader.setTitle('Playing As: <b>' + character[FIELD_NAME] + '</b>');
                 
-                this.attachToDom(GlobalKeys, '_keyDown', 'keydown', true);
+                gamePanel.attachToDom(GlobalKeys, '_keyDown', 'keydown', true);
             } else {
-                this.detachFromDom(GlobalKeys, '_keyDown', 'keydown', true);
+                gamePanel.detachFromDom(GlobalKeys, '_keyDown', 'keydown', true);
                 if (gameMap) {
                     gameMap.setCharacter();
-                    clearLocInfo(myLocInfo);
+                    myLocInfo.setText();
+                    mapInfo.setText();
                 }
             }
         },
-        
-        
-        // Accessors ///////////////////////////////////////////////////////////
         
         
         // Methods /////////////////////////////////////////////////////////////
@@ -191,11 +208,10 @@
             return true;
         },
         
-        buildUI: function() {
-            const self = this;
-            self.buildHeader(titleHeader = new pkg.TitleHeader(self, {}));
-            self.buildContent(contentView = new View(self, {percentOfParentWidth:100, layoutHint:1}, [SizeToParent]));
-            new ResizeLayout(self, {axis:'y'});
+        buildUI: () => {
+            gamePanel.buildHeader(titleHeader = new pkg.TitleHeader(gamePanel, {}));
+            gamePanel.buildContent(contentView = new View(gamePanel, {bgColor:'#000', percentOfParentWidth:100, layoutHint:1}, [SizeToParent]));
+            new ResizeLayout(gamePanel, {axis:'y'});
         },
         
         buildHeader: header => {
@@ -226,11 +242,20 @@
         buildContent: content => {
             gameMap = new pkg.GameMap(content, {}, [{
                 doCharacterCell: (character, cell, cellView) => {
-                    updateLocInfo(myLocInfo, cell);
+                    if (curLocId !== cell.locId) {
+                        curLocId = cell.locId;
+                        cellHV.setVisible(false);
+                    }
+                    mapInfo.setText(getMapInfo(cell));
+                    myLocInfo.setText('My Location: ' + getLocInfo(cell));
                 }
             }]);
             
-            // FIXME: hide cellHV when character location changes.
+            mapInfo = new PaddedText(content, {
+                x:spacing, y:spacing, padding:spacing, pointerEvents:'none',
+                textColor:colorBgF, bgColor:'#000', opacity:0.5
+            });
+            
             const cellHV = buildCellHighlightView(content),
                 entityHV = buildEntityHighlightView(content);
             gameMap.doMouseOverCell = cellHV.update.bind(cellHV);
@@ -238,18 +263,18 @@
             
             const rightPanelX = gameMap.x + gameMap.width + padding;
             rightPanel = new View(content, {
-                x:rightPanelX, y:spacing,
+                x:rightPanelX, y:padding,
                 percentOfParentWidth:100, percentOfParentWidthOffset:-(rightPanelX + padding),
-                percentOfParentHeight:100, percentOfParentHeightOffset:-2*spacing
+                percentOfParentHeight:100, percentOfParentHeightOffset:-2*padding
             }, [SizeToParent]);
             
-            myLocInfo = new Text(rightPanel, {height:20});
+            myLocInfo = new Text(rightPanel, {textColor:colorBgF});
             
             // Alter Cell
-            alterCellBtn = new TextBtn(rightPanel, {text:'Alter Cell', layoutHint:'break', visible:false}, [{
+            alterCellBtn = new TextBtn(rightPanel, {text:'Alter Cell', visible:false, layoutHint:'break'}, [{
                 doActivated: () => {
                     if (!character.doFree(TYPE_ALTER_CELL, {direction:'here', prop:'c', value:alterCellCompositionSelector.value})) {
-                        pkg.growl('info',"You can't act right now.");
+                        notifyCanNotAct(character);
                     }
                 }
             }]);
@@ -266,9 +291,7 @@
             teleportBtn = new TextBtn(rightPanel, {text:'Teleport', visible:false}, [{
                 doActivated: () => {
                     const value = teleportLocField.value;
-                    if (value && value.length >= 7 && !character.doMove(value)) {
-                        pkg.growl('info',"You can't move right now.");
-                    }
+                    if (value && value.length >= 7) doMoveCharacter(value);
                 }
             }]);
             teleportLocField = new FormInputText(rightPanel, {

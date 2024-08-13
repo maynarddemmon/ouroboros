@@ -8,7 +8,7 @@
         
         mathRound = Math.round,
         
-        {View, ImageSupport, Reusable, MouseOverAndDown, TrackActivesPool, debounce} = myt,
+        {View, ImageSupport, Reusable, MouseOverAndDown, TrackActivesPool, Animator, debounce} = myt,
         
         {
             cellOffsetsByDistance,
@@ -30,6 +30,9 @@
         observedLocIds = new Set(),
         cellViewsByLocId = new Map(),
         getCellViewForLocId = locId => cellViewsByLocId.get(locId),
+        
+        entityViewsByEntityId = new Map(),
+        getEntityViewForEntityId = entityId => entityViewsByEntityId.get(entityId),
         
         EntityView = new JSClass('EntityView', View, {
             include:[Reusable, MouseOverAndDown],
@@ -68,6 +71,8 @@
                 const entity = this.entity = v,
                     isAstralProjected = entity.isAstralProjected(),
                     isSpirit = entity.isSpirit();
+                
+                entityViewsByEntityId.set(entity.getId(), this);
                 
                 this.setWidth(entitySizeM);
                 this.setHeight(entitySizeM);
@@ -178,9 +183,7 @@
             
             setCell: function(v) {
                 const cell = this.cell = v;
-                if (cell) {
-                    cellViewsByLocId.set(cell.locId, this);
-                }
+                cellViewsByLocId.set(cell.locId, this);
                 if (this.inited) this.redraw();
             },
             
@@ -194,7 +197,6 @@
                 this.setVisible(true);
                 this.setBgColor(mapColor);
                 this.setImageUrl(tileUrl);
-                
             }
         });
     
@@ -243,12 +245,31 @@
         doMouseOverEntity: (isOver, entity, entityView) => {},
         doMouseDownEntity: (isDown, entity, entityView) => {},
         
+        animateEntity: (entityId, animationType='shake', amount=6) => {
+            const entityView = getEntityViewForEntityId(entityId);
+            if (entityView) {
+                // Prevent bad positioning from interrupted animations. Might be able to 
+                // avoid this by rewriting using a single easing function.
+                if (entityView.getActiveAnimators().length > 0) return;
+                
+                switch (animationType) {
+                    case 'shake':
+                        Animator.shakeView(entityView, entityView.x + amount, entityView.x);
+                        break;
+                    case 'bounce':
+                        Animator.bounceView(entityView, entityView.y + amount, entityView.y);
+                        break;
+                }
+            }
+        },
+        
         refreshMap: debounce(() => {
             if (!character) return;
             
             cellPool.putActives();
             entityPool.putActives();
             cellViewsByLocId.clear();
+            entityViewsByEntityId.clear();
             
             const centerX = mathRound(gameMap.width / 2),
                 centerY = mathRound(gameMap.height / 2),
@@ -290,7 +311,6 @@
                         characterView.setEntity(character);
                         characterView.setCellView(cellView);
                         characterView.updatePosition(posCount++, cellView);
-                        
                         gameMap.doCharacterCell(character, cellDatum, cellView);
                     }
                     

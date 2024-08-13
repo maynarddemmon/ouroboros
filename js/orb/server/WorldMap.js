@@ -320,12 +320,14 @@ const orb = require('./orb.js'),
         },
         
         getMapDataForCharacter: character => {
-            const locArr = character.getLocArr(),
+            // Send all mapData since it doesn't hurt and it's needed when a character changes maps.
+            return mapData;
+            /*const locArr = character.getLocArr(),
                 accum = {};
             if (locArr) {
                 const mapId = locArrToMapId(locArr);
                 accum[mapId] = getMapData(mapId);
             }
-            return accum;
+            return accum;*/
         }
     };
