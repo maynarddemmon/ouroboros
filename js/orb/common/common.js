@@ -168,6 +168,7 @@
             
             getObserveDistance: () => 3,
             
+            
             // Methods /////////////////////////////////////////////////////////,
             hasPermission: function(permId) {
                 const permissions = this[FIELD_PERMISSIONS];
@@ -223,44 +224,50 @@
             composition:{
                 // Unknown
                 unk:{
-                    name:'unknown',
-                    mapColor:'#633',
+                    name:'Unknown',
+                    mapColor:'transparent',
                     solidity:0
                 },
                 
                 // Void
                 v1:{
                     name:'Void',
-                    mapColor:'#434',
+                    mapColor:'#0ff9',
+                    tileUrl:'/img/tile/void.png',
                     solidity:-1
                 },
                 v2:{
                     name:'Null',
-                    mapColor:'#443',
+                    mapColor:'#09f9',
+                    tileUrl:'/img/tile/null.png',
                     solidity:-1
                 },
                 v3:{
                     name:'Æthoid',
-                    mapColor:'#545',
+                    mapColor:'#9ff9',
+                    tileUrl:'/img/tile/aethoid.png',
                     solidity:0
                 },
                 v4:{
                     name:'Æthrull',
-                    mapColor:'#554',
+                    mapColor:'#09f9',
+                    tileUrl:'/img/tile/aethrull.png',
                     solidity:0
                 },
                 
                 // Air
                 a1:{
-                    name:'empty space',
-                    mapColor:'#ccf',
+                    name:'Stone Floor',
+                    mapColor:'transparent',//'#ccf',
+                    tileUrl:'/img/tile/stone_floor.png',
                     solidity:0
                 },
                 
                 // Earth
                 s1:{
-                    name:'stone',
-                    mapColor:'#888',
+                    name:'Solid Stone',
+                    mapColor:'#0003',//'#888',
+                    tileUrl:'/img/tile/stone_solid.png',
                     solidity:1
                 }
             }

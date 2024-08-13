@@ -3,8 +3,6 @@
         contentView,
         
         myLocInfo,
-        otherLocInfo,
-        entityInfo,
         gameMap,
         
         rightPanel,
@@ -32,32 +30,33 @@
             greek:{
                 TYPE_EXIT_WORLD, TYPE_ALTER_CELL
             },
+            cell:{FIELD_COMPOSITION},
             composition,
             util:{locIdToArr}
         } = common,
         
         {
             TextBtn, componentUtil, FormInputText,
-            theme:{padding, spacing},
-            model
+            theme:{padding, spacing, colorBgF},
+            model,
+            cfg:{cellSize, entitySizeM}
         } = pkg,
         
         clearLocInfo = infoTxt => {infoTxt.setText();},
         
         updateLocInfo = (infoTxt, cell) => {
-            const locArr = locIdToArr(cell.locId),
-                mapDatum = model.getMapDatum(locArr[0]);
-            infoTxt.setText(
-                mapDatum.name + ' / level:' + locArr[3] + 
-                ' / x:' + locArr[1] +
-                ' / y:' + locArr[2] +
-                ' / ' + composition[cell.c].name
-            );
+            infoTxt.setText('My Location: ' + getLocInfo(cell));
         },
         
-        clearEntityInfo = infoTxt => {infoTxt.setText();},
+        getLocInfo = cell => {
+            const locArr = locIdToArr(cell.locId),
+                mapDatum = model.getMapDatum(locArr[0]);
+            return composition[cell[FIELD_COMPOSITION]].name + ' / ' +
+                mapDatum.name + ' / level:' + locArr[3] + 
+                ' / x:' + locArr[1] + ' / y:' + locArr[2];
+        },
         
-        updateEntityInfo = (infoTxt, entity) => {
+        getEntityInfo = entity => {
             let extraInfo = '';
             if (entity.isSpirit()) {
                 extraInfo = ' : Spirit';
@@ -67,14 +66,73 @@
             if (entity.inWorld) {
                 extraInfo += ' : ' + ' Active Player';
             }
-            infoTxt.setText(
-                'Entity: ' + entity.name + extraInfo
-            );
+            return entity.name + extraInfo;
         },
         
         doArrowKey = (domEvent, direction) => {
             domEvent.preventDefault();
             if (!character.doMove(direction)) pkg.growl('info',"You can't move right now.");
+        },
+        
+        buildEntityHighlightView = parent => {
+            let infoContainer,
+                infoTxt;
+            const borderWidth = 1,
+                size = cellSize - 4*borderWidth,
+                color = '#333',
+                shadowColor = '#000',
+                hv = new View(parent, {
+                    height:cellSize, pointerEvents:'none', visible:false,
+                    bgColor:color, opacity:0.8, boxShadow:[0,0,8,shadowColor], 
+                    zIndex:11
+                }, [{
+                    update: function(isOver, entity, entityView) {
+                        this.setVisible(isOver);
+                        if (isOver) {
+                            this.setRoundedCorners(entityView.width / 2);
+                            infoTxt.setText(getEntityInfo(entity));
+                            this.setWidth(infoTxt.x + infoTxt.width + padding);
+                            this.setHeight(infoTxt.y + infoTxt.height + spacing);
+                            
+                            this.setX(entityView.x);
+                            this.setY(entityView.y - this.height - cellSize / 2); // FIXME: above/below
+                        }
+                    }
+                }]);
+            infoTxt = new Text(hv, {x:padding, y:spacing, textColor:colorBgF});
+            return hv;
+        },
+        
+        buildCellHighlightView = parent => {
+            let infoContainer,
+                infoTxt;
+            const borderWidth = 1,
+                size = cellSize - 4*borderWidth,
+                color = colorBgF,
+                shadowColor = '#000',
+                hv = new View(parent, {
+                    height:cellSize, pointerEvents:'none', visible:false,
+                    opacity:0.8, boxShadow:[0,0,8,shadowColor], zIndex:10
+                }, [{
+                    update: function(isOver, cell, cellView) {
+                        this.setVisible(isOver);
+                        if (isOver) {
+                            this.setX(cellView.x);
+                            this.setY(cellView.y);
+                            infoTxt.setText(getLocInfo(cell));
+                            this.setWidth(infoTxt.x + infoTxt.width + padding);
+                            infoContainer.setWidth(this.width - infoContainer.x);
+                        }
+                    }
+                }]);
+            new View(hv, {
+                x:borderWidth, y:borderWidth, width:size, height:size, 
+                outline:[borderWidth, 'solid', color], 
+                border:[borderWidth, 'solid', shadowColor]
+            });
+            infoContainer = new View(hv, {x:cellSize, height:cellSize, bgColor:color});
+            infoTxt = new Text(hv, {x:cellSize + spacing, valign:'middle'});
+            return hv;
         };
     
     pkg.GamePanel = new JS.Class('GamePanel', pkg.BaseStackablePanel, {
@@ -104,7 +162,6 @@
                 if (gameMap) {
                     gameMap.setCharacter();
                     clearLocInfo(myLocInfo);
-                    clearLocInfo(otherLocInfo);
                 }
             }
         },
@@ -166,34 +223,16 @@
         
         buildContent: content => {
             gameMap = new pkg.GameMap(content, {}, [{
-                doMouseOverCell: (isOver, cell, cellView) => {
-                    if (isOver) {
-                        updateLocInfo(otherLocInfo, cell);
-                        // FIXME: use a highlight view rather than changing border.
-                        cellView.setBorder([1, 'dashed', '#888']);
-                        cellView.setZIndex(1);
-                    } else {
-                        clearLocInfo(otherLocInfo);
-                        cellView.setBorder();
-                        cellView.setZIndex(0);
-                    }
-                },
                 doCharacterCell: (character, cell, cellView) => {
                     updateLocInfo(myLocInfo, cell);
-                },
-                
-                doMouseOverEntity: (isOver, entity, entityView) => {
-                    if (isOver) {
-                        updateEntityInfo(entityInfo, entity);
-                        // FIXME: use a highlight view rather than changing border.
-                        entityView.setBorder([1, 'dashed', '#888']);
-                    } else {
-                        clearEntityInfo(entityInfo);
-                        entityView.setBorder();
-                    }
-                },
+                }
             }]);
             
+            // FIXME: hide cellHV when character location changes.
+            const cellHV = buildCellHighlightView(content),
+                entityHV = buildEntityHighlightView(content);
+            gameMap.doMouseOverCell = cellHV.update.bind(cellHV);
+            gameMap.doMouseOverEntity = entityHV.update.bind(entityHV);
             
             const rightPanelX = gameMap.x + gameMap.width + padding;
             rightPanel = new View(content, {
@@ -203,8 +242,6 @@
             }, [SizeToParent]);
             
             myLocInfo = new Text(rightPanel, {height:20});
-            otherLocInfo = new Text(rightPanel, {height:20, layoutHint:'break'});
-            entityInfo = new Text(rightPanel, {height:20, layoutHint:'break'});
             
             // Alter Cell
             alterCellBtn = new TextBtn(rightPanel, {text:'Alter Cell', layoutHint:'break', visible:false}, [{

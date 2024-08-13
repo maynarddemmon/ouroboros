@@ -8,7 +8,7 @@
         
         mathRound = Math.round,
         
-        {View, Reusable, MouseOverAndDown, TrackActivesPool, debounce} = myt,
+        {View, ImageSupport, Reusable, MouseOverAndDown, TrackActivesPool, debounce} = myt,
         
         {
             cellOffsetsByDistance,
@@ -67,15 +67,15 @@
                 this.setHeight(entitySizeM);
                 this.setRoundedCorners(entitySizeM / 2);
                 
-                let bgColor = '#f00',
+                let bgColor = '#000',
                     zIndex = 2;
                 if (entity === character) {
-                    bgColor = '#ff0';
+                    bgColor = '#cc0';
                     zIndex = 3;
                 } else if (entity.isSpirit?.()) {
-                    bgColor = '#00f';
+                    bgColor = '#00c';
                 } else if (entity.isAstralProjected?.()) {
-                    bgColor = '#ccf';
+                    bgColor = '#99c';
                 }
                 
                 this.setVisible(true);
@@ -122,14 +122,18 @@
         }),
         
         CellView = new JSClass('CellView', View, {
-            include:[Reusable, MouseOverAndDown],
+            include:[Reusable, MouseOverAndDown, ImageSupport],
             
             initNode: function(parent, attrs) {
                 this.mouseOver = this.mouseDown = false;
                 attrs.observedByCharacter ??= false;
                 
                 attrs.width = attrs.height = cellSize;
+                attrs.imageSize = 'contain';
+                
                 this.callSuper(parent, attrs);
+                
+                this._observedOverlay = new View(this, {width:cellSize, height:cellSize, pointerEvents:'none'});
             },
             
             clean: function() {
@@ -160,25 +164,30 @@
             },
             
             setObservedByCharacter: function(v) {
-                this.setOpacity(this.observedByCharacter = v ? 1 : 0.25);
+                this._observedOverlay?.setBgColor(this.observedByCharacter = v ? 'transparent' : '#0009');
             },
             
             redraw: function() {
                 const cell = this.cell,
-                    cellComposition = composition[cell[FIELD_COMPOSITION]];
+                    {mapColor, tileUrl} = composition[cell[FIELD_COMPOSITION]];
                 this.setVisible(true);
-                this.setBgColor(cellComposition.mapColor);
+                this.setBgColor(mapColor);
+                this.setImageUrl(tileUrl);
+                
             }
         });
     
     pkg.GameMap = new JSClass('GameMap', View, {
+        include:[ImageSupport],
+        
+        
         // Life Cycle //////////////////////////////////////////////////////////
         initNode: function(parent, attrs) {
             gameMap = pkg.gameMap = this;
             
             attrs.width = attrs.height = mapSize;
-            attrs.bgColor = '#666';
-            attrs.overflow = 'hidden';
+            attrs.imageSize = 'contain';
+            attrs.imageUrl = '/img/gameMapBg4.jpg';
             
             gameMap.callSuper(parent, attrs);
             
