@@ -107,18 +107,20 @@
             let infoContainer,
                 infoTxt;
             const borderWidth = 1,
-                size = cellSize - 4*borderWidth,
+                bw2x = 2*borderWidth,
+                bw4x = 4*borderWidth,
+                size = cellSize,
                 color = colorBgF,
                 shadowColor = '#000',
                 hv = new View(parent, {
-                    height:cellSize, pointerEvents:'none', visible:false,
+                    height:cellSize + bw4x, pointerEvents:'none', visible:false,
                     opacity:0.8, boxShadow:[0,0,8,shadowColor], zIndex:10
                 }, [{
                     update: function(isOver, cell, cellView) {
                         this.setVisible(isOver);
                         if (isOver) {
-                            this.setX(cellView.x);
-                            this.setY(cellView.y);
+                            this.setX(cellView.x - bw2x);
+                            this.setY(cellView.y - bw2x);
                             infoTxt.setText(getLocInfo(cell));
                             this.setWidth(infoTxt.x + infoTxt.width + padding);
                             infoContainer.setWidth(this.width - infoContainer.x);
@@ -130,8 +132,8 @@
                 outline:[borderWidth, 'solid', color], 
                 border:[borderWidth, 'solid', shadowColor]
             });
-            infoContainer = new View(hv, {x:cellSize, height:cellSize, bgColor:color});
-            infoTxt = new Text(hv, {x:cellSize + spacing, valign:'middle'});
+            infoContainer = new View(hv, {x:cellSize + bw4x, height:cellSize + bw4x, bgColor:color});
+            infoTxt = new Text(hv, {x:cellSize + bw4x + spacing, valign:'middle'});
             return hv;
         };
     

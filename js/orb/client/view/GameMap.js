@@ -38,6 +38,10 @@
                 this.mouseOver = this.mouseDown = false;
                 
                 attrs.zIndex = 2;
+                attrs.bgColor ??= '#000';
+                attrs.outline ??= [1, 'solid', '#000'];
+                attrs.border ??= [1, 'solid', '#fff'];
+                attrs.boxShadow ??= [2, 2, 4, '#000'];
                 this.callSuper(parent, attrs);
             },
             
@@ -61,26 +65,42 @@
             },
             
             setEntity: function(v) {
-                const entity = this.entity = v;
+                const entity = this.entity = v,
+                    isAstralProjected = entity.isAstralProjected(),
+                    isSpirit = entity.isSpirit();
                 
                 this.setWidth(entitySizeM);
                 this.setHeight(entitySizeM);
-                this.setRoundedCorners(entitySizeM / 2);
+                this.setRoundedCorners(this.borderWidth + entitySizeM / 2);
                 
-                let bgColor = '#000',
-                    zIndex = 2;
+                let color = '#fff',
+                    bgColor;
                 if (entity === character) {
-                    bgColor = '#cc0';
-                    zIndex = 3;
-                } else if (entity.isSpirit?.()) {
-                    bgColor = '#00c';
-                } else if (entity.isAstralProjected?.()) {
-                    bgColor = '#99c';
+                    if (isSpirit) {
+                        color = '#00f';
+                        bgColor = '#fff9';
+                    } else if (isAstralProjected) {
+                        color = '#999';
+                        bgColor = '#9999';
+                    } else {
+                        bgColor = '#fff';
+                    }
+                } else {
+                    if (isSpirit) {
+                        color = '#00f';
+                        bgColor = '#0009';
+                    } else if (isAstralProjected) {
+                        color = '#999';
+                        bgColor = '#0009';
+                    } else {
+                        bgColor = '#000';
+                    }
                 }
+                
                 
                 this.setVisible(true);
                 this.setBgColor(bgColor);
-                this.setZIndex(zIndex);
+                this.setBorderColor(color);
             },
             
             setCellView: function(v) {
@@ -89,7 +109,8 @@
             
             updatePosition: function(position, cellView) {
                 if (cellView) {
-                    const inset = 3;
+                    const inset = 3,
+                        borderWidth = this.borderWidth || 0;
                     let adjX = 0,
                         adjY = 0,
                         {width, height} = this;
@@ -115,8 +136,8 @@
                             adjX = halfCellSize - width / 2;
                             adjY = halfCellSize - height / 2;
                     }
-                    this.setX(cellView.x + adjX);
-                    this.setY(cellView.y + adjY);
+                    this.setX(cellView.x + adjX - borderWidth);
+                    this.setY(cellView.y + adjY - borderWidth);
                 }
             }
         }),

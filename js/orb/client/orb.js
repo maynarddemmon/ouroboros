@@ -162,7 +162,7 @@ orb = (() => {
                 // Map
                 mapRange:9,
                 cellSize:40,
-                entitySizeM:16
+                entitySizeM:15
             },
             
             elements:{
