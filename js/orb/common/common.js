@@ -34,6 +34,64 @@
         FIELD_LOCK_FREE = 'lockFree',
         FIELD_LOCK_REACT = 'lockReact',
         
+        /*
+        all zags must be the same order within a path
+        should walk from origin out to loc
+        order below is from the cell to the origin.
+        
+        [0,9] = d, d, d, d, d, d, d, d, d
+        [0,8] = d, d, d, d, d, d, d, d
+        [0,7] = d, d, d, d, d, d, d
+        [0,6] = d, d, d, d, d, d
+        [0,5] = d, d, d, d, d
+        [0,4] = d, d, d, d
+        [0,3] = d, d, d
+        [0,2] = d, d
+        [0,1] = d
+        
+        [1,9] = d, d, d, d, z, d, d, d, d
+        [1,8] = d, d, d, z, d, d, d, d
+        [1,7] = d, d, do,d, d, d, d
+        [1,6] = d, d, z, d, d, d
+        [1,5] = d, z, d, d, d
+        [1,4] = d, z, d, d
+        [1,3] = d, z, d
+        [1,2] = d, z
+        [1,1] = z
+        
+        [2,9] = d, z, d, d, d, z, d, d, d
+        [2,8] = d, z, d, d, d, z, d, d
+        [2,7] = d, z, d, d, z, d, d
+        [2,6] = d, z, d, d, z, d
+        [2,5] = do,d, d, z, d
+        [2,4] = do,d, do,d
+        [2,3] = z, z, d
+        [2,2] = z, z
+        
+        [3,8] = d, z, d, z, d, d, z, d
+        [3,7] = do,d, do,d, d, z, d
+        [3,6] = do,d, do,d, do,d
+        [3,5] = z, do,d, do,d
+        [3,4] = z, do,do,d
+        [3,3] = z, z, z
+        
+        [4,8] = do,d, do,d, do,d, do,d
+        [4,7] = do,d, z ,do,d, do,d
+        [4,6] = z, do,d, z, do,d
+        [4,5] = z, z, d, z, z
+        [4,4] = z, z, z, z,
+        
+        [5,8] = z ,do,d ,do,d, z, d, z
+        [5,7] = z ,do,d ,z, do,d ,z
+        [5,6] = z, do,do,do,d ,z
+        [5,5] = z, z, z, z, z
+        
+        [6,7] = z ,z ,do,do,do,d ,z
+        [6,6] = z, z ,z ,z ,z ,z
+        */
+        
+        
+        
         RING_0 = [[0,0]],
         RING_1 = (() => {
             let x = -1, y = 0;

@@ -9,14 +9,20 @@
                 TYPE_LOBBY, TYPE_CREATE_CHARACTER, TYPE_DELETE_CHARACTER,
                 TYPE_ENTER_WORLD, TYPE_EXIT_WORLD,
                 TYPE_MAP_DATA, TYPE_CELL_DATA,
+                TYPE_ACTION_FAILED, ACTION_ERROR_CODES,
+                TYPE_MOVE_FAILED, MOVE_ERROR_CODES,
+                TYPE_REACT_FAILED, REACT_ERROR_CODES,
+                TYPE_FREE_FAILED, FREE_ERROR_CODES,
                 TYPE_ALTER_CHARACTER,
                 ATTR_TIME
             },
             character:{
                 FIELD_LOC, 
-                FIELD_LOCK_MOVE, FIELD_LOCK_ACTION, FIELD_LOCK_REACT, FIELD_LOCK_FREE
+                FIELD_LOCK_ACTION, FIELD_LOCK_MOVE, FIELD_LOCK_REACT, FIELD_LOCK_FREE
             }
         } = common,
+        
+        {growl} = pkg,
         
         consoleError = console.error,
         
@@ -374,9 +380,9 @@
                 if (success) {
                     model.addCharacterFromData(character);
                     model.updateWorldClockTime(response[ATTR_TIME]);
-                    pkg.growl('success', 'Character Created', message);
+                    growl('success', 'Character Created', message);
                 } else {
-                    pkg.growl('failure', 'Character Creation Failed', message);
+                    growl('failure', 'Character Creation Failed', message);
                 }
                 pkg.app.unlockUI();
             }, TYPE_CREATE_CHARACTER);
@@ -386,25 +392,25 @@
                 if (success) {
                     model.removeCharacterById(id);
                     model.updateWorldClockTime(response[ATTR_TIME]);
-                    pkg.growl('success', 'Character Deleted', message);
+                    growl('success', 'Character Deleted', message);
                 } else {
-                    pkg.growl('failure', 'Character Deletion Failed', message);
+                    growl('failure', 'Character Deletion Failed', message);
                 }
                 pkg.app.unlockUI();
             }, TYPE_DELETE_CHARACTER);
             
             websocket.registerListener(response => {
-                pkg.growl('warning', 'Server Warning', response.msg);
+                growl('warning', 'Server Warning', response.msg);
                 pkg.app.unlockUI();
             }, TYPE_WARNING);
             
             websocket.registerListener(response => {
-                pkg.growl('failure', 'Server Warning', response.msg);
+                growl('failure', 'Server Warning', response.msg);
                 pkg.app.unlockUI();
             }, TYPE_ERROR);
             
             websocket.registerListener(response => {
-                pkg.growl('info', 'Server Info', response.msg);
+                growl('info', 'Server Info', response.msg);
                 pkg.app.unlockUI();
             }, TYPE_SERVERINFO);
             
@@ -420,7 +426,7 @@
                         model.setCharacterInPlay(characterModel);
                         pkg.app.selectPanel(pkg.PANEL_ID_GAME);
                     } else {
-                        pkg.growl('failure', 'Character Not Found', 'The chracter sent back by the server was not found locally.');
+                        growl('failure', 'Character Not Found', 'The chracter sent back by the server was not found locally.');
                     }
                 }
                 pkg.app.unlockUI();
@@ -431,10 +437,10 @@
                 if (character) {
                     if (model.replaceCharacterFromData(character)) {
                         model.setCharacterInPlay();
-                        pkg.model.clearMapAndCellData();
+                        model.clearMapAndCellData();
                         pkg.app.selectPanel(pkg.PANEL_ID_LOBBY);
                     } else {
-                        pkg.growl('failure', 'Character Not Found', 'The chracter sent back by the server was not found locally.');
+                        growl('failure', 'Character Not Found', 'The chracter sent back by the server was not found locally.');
                     }
                 }
                 pkg.app.unlockUI();
@@ -452,6 +458,47 @@
                 const msg = response.msg;
                 model.getCharacterById(msg.id)?.set(msg.p, msg.v);
             }, TYPE_ALTER_CHARACTER);
+            
+            websocket.registerListener(response => {
+                switch (response.code) {
+                    case MOVE_ERROR_CODES.INVALID_LOCATION:
+                    case MOVE_ERROR_CODES.LOCATION_NOT_ALLOWED:
+                        pkg.gameMap.animateEntity(model.getCharacterInPlay().getId());
+                        break;
+                    default:
+                        growl('info', response.msg);
+                }
+            }, TYPE_MOVE_FAILED);
+            
+            websocket.registerListener(response => {
+                switch (response.code) {
+                    case ACTION_ERROR_CODES.ACTION_NOT_ALLOWED:
+                        pkg.gameMap.animateEntity(model.getCharacterInPlay().getId());
+                        break;
+                    default:
+                        growl('info', response.msg);
+                }
+            }, TYPE_ACTION_FAILED);
+            
+            websocket.registerListener(response => {
+                switch (response.code) {
+                    case REACT_ERROR_CODES.REACT_NOT_ALLOWED:
+                        pkg.gameMap.animateEntity(model.getCharacterInPlay().getId());
+                        break;
+                    default:
+                        growl('info', response.msg);
+                }
+            }, TYPE_REACT_FAILED);
+            
+            websocket.registerListener(response => {
+                switch (response.code) {
+                    case FREE_ERROR_CODES.FREE_NOT_ALLOWED:
+                        pkg.gameMap.animateEntity(model.getCharacterInPlay().getId());
+                        break;
+                    default:
+                        growl('info', response.msg);
+                }
+            }, TYPE_FREE_FAILED);
             
             return websocket;
         }

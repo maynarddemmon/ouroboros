@@ -5,8 +5,11 @@ const orb = require('./orb.js'),
     {
         TYPE_WARNING, TYPE_ERROR, TYPE_SERVERINFO, TYPE_ENTER_WORLD, TYPE_EXIT_WORLD,
         TYPE_MAP_DATA,
-        TYPE_ACTION_MOVE,
-        TYPE_ALTER_CELL, TYPE_ALTER_CHARACTER,
+        TYPE_MOVE, TYPE_MOVE_FAILED, MOVE_ERROR_CODES,
+        TYPE_ALTER_CELL, TYPE_ACTION_FAILED, ACTION_ERROR_CODES,
+        TYPE_REACT_FAILED, REACT_ERROR_CODES,
+        TYPE_FREE_FAILED, FREE_ERROR_CODES,
+        TYPE_ALTER_CHARACTER,
         ATTR_TIME
     } = require('../common/SocketProtocol.js'),
     {
@@ -142,7 +145,7 @@ const orb = require('./orb.js'),
             }
         },
         
-        [TYPE_ACTION_MOVE]:event => {
+        [TYPE_MOVE]:event => {
             performAction(
                 event, FIELD_LOCK_MOVE, 'getMoveSpeed', 
                 (username, character, now) => {
@@ -161,7 +164,7 @@ const orb = require('./orb.js'),
                             if (character.hasPermission(PERM_CREATOR)) {
                                 locArr = locIdToArr(direction);
                                 if (!isValidLocArr(locArr)) {
-                                    infoMessageToUser(username, 'Movement to invalid location not allowed.');
+                                    accountService.addMessageToUser(username, {type:TYPE_MOVE_FAILED, code:MOVE_ERROR_CODES.INVALID_LOCATION});
                                     return;
                                 }
                             }
@@ -179,7 +182,7 @@ const orb = require('./orb.js'),
                             id:character.id, p:FIELD_LOC, v:locArr
                         }});
                     } else {
-                        infoMessageToUser(username, 'Movement to that location not allowed.');
+                        accountService.addMessageToUser(username, {type:TYPE_MOVE_FAILED, code:MOVE_ERROR_CODES.LOCATION_NOT_ALLOWED});
                     }
                 }
             );
@@ -189,17 +192,20 @@ const orb = require('./orb.js'),
             performAction(
                 event, FIELD_LOCK_FREE, 'getFreeActionSpeed',
                 (username, character, now) => {
-                    const locArr = character.getLocArr(true),
-                        {prop, value, direction} = event.msg;
-                    
-                    // FIXME: need character facing to calculate direction correctly
-                    /*switch (direction) {
-                        case 'here': break;
-                    }*/
-                    
-                    // Get Cell and alter it
-            console.log('set', prop, value);
-                    worldMap.getCell(locArrToId(locArr), true).set(prop, value);
+                    if (character.hasPermission(PERM_CREATOR)) {
+                        const locArr = character.getLocArr(true),
+                            {prop, value, direction} = event.msg;
+                        
+                        // FIXME: need character facing to calculate direction correctly
+                        /*switch (direction) {
+                            case 'here': break;
+                        }*/
+                        
+                        // Get Cell and alter it
+                        worldMap.getCell(locArrToId(locArr), true).set(prop, value);
+                    } else {
+                        accountService.addMessageToUser(username, {type:TYPE_FREE_FAILED, code:FREE_ERROR_CODES.FREE_NOT_ALLOWED});
+                    }
                 }
             );
         },

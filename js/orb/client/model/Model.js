@@ -11,7 +11,7 @@
         {
             CommonEntityModelMixin,
             CommonCharacterModelMixin,
-            greek:{TYPE_ACTION_MOVE},
+            greek:{TYPE_MOVE},
             character:{
                 FIELD_LOCK_MOVE, FIELD_LOCK_ACTION, FIELD_LOCK_REACT, FIELD_LOCK_FREE
             },
@@ -41,7 +41,7 @@
                     // server handles the character's movement.
                     this[FIELD_LOCK_MOVE] = Number.MAX_SAFE_INTEGER;
                     
-                    pkg.websocket.sendTypedMessage(TYPE_ACTION_MOVE, {id:this.id, direction:direction});
+                    pkg.websocket.sendTypedMessage(TYPE_MOVE, {id:this.id, direction:direction});
                     return true;
                 }
                 return false;

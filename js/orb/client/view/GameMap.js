@@ -248,17 +248,9 @@
         animateEntity: (entityId, animationType='shake', amount=6) => {
             const entityView = getEntityViewForEntityId(entityId);
             if (entityView) {
-                // Prevent bad positioning from interrupted animations. Might be able to 
-                // avoid this by rewriting using a single easing function.
-                if (entityView.getActiveAnimators().length > 0) return;
-                
                 switch (animationType) {
-                    case 'shake':
-                        Animator.shakeView(entityView, entityView.x + amount, entityView.x);
-                        break;
-                    case 'bounce':
-                        Animator.bounceView(entityView, entityView.y + amount, entityView.y);
-                        break;
+                    case 'shake': Animator.shakeView(entityView, amount); break;
+                    case 'bounce': Animator.bounceView(entityView, amount); break;
                 }
             }
         },

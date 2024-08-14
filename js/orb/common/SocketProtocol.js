@@ -1,61 +1,61 @@
 (() => {
-    const 
-        TYPE_WARNING = 'warning',
-        TYPE_ERROR = 'error',
-        TYPE_SERVERINFO = 'serverInfo',
-        
-        TYPE_NOW = 'now',
-        
-        TYPE_LOBBY = 'lobby',
-        TYPE_CREATE_CHARACTER = 'createCharacter',
-        TYPE_DELETE_CHARACTER = 'deleteCharacter',
-        
-        TYPE_ENTER_WORLD = 'enterWorld',
-        TYPE_EXIT_WORLD = 'exitWorld',
-        
-        // Misc
-        TYPE_ALTER_CHARACTER = 'alterCharacter',
-        
-        // Map
-        TYPE_MAP_DATA = 'mapData',
-        TYPE_CELL_DATA = 'cellData',
-        
-        // Movement
-        TYPE_ACTION_MOVE = 'move',
-        
-        // Actions
-        TYPE_ALTER_CELL = 'alterCell',
-        
-        ATTR_TIME = '_t',
+    const IS_NODEJS = typeof module === 'object' && module.exports,
         
         EXPORT = {
-            TYPE_WARNING:TYPE_WARNING,
-            TYPE_ERROR:TYPE_ERROR,
-            TYPE_SERVERINFO:TYPE_SERVERINFO,
+            // Socket Message Attributes
+            ATTR_TIME:'_t',
             
-            TYPE_NOW:TYPE_NOW,
             
-            TYPE_LOBBY:TYPE_LOBBY,
-            TYPE_CREATE_CHARACTER:TYPE_CREATE_CHARACTER,
-            TYPE_DELETE_CHARACTER:TYPE_DELETE_CHARACTER,
+            // General
+            TYPE_WARNING:'warning',
+            TYPE_ERROR:'error',
+            TYPE_SERVERINFO:'serverInfo',
             
-            TYPE_ENTER_WORLD:TYPE_ENTER_WORLD,
-            TYPE_EXIT_WORLD:TYPE_EXIT_WORLD,
+            // Account and Character Management
+            TYPE_LOBBY:'lobby',
+            TYPE_CREATE_CHARACTER:'createCharacter',
+            TYPE_DELETE_CHARACTER:'deleteCharacter',
             
-            TYPE_ALTER_CHARACTER:TYPE_ALTER_CHARACTER,
+            // Game World
+            TYPE_ENTER_WORLD:'enterWorld',
+            TYPE_EXIT_WORLD:'exitWorld',
             
-            TYPE_MAP_DATA:TYPE_MAP_DATA,
-            TYPE_CELL_DATA:TYPE_CELL_DATA,
+            TYPE_NOW:'now',
             
-            TYPE_ACTION_MOVE:TYPE_ACTION_MOVE,
+            TYPE_MAP_DATA:'mapData',
+            TYPE_CELL_DATA:'cellData',
             
-            TYPE_ALTER_CELL:TYPE_ALTER_CELL,
+            TYPE_ALTER_CHARACTER:'alterCharacter',
             
-            // Attributes
-            ATTR_TIME:ATTR_TIME
+            // Movement
+            TYPE_MOVE:'move',
+            TYPE_MOVE_FAILED:'moveFailed',
+            MOVE_ERROR_CODES:{
+                INVALID_LOCATION:1, // Movement to location not allowed.
+                LOCATION_NOT_ALLOWED:2 // Movement to invalid location not permitted.
+            },
+            
+            // Actions
+            TYPE_ACTION_FAILED:'actionFailed',
+            ACTION_ERROR_CODES:{
+                ACTION_NOT_ALLOWED:1
+            },
+            
+            // Reactions
+            TYPE_REACT_FAILED:'reactFailed',
+            REACT_ERROR_CODES:{
+                REACT_NOT_ALLOWED:1
+            },
+            
+            // Free Actions
+            TYPE_ALTER_CELL:'alterCell',
+            TYPE_FREE_FAILED:'freeFailed',
+            FREE_ERROR_CODES:{
+                FREE_NOT_ALLOWED:1
+            },
         };
     
-    if (typeof module === 'object' && module.exports) {
+    if (IS_NODEJS) {
         module.exports = EXPORT;
     } else {
         common.greek = EXPORT;

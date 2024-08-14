@@ -72,12 +72,12 @@
         
         doMoveCharacter = direction => {
             if (!character.doMove(direction)) {
-                gameMap.animateEntity(character.getId(), 'shake', 6);
+                gameMap.animateEntity(character.getId());
                 // FIXME: msg into chat log? "You can't move right now."
             }
         },
         notifyCanNotAct = entity => {
-            gameMap.animateEntity(entity.getId(), 'shake', 6);
+            gameMap.animateEntity(entity.getId());
             // FIXME: msg into chat log? "You can't act right now."
         },
         
