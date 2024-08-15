@@ -35,10 +35,6 @@
         FIELD_LOCK_REACT = 'lockReact',
         
         /*
-        all zags must be the same order within a path
-        should walk from origin out to loc
-        order below is from the cell to the origin.
-        
         [0,9] = d, d, d, d, d, d, d, d, d
         [0,8] = d, d, d, d, d, d, d, d
         [0,7] = d, d, d, d, d, d, d
@@ -90,6 +86,62 @@
         [6,6] = z, z ,z ,z ,z ,z
         */
         
+        
+        /* all zags must be the same order within a path
+            should walk from origin out to loc. */
+        VISIBILITY_PATHS = [
+            [,
+                ['up'],
+                ['up', 'up'],
+                ['up', 'up', 'up'],
+                ['up', 'up', 'up', 'up'],
+                ['up', 'up', 'up', 'up', 'up'],
+                ['up', 'up', 'up', 'up', 'up', 'up'],
+                ['up', 'up', 'up', 'up', 'up', 'up', 'up'],
+                ['up', 'up', 'up', 'up', 'up', 'up', 'up', 'up'],
+                ['up', 'up', 'up', 'up', 'up', 'up', 'up', 'up', 'up']
+            ],[,
+                ['zz'],
+                ['up', 'zz'],
+                ['up', 'zz', 'up'],
+                ['up', 'zz', 'up', 'up'],
+                ['up', 'up', 'up', 'zz', 'up'],
+                ['up', 'up', 'up', 'zz', 'up', 'up'],
+                ['up', 'up', 'up', 'up', 'uo', 'up', 'up'],
+                ['up', 'up', 'up', 'up', 'zz', 'up', 'up', 'up'],
+                ['up', 'up', 'up', 'up', 'zz', 'up', 'up', 'up', 'up'],
+            ],[,,
+                ['zz', 'zz'],
+                ['zz', 'up', 'zz'],
+                ['up', 'zz', 'up', 'zz'],
+                ['up', 'zz', 'up', 'zz', 'up'],
+                ['up', 'zz', 'up', 'up', 'zz', 'up'],
+                ['up', 'up', 'zz', 'up', 'up', 'zz', 'up'],
+                ['up', 'up', 'zz', 'up', 'up', 'up', 'zz', 'up'],
+                ['up', 'up', 'up', 'zz', 'up', 'up', 'up', 'zz', 'up'],
+            ],[,,,
+                ['zz', 'zz', 'zz'],
+                ['zz', 'up', 'zz', 'zz'],
+                ['up', 'uo', 'up', 'uo', 'zz'],
+                ['up', 'uo', 'up', 'uo', 'up', 'uo'],
+                ['up', 'up', 'up', 'up', 'uo', 'up', 'uo'],
+                ['up', 'zz', 'up', 'up', 'zz', 'up', 'zz', 'up'],
+            ],[,,,,
+                ['zz', 'zz', 'zz', 'zz'],
+                ['zz', 'zz', 'up', 'zz', 'zz'],
+                ['up', 'uo', 'zz', 'up', 'uo', 'zz'],
+                ['uo', 'up', 'up' ,'uo', 'zz', 'uo', 'up'],
+                ['up', 'uo', 'up', 'uo', 'up', 'uo', 'up', 'uo'],
+            ],[,,,,,
+                ['zz', 'zz', 'zz', 'zz', 'zz'],
+                ['zz', 'up', 'uo', 'uo', 'uo' ,'zz'],
+                ['zz' ,'up', 'uo' ,'zz', 'up', 'uo' ,'zz'],
+                ['zz' ,'up', 'zz' ,'up', 'uo', 'up', 'uo', 'zz'],
+            ],[,,,,,,
+                ['zz', 'zz' ,'zz' ,'zz' ,'zz' ,'zz'],
+                ['zz' ,'up' ,'uo', 'uo', 'uo', 'zz' ,'zz'],
+            ]
+        ],
         
         RING_0 = [[0,0]],
         RING_1 = (() => {
@@ -238,6 +290,7 @@
             CommonCharacterModelMixin:CommonCharacterModelMixin,
             
             cellOffsetsByDistance:[CIRCLE_0,CIRCLE_1,CIRCLE_2,CIRCLE_3,CIRCLE_4,CIRCLE_5,CIRCLE_6,CIRCLE_7,CIRCLE_8,CIRCLE_9],
+            visibilityPaths:VISIBILITY_PATHS,
             
             permissions:{
                 PERM_CREATOR:PERM_CREATOR
@@ -283,7 +336,8 @@
                 unk:{
                     name:'Unknown',
                     mapColor:'transparent',
-                    solidity:0
+                    solidity:0,
+                    opacity:1
                 },
                 
                 // Void
@@ -291,25 +345,29 @@
                     name:'Void',
                     mapColor:'#0ff9',
                     tileUrl:'/img/tile/void.png',
-                    solidity:-1
+                    solidity:-1,
+                    opacity:0.5
                 },
                 v2:{
                     name:'Null',
                     mapColor:'#09f9',
                     tileUrl:'/img/tile/null.png',
-                    solidity:-1
+                    solidity:-1,
+                    opacity:0.5
                 },
                 v3:{
                     name:'Æthoid',
                     mapColor:'#9ff9',
                     tileUrl:'/img/tile/aethoid.png',
-                    solidity:0
+                    solidity:0,
+                    opacity:0.25
                 },
                 v4:{
                     name:'Æthrull',
                     mapColor:'#09f9',
                     tileUrl:'/img/tile/aethrull.png',
-                    solidity:0
+                    solidity:0,
+                    opacity:0.25
                 },
                 
                 // Air
@@ -317,7 +375,8 @@
                     name:'Stone Floor',
                     mapColor:'transparent',//'#ccf',
                     tileUrl:'/img/tile/stone_floor.png',
-                    solidity:0
+                    solidity:0,
+                    opacity:0.01
                 },
                 
                 // Earth
@@ -325,7 +384,8 @@
                     name:'Solid Stone',
                     mapColor:'#0003',//'#888',
                     tileUrl:'/img/tile/stone_solid.png',
-                    solidity:1
+                    solidity:1,
+                    opacity:1
                 }
             }
         };

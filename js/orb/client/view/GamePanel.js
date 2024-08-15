@@ -54,7 +54,7 @@
         getLocInfo = cell => {
             const locArr = locIdToArr(cell.locId),
                 mapDatum = model.getMapDatum(locArr[0]);
-            return composition[cell[FIELD_COMPOSITION]].name + ' / x:' + locArr[1] + ' / y:' + locArr[2];
+            return composition[cell.hasBeenSeen ? cell[FIELD_COMPOSITION] : 'unk'].name + ' / x:' + locArr[1] + ' / y:' + locArr[2];
         },
         
         getEntityInfo = entity => {

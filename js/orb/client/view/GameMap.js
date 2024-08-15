@@ -11,7 +11,7 @@
         {View, ImageSupport, Reusable, MouseOverAndDown, TrackActivesPool, Animator, debounce} = myt,
         
         {
-            cellOffsetsByDistance,
+            cellOffsetsByDistance, visibilityPaths,
             character:{FIELD_LOC},
             util:{locArrToId,locIdToArr},
             composition,
@@ -153,7 +153,7 @@
             
             initNode: function(parent, attrs) {
                 this.mouseOver = this.mouseDown = false;
-                attrs.observedByCharacter ??= false;
+                attrs.isSeen ??= false;
                 
                 attrs.width = attrs.height = cellSize;
                 attrs.imageSize = 'contain';
@@ -165,7 +165,7 @@
             
             clean: function() {
                 this.setVisible(false);
-                this.setObservedByCharacter(false);
+                this.setIsSeen(false);
             },
             
             setMouseDown: function(v) {
@@ -185,78 +185,19 @@
             setCell: function(v) {
                 const cell = this.cell = v;
                 cellViewsByLocId.set(cell.locId, this);
-                if (this.inited) this.redraw();
+                if (this.inited) {
+                    // Redraw
+                    const {mapColor, tileUrl} = composition[cell.hasBeenSeen ? cell[FIELD_COMPOSITION] : 'unk'];
+                    this.setVisible(true);
+                    this.setBgColor(mapColor);
+                    this.setImageUrl(tileUrl);
+                }
             },
             
-            setObservedByCharacter: function(v) {
-                this._observedOverlay?.setBgColor(this.observedByCharacter = v ? 'transparent' : '#0009');
-            },
-            
-            redraw: function() {
-                const cell = this.cell,
-                    {mapColor, tileUrl} = composition[cell[FIELD_COMPOSITION]];
-                this.setVisible(true);
-                this.setBgColor(mapColor);
-                this.setImageUrl(tileUrl);
+            setIsSeen: function(v) {
+                this._observedOverlay?.setBgColor(this.isSeen = v ? 'transparent' : '#0009');
             }
         });
-    
-        //all zags must be the same order within a path
-        //should walk from origin out to loc
-        //order below is from the cell to the origin.
-        const VISIBILITY = [
-            [,
-                ['up'],
-                ['up', 'up'],
-                ['up', 'up', 'up'],
-                ['up', 'up', 'up', 'up'],
-                ['up', 'up', 'up', 'up', 'up'],
-                ['up', 'up', 'up', 'up', 'up', 'up'],
-                ['up', 'up', 'up', 'up', 'up', 'up', 'up'],
-                ['up', 'up', 'up', 'up', 'up', 'up', 'up', 'up'],
-                ['up', 'up', 'up', 'up', 'up', 'up', 'up', 'up', 'up']
-            ],[,
-                ['zz'],
-                ['zz', 'up'],
-                ['up', 'zz', 'up'],
-                ['up', 'up', 'zz', 'up'],
-                ['up', 'up', 'up', 'zz', 'up'],
-                ['up', 'up', 'up', 'zz', 'up', 'up'],
-                ['up', 'up', 'up', 'up', 'uo', 'up', 'up'],
-                ['up', 'up', 'up', 'up', 'zz', 'up', 'up', 'up'],
-                ['up', 'up', 'up', 'up', 'zz', 'up', 'up', 'up', 'up'],
-            ],[,,
-                ['zz', 'zz'],
-                ['up', 'zz', 'zz'],
-                ['up', 'uo', 'up', 'uo'],
-                ['up', 'zz', 'up', 'up', 'uo'],
-                ['up', 'zz', 'up', 'up', 'zz', 'up'],
-                ['up', 'up', 'zz', 'up', 'up', 'zz', 'up'],
-                ['up', 'up', 'zz', 'up', 'up', 'up', 'zz', 'up'],
-                ['up', 'up', 'up', 'zz', 'up', 'up', 'up', 'zz', 'up'],
-            ],[,,,
-                ['zz', 'zz', 'zz'],
-                ['zz', 'uo', 'uo','up'],
-                ['up', 'uo', 'up', 'uo', 'zz'],
-                ['up', 'uo', 'up', 'uo', 'up', 'uo'],
-                ['up', 'up', 'up', 'up', 'uo', 'up', 'uo'],
-                ['up', 'zz', 'up', 'up', 'zz', 'up', 'zz', 'up'],
-            ],[,,,,
-                ['zz', 'zz', 'zz', 'zz'],
-                ['zz', 'zz', 'up', 'zz', 'zz'],
-                ['up', 'uo', 'zz', 'up', 'uo', 'zz'],
-                ['uo', 'up', 'up' ,'uo', 'zz', 'uo', 'up'],
-                ['up', 'uo', 'up', 'uo', 'up', 'uo', 'up', 'uo'],
-            ],[,,,,,
-                ['zz', 'zz', 'zz', 'zz', 'zz'],
-                ['zz', 'up', 'uo', 'uo', 'uo' ,'zz'],
-                ['zz' ,'up', 'uo' ,'zz', 'up', 'uo' ,'zz'],
-                ['zz' ,'up', 'zz' ,'up', 'uo', 'up', 'uo', 'zz'],
-            ],[,,,,,,
-                ['zz', 'zz' ,'zz' ,'zz' ,'zz' ,'zz'],
-                ['zz' ,'up' ,'uo', 'uo', 'uo', 'zz' ,'zz'],
-            ]
-        ],
         
         getLookupXY = (x, y, isPosX, isPosY, isYgtX, isYgtNegX) => {
             let lookupX,
@@ -443,88 +384,98 @@
                         isYgtX = y > x,
                         isYgtNegX = y > -x,
                         {lookupX, lookupY} = getLookupXY(x, y, isPosX, isPosY, isYgtX, isYgtNegX),
-                        path = VISIBILITY[lookupX][lookupY];
+                        path = visibilityPaths[lookupX][lookupY];
                     
                     if (path) {
-                        const checkCell = locArrToCheck => {
+                        const len = path.length,
+                            locArrToCheck = originArr.slice(),
+                            isNotFlipped = (isYgtX && isYgtNegX) || (!isYgtX && !isYgtNegX),
+                            xIdx = isNotFlipped ? 1 : 2,
+                            yIdx = isNotFlipped ? 2 : 1,
+                            xAdj = isNotFlipped ? (isPosX ? 1 : -1) : (isPosY ? 1 : -1),
+                            yAdj = isNotFlipped ? (isPosY ? 1 : -1) : (isPosX ? 1 : -1);
+                        
+                        let opacityTotal = 0,
+                            endedOnObserved = false;
+                        const isCellObscured = locArrToCheck => {
                             const cellDatumToCheck = model.getCellDatum(locArrToId(locArrToCheck));
                             if (cellDatumToCheck) {
-                                const solidity = composition[cellDatumToCheck[FIELD_COMPOSITION]].solidity;
-                                if (solidity < 1) return false;
+                                // FIXME check cell walls once we have walls implemented.
+                                opacityTotal += composition[cellDatumToCheck[FIELD_COMPOSITION]].opacity;
+                                if (opacityTotal < 1) return false;
                             }
                             return true;
                         };
-                        const len = path.length,
-                            locArrToCheck = originArr.slice();
-                        let xAdj = isPosX ? 1 : -1,
-                            yAdj = isPosY ? 1 : -1;
-                        const isNotFlipped = (isYgtX && isYgtNegX) || (!isYgtX && !isYgtNegX),
-                            xIdx = isNotFlipped ? 1 : 2,
-                            yIdx = isNotFlipped ? 2 : 1;
-                        if (!isNotFlipped) {
-                            const tempAdj = xAdj;
-                            xAdj = yAdj;
-                            yAdj = tempAdj;
-                        }
-                        
-                        const checkForEntryValue = (depth, firstZZ, zzOptA) => {
+                        const isObscured = (depth, firstZZ, zzOptA) => {
                             let retval = false;
                             switch (path[depth]) {
                                 case 'up':
+                                    // Up only
                                     locArrToCheck[yIdx] += yAdj;
-                                    retval = checkCell(locArrToCheck);
+                                    retval = isCellObscured(locArrToCheck);
                                     break;
                                 case 'uo':
+                                    // Up and Over
                                     locArrToCheck[yIdx] += yAdj;
-                                    retval = checkCell(locArrToCheck);
+                                    retval = isCellObscured(locArrToCheck);
                                     if (!retval) {
                                         locArrToCheck[xIdx] += xAdj;
-                                        retval = checkCell(locArrToCheck);
+                                        retval = isCellObscured(locArrToCheck);
                                     }
                                     break;
                                 case 'zz':
+                                    // Zig: up and over OR over and up. Keep the same pattern
+                                    // once chosen.
                                     if (firstZZ) {
                                         const optBX = locArrToCheck[1],
-                                            optBY = locArrToCheck[2];
-                                        retval = checkForEntryValue(depth, false, true);
+                                            optBY = locArrToCheck[2],
+                                            optBOpacityTotal = opacityTotal;
+                                        retval = isObscured(depth, false, true);
+                                        const optAEndedOnObserved = endedOnObserved;
                                         if (retval) {
                                             locArrToCheck[1] = optBX;
                                             locArrToCheck[2] = optBY;
-                                            retval = checkForEntryValue(depth, false, false);
+                                            opacityTotal = optBOpacityTotal;
+                                            retval = isObscured(depth, false, false);
+                                            if (retval && optAEndedOnObserved) endedOnObserved = true;
                                         }
                                         return retval;
                                     } else {
                                         if (zzOptA) {
                                             locArrToCheck[yIdx] += yAdj;
-                                            retval = checkCell(locArrToCheck);
+                                            retval = isCellObscured(locArrToCheck);
                                             if (!retval) {
                                                 locArrToCheck[xIdx] += xAdj;
-                                                retval = checkCell(locArrToCheck);
+                                                retval = isCellObscured(locArrToCheck);
                                             }
                                         } else {
                                             locArrToCheck[xIdx] += xAdj;
-                                            retval = checkCell(locArrToCheck);
+                                            retval = isCellObscured(locArrToCheck);
                                             if (!retval) {
                                                 locArrToCheck[yIdx] += yAdj;
-                                                retval = checkCell(locArrToCheck);
+                                                retval = isCellObscured(locArrToCheck);
                                             }
                                         }
                                     }
                                     break;
                             }
                             
-                            if (retval) return true;
+                            if (retval) {
+                                //console.log('here', firstZZ, zzOptA)
+                                endedOnObserved = (x + baseX === locArrToCheck[1]) && (y + baseY === locArrToCheck[2]);
+                                return true;
+                            }
                             
                             if (depth < len) {
-                                return checkForEntryValue(++depth, firstZZ, zzOptA);
+                                return isObscured(++depth, firstZZ, zzOptA);
                             } else {
                                 return false;
                             }
                         };
                         
-                        const isObscured = checkForEntryValue(0, true, true);
-                        if (isObscured) obscuredLocIds.add(locId);
-//console.log(isObscured, x, y, isNotFlipped, xAdj, yAdj, path);
+                        if (isObscured(0, true, true)) {
+                            if (!endedOnObserved) obscuredLocIds.add(locId);
+                        }
                     }
                 } else {
                     obscuredLocIds.add(locId);
@@ -540,10 +491,14 @@
                     
                     const locId = locArrToId(locArr),
                         isObserved = observedLocIds.has(locId),
+                        isObscured = obscuredLocIds.has(locId),
+                        isSeen = isObserved && !isObscured,
                         cellDatum = model.getCellDatum(locId) ?? {locId:locId, [FIELD_COMPOSITION]:'unk'},
                         cellView = cellPool.getInstance();
                     
-                    cellView.callSetters({x:posX, y:posY, cell:cellDatum, observedByCharacter:isObserved});
+                    if (isSeen) cellDatum.hasBeenSeen = true;
+                    
+                    cellView.callSetters({x:posX, y:posY, cell:cellDatum, isSeen:isSeen});
                     
                     let posCount = 0,
                         characterView;
@@ -555,27 +510,23 @@
                         gameMap.doCharacterCell(character, cellDatum, cellView);
                     }
                     
-                    if (isObserved) {
-                        if (obscuredLocIds.has(locId)) {
-                            cellView.setObservedByCharacter(false);
-                        } else {
-                            const entities = cellDatum[FIELD_ENTITIES],
-                                len = entities?.length;
-                            if (len > 0) {
-                                if (characterView) {
-                                    // Reposition character to not be in center.
-                                    characterView.updatePosition(posCount++, cellView);
-                                } else if (len > 1) {
-                                    posCount++;
-                                }
-                                
-                                for (const entityDatum of entities) {
-                                    const entityView = entityPool.getInstance(),
-                                        entityModel = model.makeEntityFromData(entityDatum);
-                                    entityView.setEntity(entityModel);
-                                    entityView.setCellView(cellView);
-                                    entityView.updatePosition(posCount++, cellView);
-                                }
+                    if (isSeen) {
+                        const entities = cellDatum[FIELD_ENTITIES],
+                            len = entities?.length;
+                        if (len > 0) {
+                            if (characterView) {
+                                // Reposition character to not be in center.
+                                characterView.updatePosition(posCount++, cellView);
+                            } else if (len > 1) {
+                                posCount++;
+                            }
+                            
+                            for (const entityDatum of entities) {
+                                const entityView = entityPool.getInstance(),
+                                    entityModel = model.makeEntityFromData(entityDatum);
+                                entityView.setEntity(entityModel);
+                                entityView.setCellView(cellView);
+                                entityView.updatePosition(posCount++, cellView);
                             }
                         }
                     }
