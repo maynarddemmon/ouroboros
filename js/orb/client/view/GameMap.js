@@ -13,7 +13,7 @@
         {
             cellOffsetsByDistance,
             character:{FIELD_LOC},
-            util:{locArrToId},
+            util:{locArrToId,locIdToArr},
             composition,
             cell:{FIELD_COMPOSITION, FIELD_ENTITIES}
         } = common,
@@ -28,6 +28,7 @@
         mapSize = 2*halfMapSize,
         
         observedLocIds = new Set(),
+        obscuredLocIds = new Set(),
         cellViewsByLocId = new Map(),
         getCellViewForLocId = locId => cellViewsByLocId.get(locId),
         
@@ -200,6 +201,152 @@
             }
         });
     
+        //all zags must be the same order within a path
+        //should walk from origin out to loc
+        //order below is from the cell to the origin.
+        const VISIBILITY = [
+            [,
+                ['up'],
+                ['up', 'up'],
+                ['up', 'up', 'up'],
+                ['up', 'up', 'up', 'up'],
+                ['up', 'up', 'up', 'up', 'up'],
+                ['up', 'up', 'up', 'up', 'up', 'up'],
+                ['up', 'up', 'up', 'up', 'up', 'up', 'up'],
+                ['up', 'up', 'up', 'up', 'up', 'up', 'up', 'up'],
+                ['up', 'up', 'up', 'up', 'up', 'up', 'up', 'up', 'up']
+            ],[,
+                ['zz'],
+                ['zz', 'up'],
+                ['up', 'zz', 'up'],
+                ['up', 'up', 'zz', 'up'],
+                ['up', 'up', 'up', 'zz', 'up'],
+                ['up', 'up', 'up', 'zz', 'up', 'up'],
+                ['up', 'up', 'up', 'up', 'uo', 'up', 'up'],
+                ['up', 'up', 'up', 'up', 'zz', 'up', 'up', 'up'],
+                ['up', 'up', 'up', 'up', 'zz', 'up', 'up', 'up', 'up'],
+            ],[,,
+                ['zz', 'zz'],
+                ['up', 'zz', 'zz'],
+                ['up', 'uo', 'up', 'uo'],
+                ['up', 'zz', 'up', 'up', 'uo'],
+                ['up', 'zz', 'up', 'up', 'zz', 'up'],
+                ['up', 'up', 'zz', 'up', 'up', 'zz', 'up'],
+                ['up', 'up', 'zz', 'up', 'up', 'up', 'zz', 'up'],
+                ['up', 'up', 'up', 'zz', 'up', 'up', 'up', 'zz', 'up'],
+            ],[,,,
+                ['zz', 'zz', 'zz'],
+                ['zz', 'uo', 'uo','up'],
+                ['up', 'uo', 'up', 'uo', 'zz'],
+                ['up', 'uo', 'up', 'uo', 'up', 'uo'],
+                ['up', 'up', 'up', 'up', 'uo', 'up', 'uo'],
+                ['up', 'zz', 'up', 'up', 'zz', 'up', 'zz', 'up'],
+            ],[,,,,
+                ['zz', 'zz', 'zz', 'zz'],
+                ['zz', 'zz', 'up', 'zz', 'zz'],
+                ['up', 'uo', 'zz', 'up', 'uo', 'zz'],
+                ['uo', 'up', 'up' ,'uo', 'zz', 'uo', 'up'],
+                ['up', 'uo', 'up', 'uo', 'up', 'uo', 'up', 'uo'],
+            ],[,,,,,
+                ['zz', 'zz', 'zz', 'zz', 'zz'],
+                ['zz', 'up', 'uo', 'uo', 'uo' ,'zz'],
+                ['zz' ,'up', 'uo' ,'zz', 'up', 'uo' ,'zz'],
+                ['zz' ,'up', 'zz' ,'up', 'uo', 'up', 'uo', 'zz'],
+            ],[,,,,,,
+                ['zz', 'zz' ,'zz' ,'zz' ,'zz' ,'zz'],
+                ['zz' ,'up' ,'uo', 'uo', 'uo', 'zz' ,'zz'],
+            ]
+        ],
+        
+        getLookupXY = (x, y, isPosX, isPosY, isYgtX, isYgtNegX) => {
+            let lookupX,
+                lookupY;
+            if (x === y) {
+                if (x === 0) {
+                    // origin. Won't resolve to a path hence never obscured for now
+                    lookupX = x;
+                    lookupY = y;
+                } else {
+                    // diagonal
+                    if (isPosX) {
+                        if (isPosY) {
+                            lookupX = x;
+                            lookupY = y;
+                        } else {
+                            lookupX = x;
+                            lookupY = -y;
+                        }
+                    } else {
+                        if (isPosY) {
+                            lookupX = -x;
+                            lookupY = y;
+                        } else {
+                            lookupX = -x;
+                            lookupY = -y;
+                        }
+                    }
+                }
+            } else if (x === 0) {
+                // horizontal
+                if (isPosY) {
+                    lookupX = 0;
+                    lookupY = y;
+                } else {
+                    lookupX = 0;
+                    lookupY = -y;
+                }
+            } else if (y === 0) {
+                // vertical
+                if (isPosX) {
+                    lookupX = 0;
+                    lookupY = x;
+                } else {
+                    lookupX = 0;
+                    lookupY = -x;
+                }
+            } else {
+                // special
+                if (isPosX) {
+                    if (isPosY) {
+                        if (isYgtX) {
+                            lookupX = x;
+                            lookupY = y;
+                        } else {
+                            lookupX = y;
+                            lookupY = x;
+                        }
+                    } else {
+                        if (isYgtNegX) {
+                            lookupX = -y;
+                            lookupY = x;
+                        } else {
+                            lookupX = x;
+                            lookupY = -y;
+                        }
+                    }
+                } else {
+                    if (isPosY) {
+                        if (isYgtNegX) {
+                            lookupX = -x;
+                            lookupY = y;
+                        } else {
+                            lookupX = y;
+                            lookupY = -x;
+                        }
+                    } else {
+                        if (isYgtX) {
+                            lookupX = -y;
+                            lookupY = -x;
+                        } else {
+                            lookupX = -x;
+                            lookupY = -y;
+                        }
+                    }
+                }
+            }
+            return {lookupX, lookupY};
+        };
+    
     pkg.GameMap = new JSClass('GameMap', View, {
         include:[ImageSupport],
         
@@ -265,7 +412,8 @@
             
             const centerX = mathRound(gameMap.width / 2),
                 centerY = mathRound(gameMap.height / 2),
-                locArr = character[FIELD_LOC].slice(),
+                originArr = character[FIELD_LOC],
+                locArr = originArr.slice(),
                 baseX = locArr[1],
                 baseY = locArr[2],
                 posStartAdj = halfMapSize,
@@ -279,6 +427,107 @@
                     locArr[1] = baseX + offset[0];
                     locArr[2] = baseY + offset[1];
                     observedLocIds.add(locArrToId(locArr));
+                }
+            }
+            
+            // Make a lookup table of obscured cellIDs.
+            obscuredLocIds.clear();
+            for (const locId of observedLocIds) {
+                const cellDatum = model.getCellDatum(locId);
+                if (cellDatum) {
+                    const observedLocArr = locIdToArr(locId),
+                        x = observedLocArr[1] - baseX,
+                        y = observedLocArr[2] - baseY,
+                        isPosX = x > 0,
+                        isPosY = y > 0,
+                        isYgtX = y > x,
+                        isYgtNegX = y > -x,
+                        {lookupX, lookupY} = getLookupXY(x, y, isPosX, isPosY, isYgtX, isYgtNegX),
+                        path = VISIBILITY[lookupX][lookupY];
+                    
+                    if (path) {
+                        const checkCell = locArrToCheck => {
+                            const cellDatumToCheck = model.getCellDatum(locArrToId(locArrToCheck));
+                            if (cellDatumToCheck) {
+                                const solidity = composition[cellDatumToCheck[FIELD_COMPOSITION]].solidity;
+                                if (solidity < 1) return false;
+                            }
+                            return true;
+                        };
+                        const len = path.length,
+                            locArrToCheck = originArr.slice();
+                        let xAdj = isPosX ? 1 : -1,
+                            yAdj = isPosY ? 1 : -1;
+                        const isNotFlipped = (isYgtX && isYgtNegX) || (!isYgtX && !isYgtNegX),
+                            xIdx = isNotFlipped ? 1 : 2,
+                            yIdx = isNotFlipped ? 2 : 1;
+                        if (!isNotFlipped) {
+                            const tempAdj = xAdj;
+                            xAdj = yAdj;
+                            yAdj = tempAdj;
+                        }
+                        
+                        const checkForEntryValue = (depth, firstZZ, zzOptA) => {
+                            let retval = false;
+                            switch (path[depth]) {
+                                case 'up':
+                                    locArrToCheck[yIdx] += yAdj;
+                                    retval = checkCell(locArrToCheck);
+                                    break;
+                                case 'uo':
+                                    locArrToCheck[yIdx] += yAdj;
+                                    retval = checkCell(locArrToCheck);
+                                    if (!retval) {
+                                        locArrToCheck[xIdx] += xAdj;
+                                        retval = checkCell(locArrToCheck);
+                                    }
+                                    break;
+                                case 'zz':
+                                    if (firstZZ) {
+                                        const optBX = locArrToCheck[1],
+                                            optBY = locArrToCheck[2];
+                                        retval = checkForEntryValue(depth, false, true);
+                                        if (retval) {
+                                            locArrToCheck[1] = optBX;
+                                            locArrToCheck[2] = optBY;
+                                            retval = checkForEntryValue(depth, false, false);
+                                        }
+                                        return retval;
+                                    } else {
+                                        if (zzOptA) {
+                                            locArrToCheck[yIdx] += yAdj;
+                                            retval = checkCell(locArrToCheck);
+                                            if (!retval) {
+                                                locArrToCheck[xIdx] += xAdj;
+                                                retval = checkCell(locArrToCheck);
+                                            }
+                                        } else {
+                                            locArrToCheck[xIdx] += xAdj;
+                                            retval = checkCell(locArrToCheck);
+                                            if (!retval) {
+                                                locArrToCheck[yIdx] += yAdj;
+                                                retval = checkCell(locArrToCheck);
+                                            }
+                                        }
+                                    }
+                                    break;
+                            }
+                            
+                            if (retval) return true;
+                            
+                            if (depth < len) {
+                                return checkForEntryValue(++depth, firstZZ, zzOptA);
+                            } else {
+                                return false;
+                            }
+                        };
+                        
+                        const isObscured = checkForEntryValue(0, true, true);
+                        if (isObscured) obscuredLocIds.add(locId);
+//console.log(isObscured, x, y, isNotFlipped, xAdj, yAdj, path);
+                    }
+                } else {
+                    obscuredLocIds.add(locId);
                 }
             }
             
@@ -307,22 +556,26 @@
                     }
                     
                     if (isObserved) {
-                        const entities = cellDatum[FIELD_ENTITIES],
-                            len = entities?.length;
-                        if (len > 0) {
-                            if (characterView) {
-                                // Reposition character to not be in center.
-                                characterView.updatePosition(posCount++, cellView);
-                            } else if (len > 1) {
-                                posCount++;
-                            }
-                            
-                            for (const entityDatum of entities) {
-                                const entityView = entityPool.getInstance(),
-                                    entityModel = model.makeEntityFromData(entityDatum);
-                                entityView.setEntity(entityModel);
-                                entityView.setCellView(cellView);
-                                entityView.updatePosition(posCount++, cellView);
+                        if (obscuredLocIds.has(locId)) {
+                            cellView.setObservedByCharacter(false);
+                        } else {
+                            const entities = cellDatum[FIELD_ENTITIES],
+                                len = entities?.length;
+                            if (len > 0) {
+                                if (characterView) {
+                                    // Reposition character to not be in center.
+                                    characterView.updatePosition(posCount++, cellView);
+                                } else if (len > 1) {
+                                    posCount++;
+                                }
+                                
+                                for (const entityDatum of entities) {
+                                    const entityView = entityPool.getInstance(),
+                                        entityModel = model.makeEntityFromData(entityDatum);
+                                    entityView.setEntity(entityModel);
+                                    entityView.setCellView(cellView);
+                                    entityView.updatePosition(posCount++, cellView);
+                                }
                             }
                         }
                     }
