@@ -8,14 +8,18 @@
         
         mathRound = Math.round,
         
-        {View, ImageSupport, Reusable, MouseOverAndDown, TrackActivesPool, Animator, debounce} = myt,
+        {
+            View, ImageSupport, Reusable, MouseOverAndDown, TrackActivesPool, Animator, TransformSupport,
+            debounce
+        } = myt,
         
         {
             cellOffsetsByDistance, visibilityPaths,
             character:{FIELD_LOC},
             util:{locArrToId,locIdToArr},
             composition,
-            cell:{FIELD_COMPOSITION, FIELD_ENTITIES}
+            cell:{FIELD_COMPOSITION, FIELD_ENTITIES},
+            FACINGS
         } = common,
         
         {
@@ -46,7 +50,10 @@
                 attrs.outline ??= [1, 'solid', '#000'];
                 attrs.border ??= [1, 'solid', '#fff'];
                 attrs.boxShadow ??= [2, 2, 4, '#000'];
+                
                 this.callSuper(parent, attrs);
+                
+                this.faceView = new View(this, {}, [TransformSupport]);
             },
             
             clean: function() {
@@ -70,43 +77,71 @@
             
             setEntity: function(v) {
                 const entity = this.entity = v,
+                    size = entitySizeM,
+                    halfSize = size / 2,
                     isAstralProjected = entity.isAstralProjected(),
-                    isSpirit = entity.isSpirit();
+                    isSpirit = entity.isSpirit(),
+                    borderWidth = this.borderWidth || 0,
+                    faceView = this.faceView;
                 
                 entityViewsByEntityId.set(entity.getId(), this);
                 
-                this.setWidth(entitySizeM);
-                this.setHeight(entitySizeM);
-                this.setRoundedCorners(this.borderWidth + entitySizeM / 2);
+                this.setWidth(size);
+                this.setHeight(size);
+                this.setRoundedCorners(borderWidth + halfSize);
+                
+                faceView.setWidth(6 + 2*borderWidth);
+                faceView.setHeight(2*borderWidth);
+                faceView.setX(size - 6);
+                faceView.setY(halfSize - borderWidth);
+                faceView.setTransformOrigin((halfSize - faceView.x) + 'px ' + (faceView.height / 2) + 'px');
                 
                 let color = '#fff',
                     bgColor;
                 if (entity === character) {
                     if (isSpirit) {
                         color = '#00f';
-                        bgColor = '#fff9';
+                        bgColor = '#99f6';
                     } else if (isAstralProjected) {
-                        color = '#999';
-                        bgColor = '#9999';
+                        color = '#ccf';
+                        bgColor = '#6666';
                     } else {
+                        color = '#000';
                         bgColor = '#fff';
                     }
                 } else {
                     if (isSpirit) {
                         color = '#00f';
-                        bgColor = '#0009';
+                        bgColor = '#0096';
                     } else if (isAstralProjected) {
-                        color = '#999';
-                        bgColor = '#0009';
+                        color = '#ccf';
+                        bgColor = '#0006';
                     } else {
                         bgColor = '#000';
                     }
                 }
                 
+                let angle = 0;
+                switch (entity.getFacing()) {
+                    case FACINGS.NORTH:
+                        angle = 270;
+                        break;
+                    case FACINGS.SOUTH:
+                        angle = 90;
+                        break;
+                    case FACINGS.EAST:
+                        angle = 0;
+                        break;
+                    case FACINGS.WEST:
+                        angle = 180;
+                        break;
+                }
                 
                 this.setVisible(true);
                 this.setBgColor(bgColor);
                 this.setBorderColor(color);
+                faceView.setBgColor(color);
+                faceView.setRotation(angle);
             },
             
             setCellView: function(v) {
@@ -307,7 +342,8 @@
             
             gameMap.constrain('refreshMap', [
                 model, 'cellChanged', model, 'mapChanged',
-                model, 'cellDataCleared', model, 'mapDataCleared'
+                model, 'cellDataCleared', model, 'mapDataCleared',
+                model, 'entityChanged'
             ]);
         },
         
@@ -358,7 +394,7 @@
                 baseX = locArr[1],
                 baseY = locArr[2],
                 posStartAdj = halfMapSize,
-                distance = character.getObserveDistance();
+                distance = character.getSightDistance();
             
             // Make a lookup table of observed cell IDs.
             observedLocIds.clear();

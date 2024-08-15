@@ -23,7 +23,17 @@
         entityData = {},
         
         EntityModel = new JS.Class('EntityModel', Eventable, {
-            include:[CommonEntityModelMixin]
+            include:[CommonEntityModelMixin],
+            
+            set: function(attrName, v, skipSetter) {
+                const curValue = this[attrName],
+                    retval = this.callSuper(attrName, v, skipSetter),
+                    newValue = this[attrName];
+                if (curValue !== newValue) {
+                    model?.fireEvent('entityChanged', {entity:this, attr:attrName, value:newValue});
+                }
+                return retval;
+            }
         }),
         
         CharacterModel = new JS.Class('CharacterModel', EntityModel, {

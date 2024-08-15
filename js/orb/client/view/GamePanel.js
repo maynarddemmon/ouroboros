@@ -30,9 +30,11 @@
                 FIELD_LOCK_MOVE, FIELD_LOCK_ACTION, FIELD_LOCK_FREE, FIELD_LOCK_REACT
             },
             greek:{
-                TYPE_EXIT_WORLD, TYPE_ALTER_CELL
+                ATTR_DIRECTION,
+                TYPE_EXIT_WORLD, TYPE_ALTER_CELL, TYPE_CHANGE_FACING
             },
             cell:{FIELD_COMPOSITION},
+            FACINGS,
             composition,
             util:{locIdToArr}
         } = common,
@@ -61,6 +63,8 @@
             let extraInfo = '';
             if (entity.isSpirit()) {
                 extraInfo = ' : Spirit';
+            } else if (entity.isAstralProjected()) {
+                extraInfo = ' : Astrally Projected';
             } else if (entity.isZombie()) {
                 extraInfo = ' : Zombie';
             }
@@ -84,6 +88,14 @@
         doArrowKey = (domEvent, direction) => {
             domEvent.preventDefault();
             doMoveCharacter(direction);
+        },
+        
+        doFacingKey = (domEvent, compassDirection) => {
+            domEvent.preventDefault();
+            if (!character.doFree(TYPE_CHANGE_FACING, {[ATTR_DIRECTION]:compassDirection})) {
+                gameMap.animateEntity(character.getId());
+                // FIXME: msg into chat log? "You can't face a different direction right now."
+            }
         },
         
         buildEntityHighlightView = parent => {
@@ -203,6 +215,11 @@
                     case GlobalKeys.CODE_ARROW_UP:    return doArrowKey(domEvent, 'forward');
                     case GlobalKeys.CODE_ARROW_RIGHT: return doArrowKey(domEvent, 'right');
                     case GlobalKeys.CODE_ARROW_DOWN:  return doArrowKey(domEvent, 'back');
+                    
+                    case GlobalKeys.CODE_W: return doFacingKey(domEvent, FACINGS.NORTH);
+                    case GlobalKeys.CODE_A: return doFacingKey(domEvent, FACINGS.WEST);
+                    case GlobalKeys.CODE_S: return doFacingKey(domEvent, FACINGS.SOUTH);
+                    case GlobalKeys.CODE_D: return doFacingKey(domEvent, FACINGS.EAST);
                 }
             }
             return true;

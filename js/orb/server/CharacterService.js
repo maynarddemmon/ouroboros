@@ -12,12 +12,14 @@ const orb = require('./orb.js'),
     {
         CommonEntityModelMixin,
         CommonCharacterModelMixin,
-        entity:{FIELD_ID, FIELD_SPIRIT, FIELD_ZOMBIE, FIELD_ASTRAL_PROJECTED},
+        entity:{FIELD_ID, FIELD_SPIRIT, FIELD_ZOMBIE, FIELD_ASTRAL_PROJECTED, FIELD_FACING},
         character:{
             FIELD_NAME, FIELD_USER_ID, FIELD_IN_WORLD,
             FIELD_LOC, FIELD_MOVE_SPEED, FIELD_PERMISSIONS,
             FIELD_LOCK_MOVE, FIELD_LOCK_ACTION, FIELD_LOCK_FREE, FIELD_LOCK_REACT
         },
+        FACINGS,
+        isValidFacing,
         permissions:{PERM_CREATOR},
         cell:{FIELD_COMPOSITION}
     } = require('../common/common.js'),
@@ -38,6 +40,16 @@ const orb = require('./orb.js'),
             
             this.callSuper(attrs);
         },
+        
+        [generateSetterName(FIELD_FACING)]: function(v) {
+            if (isValidFacing(v)) {
+                //const curCell = this.getCell();
+                this.callSuper(v);
+                //if (characterService.isReady) //worldMap.updateListenersForCharacter(this, curCell);
+            } else {
+                console.error('Attempt to set invalid facing on character: ', v, this);
+            }
+        },
     }),
     
     Character = new JS.Class('Character', EntityModel, {
@@ -53,6 +65,7 @@ const orb = require('./orb.js'),
             attrs[FIELD_NAME] ??= '';
             attrs[FIELD_IN_WORLD] ??= false;
             attrs[FIELD_LOC] ??= [0,0,0,0];
+            attrs[FIELD_FACING] ??= FACINGS.NORTH;
             attrs[FIELD_MOVE_SPEED] ??= 3;
             attrs[FIELD_LOCK_MOVE] ??= 0;
             attrs[FIELD_LOCK_ACTION] ??= 0;
@@ -64,7 +77,9 @@ const orb = require('./orb.js'),
         
         
         // Accessors ///////////////////////////////////////////////////////////
-        getMonitorDistance: () => 3,
+        getMonitorDistance: function() {
+            return Math.max(this.getSightDistance(), this.getHearDistance());
+        },
         
         getCell: function() {
             const curLocArr = this[FIELD_LOC];
@@ -124,7 +139,7 @@ const orb = require('./orb.js'),
             // currently only safe to call during die.
             delete this.inited;
             delete this._observedCells;
-            return this
+            return this;
         },
         
         /** Gets data that the provided character can see/hear/sense about this
@@ -138,6 +153,7 @@ const orb = require('./orb.js'),
             retval[FIELD_ZOMBIE] = this.isZombie();
             retval[FIELD_SPIRIT] = this.isSpirit();
             retval[FIELD_ASTRAL_PROJECTED] = this.isAstralProjected();
+            retval[FIELD_FACING] = this.getFacing();
             return retval;
         }
     }),

@@ -3,16 +3,18 @@ const orb = require('./orb.js'),
     characterService = require('./CharacterService.js'),
     worldMap = require('./WorldMap.js'),
     {
+        ATTR_TIME, ATTR_DIRECTION,
+        
         TYPE_WARNING, TYPE_ERROR, TYPE_SERVERINFO, TYPE_ENTER_WORLD, TYPE_EXIT_WORLD,
         TYPE_MAP_DATA,
         TYPE_MOVE, TYPE_MOVE_FAILED, MOVE_ERROR_CODES,
-        TYPE_ALTER_CELL, TYPE_ACTION_FAILED, ACTION_ERROR_CODES,
+        TYPE_ACTION_FAILED, ACTION_ERROR_CODES,
         TYPE_REACT_FAILED, REACT_ERROR_CODES,
-        TYPE_FREE_FAILED, FREE_ERROR_CODES,
-        TYPE_ALTER_CHARACTER,
-        ATTR_TIME
+        TYPE_CHANGE_FACING, TYPE_ALTER_CELL, TYPE_FREE_FAILED, FREE_ERROR_CODES,
+        TYPE_ALTER_CHARACTER
     } = require('../common/SocketProtocol.js'),
     {
+        entity:{FIELD_FACING},
         character:{
             FIELD_IN_WORLD, FIELD_PERMISSIONS, FIELD_LOC,
             FIELD_LOCK_MOVE, FIELD_LOCK_ACTION, FIELD_LOCK_REACT, FIELD_LOCK_FREE
@@ -205,6 +207,25 @@ const orb = require('./orb.js'),
                         worldMap.getCell(locArrToId(locArr), true).set(prop, value);
                     } else {
                         accountService.addMessageToUser(username, {type:TYPE_FREE_FAILED, code:FREE_ERROR_CODES.FREE_NOT_ALLOWED});
+                    }
+                }
+            );
+        },
+        
+        [TYPE_CHANGE_FACING]:event => {
+            performAction(
+                event, FIELD_LOCK_FREE, 'getFreeActionSpeed',
+                (username, character, now) => {
+                    const compassDirection = event.msg[ATTR_DIRECTION];
+                    if (compassDirection) {
+                        character.set(FIELD_FACING, compassDirection);
+                        
+                        // Send movement change
+                        accountService.addMessageToUser(username, {type:TYPE_ALTER_CHARACTER, msg:{
+                            id:character.id, p:FIELD_FACING, v:compassDirection
+                        }});
+                    } else {
+                        accountService.addMessageToUser(username, {type:TYPE_FREE_FAILED, code:FREE_ERROR_CODES.INVALID_VALUE});
                     }
                 }
             );

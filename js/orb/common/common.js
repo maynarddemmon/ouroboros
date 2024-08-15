@@ -22,6 +22,7 @@
         FIELD_SPIRIT = 'spirit',
         FIELD_ZOMBIE = 'zombie',
         FIELD_ASTRAL_PROJECTED = 'astral',
+        FIELD_FACING = 'facing',
         
         FIELD_USER_ID = 'uid',
         FIELD_PERMISSIONS = 'perms',
@@ -34,58 +35,10 @@
         FIELD_LOCK_FREE = 'lockFree',
         FIELD_LOCK_REACT = 'lockReact',
         
-        /*
-        [0,9] = d, d, d, d, d, d, d, d, d
-        [0,8] = d, d, d, d, d, d, d, d
-        [0,7] = d, d, d, d, d, d, d
-        [0,6] = d, d, d, d, d, d
-        [0,5] = d, d, d, d, d
-        [0,4] = d, d, d, d
-        [0,3] = d, d, d
-        [0,2] = d, d
-        [0,1] = d
-        
-        [1,9] = d, d, d, d, z, d, d, d, d
-        [1,8] = d, d, d, z, d, d, d, d
-        [1,7] = d, d, do,d, d, d, d
-        [1,6] = d, d, z, d, d, d
-        [1,5] = d, z, d, d, d
-        [1,4] = d, z, d, d
-        [1,3] = d, z, d
-        [1,2] = d, z
-        [1,1] = z
-        
-        [2,9] = d, z, d, d, d, z, d, d, d
-        [2,8] = d, z, d, d, d, z, d, d
-        [2,7] = d, z, d, d, z, d, d
-        [2,6] = d, z, d, d, z, d
-        [2,5] = do,d, d, z, d
-        [2,4] = do,d, do,d
-        [2,3] = z, z, d
-        [2,2] = z, z
-        
-        [3,8] = d, z, d, z, d, d, z, d
-        [3,7] = do,d, do,d, d, z, d
-        [3,6] = do,d, do,d, do,d
-        [3,5] = z, do,d, do,d
-        [3,4] = z, do,do,d
-        [3,3] = z, z, z
-        
-        [4,8] = do,d, do,d, do,d, do,d
-        [4,7] = do,d, z ,do,d, do,d
-        [4,6] = z, do,d, z, do,d
-        [4,5] = z, z, d, z, z
-        [4,4] = z, z, z, z,
-        
-        [5,8] = z ,do,d ,do,d, z, d, z
-        [5,7] = z ,do,d ,z, do,d ,z
-        [5,6] = z, do,do,do,d ,z
-        [5,5] = z, z, z, z, z
-        
-        [6,7] = z ,z ,do,do,do,d ,z
-        [6,6] = z, z ,z ,z ,z ,z
-        */
-        
+        COMPASS_NORTH =1,
+        COMPASS_SOUTH = 2,
+        COMPASS_EAST = 3,
+        COMPASS_WEST = 4,
         
         /* all zags must be the same order within a path
             should walk from origin out to loc. */
@@ -243,6 +196,8 @@
             isZombie: function() {return this[FIELD_ZOMBIE];},
             [generateSetterName(FIELD_ASTRAL_PROJECTED)]: function(v) {this.set(FIELD_ASTRAL_PROJECTED, v, true);},
             isAstralProjected: function() {return this[FIELD_ASTRAL_PROJECTED];},
+            [generateSetterName(FIELD_FACING)]: function(v) {this.set(FIELD_FACING, v, true);},
+            getFacing: function() {return this[FIELD_FACING];},
         }),
         
         CommonCharacterModelMixin = new JS.Module('CommonCharacterModelMixin', {
@@ -257,6 +212,7 @@
             },
             [generateSetterName(FIELD_IN_WORLD)]: function(v) {this.set(FIELD_IN_WORLD, v, true);},
             isInWorld: function() {return this[FIELD_IN_WORLD];},
+            
             [generateSetterName(FIELD_LOC)]: function(v) {this.set(FIELD_LOC, v, true);},
             getLocArr: function(asCopy) {
                 const locArr = this[FIELD_LOC];
@@ -275,7 +231,8 @@
             
             [generateSetterName(FIELD_PERMISSIONS)]: function(v) {this.set(FIELD_PERMISSIONS, v, true);},
             
-            getObserveDistance: () => 3,
+            getSightDistance: () => 3,
+            getHearDistance: () => 4,
             
             
             // Methods /////////////////////////////////////////////////////////,
@@ -291,6 +248,24 @@
             
             cellOffsetsByDistance:[CIRCLE_0,CIRCLE_1,CIRCLE_2,CIRCLE_3,CIRCLE_4,CIRCLE_5,CIRCLE_6,CIRCLE_7,CIRCLE_8,CIRCLE_9],
             visibilityPaths:VISIBILITY_PATHS,
+            
+            FACINGS:{
+                NORTH:COMPASS_NORTH,
+                SOUTH:COMPASS_SOUTH,
+                EAST:COMPASS_EAST,
+                WEST:COMPASS_WEST
+            },
+            
+            isValidFacing: v => {
+                switch (v) {
+                    case COMPASS_NORTH:
+                    case COMPASS_SOUTH:
+                    case COMPASS_EAST:
+                    case COMPASS_WEST:
+                        return true;
+                }
+                return false;
+            },
             
             permissions:{
                 PERM_CREATOR:PERM_CREATOR
@@ -310,7 +285,8 @@
                 FIELD_ID:FIELD_ID,
                 FIELD_SPIRIT:FIELD_SPIRIT,
                 FIELD_ZOMBIE:FIELD_ZOMBIE,
-                FIELD_ASTRAL_PROJECTED:FIELD_ASTRAL_PROJECTED
+                FIELD_ASTRAL_PROJECTED:FIELD_ASTRAL_PROJECTED,
+                FIELD_FACING:FIELD_FACING
             },
             
             character:{
@@ -370,23 +346,41 @@
                     opacity:0.25
                 },
                 
+                // Earth
+                s1:{
+                    name:'Solid Stone',
+                    mapColor:'#0003',
+                    tileUrl:'/img/tile/stone_solid.png',
+                    solidity:1,
+                    opacity:1
+                },
+                
                 // Air
                 a1:{
                     name:'Stone Floor',
-                    mapColor:'transparent',//'#ccf',
+                    mapColor:'transparent',
                     tileUrl:'/img/tile/stone_floor.png',
                     solidity:0,
                     opacity:0.01
                 },
                 
-                // Earth
-                s1:{
-                    name:'Solid Stone',
-                    mapColor:'#0003',//'#888',
-                    tileUrl:'/img/tile/stone_solid.png',
+                // Fire
+                f1:{
+                    name:'Fire',
+                    mapColor:'#f66',
+                    tileUrl:'/img/tile/fire.png',
+                    solidity:0,
+                    opacity:0.5
+                },
+                
+                // Water
+                w1:{
+                    name:'Solid Ice',
+                    mapColor:'#ccf',
+                    tileUrl:'/img/tile/ice_solid.png',
                     solidity:1,
-                    opacity:1
-                }
+                    opacity:0.5
+                },
             }
         };
     

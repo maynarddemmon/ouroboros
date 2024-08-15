@@ -3,7 +3,8 @@
         
         EXPORT = {
             // Socket Message Attributes
-            ATTR_TIME:'_t',
+            ATTR_TIME:'t',
+            ATTR_DIRECTION:'d',
             
             
             // General
@@ -48,10 +49,12 @@
             },
             
             // Free Actions
+            TYPE_CHANGE_FACING:'changeFacing',
             TYPE_ALTER_CELL:'alterCell',
             TYPE_FREE_FAILED:'freeFailed',
             FREE_ERROR_CODES:{
-                FREE_NOT_ALLOWED:1
+                INVALID_VALUE:1,
+                FREE_NOT_ALLOWED:2,
             },
         };
     

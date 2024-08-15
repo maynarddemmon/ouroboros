@@ -492,6 +492,8 @@
             
             websocket.registerListener(response => {
                 switch (response.code) {
+                    case FREE_ERROR_CODES.INVALID_VALUE:
+                        growl('warning', response.msg);
                     case FREE_ERROR_CODES.FREE_NOT_ALLOWED:
                         pkg.gameMap.animateEntity(model.getCharacterInPlay().getId());
                         break;
