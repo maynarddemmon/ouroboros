@@ -27,6 +27,11 @@ const orb = require('./orb.js'),
     
     FILENAME_CHARACTERS = 'characters',
     
+    ATTRS_TO_NOTIFY_FOR = [
+        FIELD_FACING, FIELD_SPIRIT, FIELD_ZOMBIE, FIELD_ASTRAL_PROJECTED,
+        FIELD_IN_WORLD
+    ],
+    
     EntityModel = new JS.Class('EntityModel', Eventable, {
         include:[CommonEntityModelMixin],
         
@@ -42,14 +47,16 @@ const orb = require('./orb.js'),
             this.callSuper(attrs);
         },
         
-        [generateSetterName(FIELD_FACING)]: function(v) {
-            if (isValidFacing(v)) {
-                const curCell = this.getCell();
-                this.callSuper(v);
-                if (curCell) curCell.notifyAllChangeListeners();
-            } else {
-                console.error('Attempt to set invalid facing on character: ', v, this);
+        set: function(attrName, v, skipSetter) {
+            const curValue = this[attrName],
+                retval = this.callSuper(attrName, v, skipSetter);
+            if (this.inited && curValue !== this[attrName]) {
+                if (ATTRS_TO_NOTIFY_FOR.includes(attrName)) {
+                    const curCell = this.getCell();
+                    if (curCell) curCell.notifyAllChangeListeners();
+                }
             }
+            return retval;
         },
         
         /** Gets data that the provided character can see/hear/sense about this entity. */

@@ -69,7 +69,11 @@
                 extraInfo = ' : Zombie';
             }
             if (entity.inWorld) {
-                extraInfo += ' : ' + ' Active Player';
+                if (entity === character) {
+                    extraInfo += ' : My Character';
+                } else {
+                    extraInfo += ' : Active Player Character';
+                }
             }
             return entity.name + extraInfo;
         },

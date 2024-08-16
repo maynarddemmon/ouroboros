@@ -16,7 +16,7 @@
             character:{
                 FIELD_LOCK_MOVE, FIELD_LOCK_ACTION, FIELD_LOCK_REACT, FIELD_LOCK_FREE
             },
-            cell:{FIELD_ENTITIES},
+            cell:{FIELD_COMPOSITION, FIELD_ENTITIES},
             permissions:{
                 PERM_CREATOR
             }
@@ -225,9 +225,8 @@
                     
                     const existingDatum = model.getCellDatum(locId);
                     if (existingDatum) {
-                        for (const attrName in cellDatum) {
-                            existingDatum[attrName] = cellDatum[attrName];
-                        }
+                        existingDatum[FIELD_COMPOSITION] = cellDatum[FIELD_COMPOSITION];
+                        existingDatum[FIELD_ENTITIES] = cellDatum[FIELD_ENTITIES] || null;
                     } else {
                         cellData[locId] = cellDatum;
                     }
