@@ -2,11 +2,13 @@
     let gameMap,
         cellPool,
         entityPool,
-        character;
+        character,
+        cellCountX,
+        cellCountY;
     
     const JSClass = JS.Class,
         
-        mathRound = Math.round,
+        {round:mathRound, ceil:mathCeil} = Math,
         
         {
             View, ImageSupport, Reusable, MouseOverAndDown, TrackActivesPool, Animator, TransformSupport,
@@ -24,12 +26,10 @@
         
         {
             model,
-            cfg:{mapRange, cellSize, entitySizeM}
+            cfg:{mapRangeOffset, cellSize, entitySizeM}
         } = pkg,
         
         halfCellSize = cellSize / 2,
-        halfMapSize = halfCellSize + (mapRange * cellSize),
-        mapSize = 2*halfMapSize,
         
         observedLocIds = new Set(),
         obscuredLocIds = new Set(),
@@ -230,7 +230,7 @@
             },
             
             setIsSeen: function(v) {
-                this._observedOverlay?.setBgColor(this.isSeen = v ? 'transparent' : '#0009');
+                this._observedOverlay?.setBgColor(this.isSeen = v ? 'transparent' : '#0008');
             }
         });
         
@@ -331,9 +331,8 @@
         initNode: function(parent, attrs) {
             gameMap = pkg.gameMap = this;
             
-            attrs.width = attrs.height = mapSize;
-            attrs.imageSize = 'contain';
-            attrs.imageUrl = '/img/gameMapBg4.jpg';
+            attrs.imageRepeat = 'both';
+            attrs.imageUrl = '/img/gameMapBg.png';
             
             gameMap.callSuper(parent, attrs);
             
@@ -349,6 +348,18 @@
         
         
         // Accessors ///////////////////////////////////////////////////////////
+        setWidth: v => {
+            gameMap.callSuper(v);
+            cellCountX = mathCeil(v / cellSize);
+            if (gameMap.inited) gameMap.refreshMap();
+        },
+        
+        setHeight: v => {
+            gameMap.callSuper(v);
+            cellCountY = mathCeil(v / cellSize);
+            if (gameMap.inited) gameMap.refreshMap();
+        },
+        
         setCharacter: v => character = v,
         
         
@@ -385,8 +396,10 @@
                 locArr = originArr.slice(),
                 baseX = locArr[1],
                 baseY = locArr[2],
-                posStartAdj = halfMapSize,
                 distance = character.getSightDistance();
+            
+            // Have backgroundImage track the map ofset.
+            gameMap.setImagePosition(-baseX * cellSize + 'px ' + -baseY * cellSize + 'px');
             
             // Make a lookup table of observed cell IDs.
             observedLocIds.clear();
@@ -497,7 +510,6 @@
                             }
                             
                             if (retval) {
-                                //console.log('here', firstZZ, zzOptA)
                                 endedOnObserved = (x + baseX === locArrToCheck[1]) && (y + baseY === locArrToCheck[2]);
                                 return true;
                             }
@@ -518,17 +530,17 @@
                 }
             }
             
-            let posX = centerX - posStartAdj,
-                posY = centerY - posStartAdj;
-            for (let x = -mapRange; x <= mapRange; x++) {
+            let posX = 0,
+                posY = 0;
+            const xLimit = cellCountX - mapRangeOffset,
+                yLimit = cellCountY - mapRangeOffset;
+            for (let x = -mapRangeOffset; x < xLimit; x++) {
                 locArr[1] = baseX + x;
-                for (let y = -mapRange; y <= mapRange; y++) {
+                for (let y = -mapRangeOffset; y < yLimit; y++) {
                     locArr[2] = baseY + y;
                     
                     const locId = locArrToId(locArr),
-                        isObserved = observedLocIds.has(locId),
-                        isObscured = obscuredLocIds.has(locId),
-                        isSeen = isObserved && !isObscured,
+                        isSeen = observedLocIds.has(locId) && !obscuredLocIds.has(locId),
                         cellDatum = model.getCellDatum(locId) ?? {locId:locId, [FIELD_COMPOSITION]:'unk'},
                         cellView = cellPool.getInstance();
                     
@@ -560,7 +572,7 @@
                     posY += cellSize;
                 }
                 posX += cellSize;
-                posY -= mapSize;
+                posY = 0;
             }
         }, 50)
     });

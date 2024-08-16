@@ -261,7 +261,10 @@
         },
         
         buildContent: content => {
-            gameMap = new pkg.GameMap(content, {}, [{
+            gameMap = new pkg.GameMap(content, {
+                percentOfParentWidth:100, percentOfParentHeight:100,
+                overflow:'hidden'
+            }, [SizeToParent, {
                 doCharacterCell: (character, cell, cellView) => {
                     if (curLocId !== cell.locId) {
                         curLocId = cell.locId;
@@ -274,7 +277,7 @@
             
             mapInfo = new PaddedText(content, {
                 x:spacing, y:spacing, padding:spacing, pointerEvents:'none',
-                textColor:colorBgF, bgColor:'#000', opacity:0.5
+                textColor:colorBgF, bgColor:'#0003'
             });
             
             const cellHV = buildCellHighlightView(content),
@@ -282,11 +285,9 @@
             gameMap.doMouseOverCell = cellHV.update.bind(cellHV);
             gameMap.doMouseOverEntity = entityHV.update.bind(entityHV);
             
-            const rightPanelX = gameMap.x + gameMap.width + padding;
+            
             rightPanel = new View(content, {
-                x:rightPanelX, y:padding,
-                percentOfParentWidth:100, percentOfParentWidthOffset:-(rightPanelX + padding),
-                percentOfParentHeight:100, percentOfParentHeightOffset:-2*padding
+                align:'right', width:280, percentOfParentHeight:100, bgColor:'#0003'
             }, [SizeToParent]);
             
             myLocInfo = new Text(rightPanel, {textColor:colorBgF});
@@ -309,7 +310,7 @@
             });
             
             // Teleport
-            teleportBtn = new TextBtn(rightPanel, {text:'Teleport', visible:false}, [{
+            teleportBtn = new TextBtn(rightPanel, {text:'Teleport', visible:false, layoutHint:'break'}, [{
                 doActivated: () => {
                     const value = teleportLocField.value;
                     if (value && value.length >= 7) doMoveCharacter(value);
@@ -320,7 +321,10 @@
                 acceleratorScope:'root'
             },[{doAccept:teleportBtn.doActivated}]);
             
-            new M.WrappingLayout(rightPanel, {spacing:12, lineSpacing:20});
+            new M.WrappingLayout(rightPanel, {
+                inset:padding, spacing:spacing, outset:padding, 
+                lineInset:padding, lineSpacing:spacing, lineOutset:padding
+            });
         }
     });
 })(orb);
