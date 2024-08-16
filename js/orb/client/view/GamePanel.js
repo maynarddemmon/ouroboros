@@ -211,10 +211,10 @@
                 !srcView || !(srcView.isA(M.BaseInputText) || srcView.isA(M.InputSelect))
             ) {
                 switch (M.KeyObservable.getCodeFromEvent(event)) {
-                    case GlobalKeys.CODE_ARROW_LEFT:  return doArrowKey(domEvent, 'left');
-                    case GlobalKeys.CODE_ARROW_UP:    return doArrowKey(domEvent, 'forward');
-                    case GlobalKeys.CODE_ARROW_RIGHT: return doArrowKey(domEvent, 'right');
-                    case GlobalKeys.CODE_ARROW_DOWN:  return doArrowKey(domEvent, 'back');
+                    case GlobalKeys.CODE_ARROW_LEFT:  return doArrowKey(domEvent, FACINGS.WEST);
+                    case GlobalKeys.CODE_ARROW_UP:    return doArrowKey(domEvent, FACINGS.NORTH);
+                    case GlobalKeys.CODE_ARROW_RIGHT: return doArrowKey(domEvent, FACINGS.EAST);
+                    case GlobalKeys.CODE_ARROW_DOWN:  return doArrowKey(domEvent, FACINGS.SOUTH);
                     
                     case GlobalKeys.CODE_W: return doFacingKey(domEvent, FACINGS.NORTH);
                     case GlobalKeys.CODE_A: return doFacingKey(domEvent, FACINGS.WEST);

@@ -71,9 +71,9 @@ const orb = require('./orb.js'),
                     characterId = character.getId(),
                     accum = [];
                 for (const entity of values) {
-                    if (entity.getId() !== characterId) {
+                    //if (entity.getId() !== characterId) {
                         accum.push(entity.getAsDataForCharacter(character));
-                    }
+                    //}
                 }
                 if (accum.length > 0) retval[FIELD_ENTITIES] = accum;
             }

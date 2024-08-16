@@ -218,10 +218,15 @@
                 const locArr = this[FIELD_LOC];
                 return asCopy ? locArr.slice() : locArr;
             },
+            
+            // Action Speeds
+            [generateSetterName(FIELD_MOVE_SPEED)]: function(v) {this.set(FIELD_MOVE_SPEED, v, true);},
+            getMoveSpeed: function(contextObj) {return this[FIELD_MOVE_SPEED];},
+            getFreeActionSpeed: function(contextObj) {return 1;},
+            
+            // Lock Times
             [generateSetterName(FIELD_LOCK_MOVE)]: function(v) {this.set(FIELD_LOCK_MOVE, v, true);},
             getLockMove: function() {return this[FIELD_LOCK_MOVE];},
-            [generateSetterName(FIELD_MOVE_SPEED)]: function(v) {this.set(FIELD_MOVE_SPEED, v, true);},
-            getMoveSpeed: function() {return this[FIELD_MOVE_SPEED];},
             [generateSetterName(FIELD_LOCK_ACTION)]: function(v) {this.set(FIELD_LOCK_ACTION, v, true);},
             getLockAction: function() {return this[FIELD_LOCK_ACTION];},
             [generateSetterName(FIELD_LOCK_FREE)]: function(v) {this.set(FIELD_LOCK_FREE, v, true);},

@@ -19,7 +19,7 @@
             util:{locArrToId,locIdToArr},
             composition,
             cell:{FIELD_COMPOSITION, FIELD_ENTITIES},
-            FACINGS
+            FACINGS:{NORTH, SOUTH, EAST, WEST},
         } = common,
         
         {
@@ -123,16 +123,16 @@
                 
                 let angle = 0;
                 switch (entity.getFacing()) {
-                    case FACINGS.NORTH:
+                    case NORTH:
                         angle = 270;
                         break;
-                    case FACINGS.SOUTH:
+                    case SOUTH:
                         angle = 90;
                         break;
-                    case FACINGS.EAST:
+                    case EAST:
                         angle = 0;
                         break;
-                    case FACINGS.WEST:
+                    case WEST:
                         angle = 180;
                         break;
                 }
@@ -351,16 +351,6 @@
         // Accessors ///////////////////////////////////////////////////////////
         setCharacter: v => character = v,
         
-        setWidth: v => {
-            gameMap.callSuper(v);
-            if (gameMap.inited) gameMap.refreshMap();
-        },
-        
-        setHeight: v => {
-            gameMap.callSuper(v);
-            if (gameMap.inited) gameMap.refreshMap();
-        },
-        
         
         // Methods /////////////////////////////////////////////////////////////
         doMouseOverCell: (isOver, cell, cellView) => {},
@@ -379,7 +369,7 @@
             }
         },
         
-        refreshMap: debounce(() => {
+        refreshMap: debounce((event) => {
             if (!character) return;
             
             cellPool.putActives();
@@ -387,7 +377,9 @@
             cellViewsByLocId.clear();
             entityViewsByEntityId.clear();
             
-            const centerX = mathRound(gameMap.width / 2),
+            const characterId = character.getId(),
+                facing = character.getFacing(),
+                centerX = mathRound(gameMap.width / 2),
                 centerY = mathRound(gameMap.height / 2),
                 originArr = character[FIELD_LOC],
                 locArr = originArr.slice(),
@@ -400,10 +392,18 @@
             observedLocIds.clear();
             if (distance >= 0 && distance < cellOffsetsByDistance.length) {
                 const offsets = cellOffsetsByDistance[distance];
-                for (const offset of offsets) {
-                    locArr[1] = baseX + offset[0];
-                    locArr[2] = baseY + offset[1];
-                    observedLocIds.add(locArrToId(locArr));
+                for (const [offsetX, offsetY] of offsets) {
+                    locArr[1] = baseX + offsetX;
+                    locArr[2] = baseY + offsetY;
+                    
+                    let isFacedLoc = false;
+                    switch (facing) {
+                        case NORTH:isFacedLoc = offsetY <= 0; break;
+                        case SOUTH:isFacedLoc = offsetY >= 0; break;
+                        case EAST:isFacedLoc = offsetX >= 0; break;
+                        case WEST:isFacedLoc = offsetX <= 0; break;
+                    }
+                    if (isFacedLoc) observedLocIds.add(locArrToId(locArr));
                 }
             }
             
@@ -536,31 +536,21 @@
                     
                     cellView.callSetters({x:posX, y:posY, cell:cellDatum, isSeen:isSeen});
                     
-                    let posCount = 0,
-                        characterView;
+                    const entities = cellDatum[FIELD_ENTITIES],
+                        len = entities?.length;
+                    let posCount = len > 1 ? 1 : 0;
                     if (x === 0 && y === 0) {
-                        characterView = entityPool.getInstance();
+                        const characterView = entityPool.getInstance();
                         characterView.setEntity(character);
                         characterView.setCellView(cellView);
                         characterView.updatePosition(posCount++, cellView);
                         gameMap.doCharacterCell(character, cellDatum, cellView);
                     }
-                    
-                    if (isSeen) {
-                        const entities = cellDatum[FIELD_ENTITIES],
-                            len = entities?.length;
-                        if (len > 0) {
-                            if (characterView) {
-                                // Reposition character to not be in center.
-                                characterView.updatePosition(posCount++, cellView);
-                            } else if (len > 1) {
-                                posCount++;
-                            }
-                            
-                            for (const entityDatum of entities) {
-                                const entityView = entityPool.getInstance(),
-                                    entityModel = model.makeEntityFromData(entityDatum);
-                                entityView.setEntity(entityModel);
+                    if (isSeen && len > 0) {
+                        for (const entityDatum of entities) {
+                            if (entityDatum.id !== characterId) {
+                                const entityView = entityPool.getInstance();
+                                entityView.setEntity(model.makeEntityFromData(entityDatum));
                                 entityView.setCellView(cellView);
                                 entityView.updatePosition(posCount++, cellView);
                             }

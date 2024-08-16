@@ -1,4 +1,9 @@
 const orb = require('./orb.js'),
+    
+    {
+        tym:{getRandom}
+    } = require('../../../lib/tym.js'),
+    
     accountService = require('./AccountService.js'),
     characterService = require('./CharacterService.js'),
     worldMap = require('./WorldMap.js'),
@@ -19,6 +24,7 @@ const orb = require('./orb.js'),
             FIELD_IN_WORLD, FIELD_PERMISSIONS, FIELD_LOC,
             FIELD_LOCK_MOVE, FIELD_LOCK_ACTION, FIELD_LOCK_REACT, FIELD_LOCK_FREE
         },
+        FACINGS:{NORTH, SOUTH, EAST, WEST},
         permissions:{PERM_CREATOR}
     } = require('../common/common.js'),
     
@@ -49,7 +55,7 @@ const orb = require('./orb.js'),
         }
     },
     
-    performAction = (event, lockProperty, cooldownFuncName, actionFunc) => {
+    performAction = (event, lockProperty, cooldownFuncName, cooldownContext, actionFunc) => {
         const username = verifyUserIdHasAccount(event);
         if (username) {
             const characterId = event.msg.id,
@@ -59,7 +65,11 @@ const orb = require('./orb.js'),
                     const now = event[ATTR_TIME];
                     let curLockValue = character.get(lockProperty);
                     if (now >= curLockValue) {
-                        curLockValue = now + character[cooldownFuncName]();
+                        const cooldownAmount = character[cooldownFuncName](cooldownContext),
+                            fixedAmount = Math.floor(cooldownAmount),
+                            randomChance = cooldownAmount - fixedAmount,
+                            randomAmount = (randomChance > 0 && getRandom() < randomChance) ? 1 : 0;
+                        curLockValue = now + fixedAmount + randomAmount;
                         character.set(lockProperty, curLockValue);
                         actionFunc(username, character, now);
                     }
@@ -148,19 +158,16 @@ const orb = require('./orb.js'),
         },
         
         [TYPE_MOVE]:event => {
+            const direction = event.msg.direction;
             performAction(
-                event, FIELD_LOCK_MOVE, 'getMoveSpeed', 
+                event, FIELD_LOCK_MOVE, 'getMoveSpeed', {direction:direction}, 
                 (username, character, now) => {
                     let locArr = character.getLocArr(true);
-                    
-                    // Calculate desired new location
-                    // FIXME: need character facing to calculate move correctly
-                    const direction = event.msg.direction;
                     switch (direction) {
-                        case 'forward': locArr[2] -= 1; break;
-                        case 'back': locArr[2] += 1; break;
-                        case 'left': locArr[1] -= 1; break;
-                        case 'right': locArr[1] += 1; break;
+                        case NORTH: locArr[2] -= 1; break;
+                        case SOUTH: locArr[2] += 1; break;
+                        case EAST: locArr[1] += 1; break;
+                        case WEST: locArr[1] -= 1; break;
                         default:
                             // Treat the direction as a locId
                             if (character.hasPermission(PERM_CREATOR)) {
@@ -173,8 +180,7 @@ const orb = require('./orb.js'),
                     }
                     
                     // Determine if the new location will allow the character
-                    const locId = locArrToId(locArr),
-                        cell = worldMap.getCell(locId, true);
+                    const cell = worldMap.getCell(locArrToId(locArr), true);
                     if (cell.mayMoveInto(character)) {
                         // Apply Change to Character
                         character.set(FIELD_LOC, locArr);
@@ -192,18 +198,11 @@ const orb = require('./orb.js'),
         
         [TYPE_ALTER_CELL]:event => {
             performAction(
-                event, FIELD_LOCK_FREE, 'getFreeActionSpeed',
+                event, FIELD_LOCK_FREE, 'getFreeActionSpeed', null, 
                 (username, character, now) => {
                     if (character.hasPermission(PERM_CREATOR)) {
                         const locArr = character.getLocArr(true),
                             {prop, value, direction} = event.msg;
-                        
-                        // FIXME: need character facing to calculate direction correctly
-                        /*switch (direction) {
-                            case 'here': break;
-                        }*/
-                        
-                        // Get Cell and alter it
                         worldMap.getCell(locArrToId(locArr), true).set(prop, value);
                     } else {
                         accountService.addMessageToUser(username, {type:TYPE_FREE_FAILED, code:FREE_ERROR_CODES.FREE_NOT_ALLOWED});
@@ -214,16 +213,11 @@ const orb = require('./orb.js'),
         
         [TYPE_CHANGE_FACING]:event => {
             performAction(
-                event, FIELD_LOCK_FREE, 'getFreeActionSpeed',
+                event, FIELD_LOCK_FREE, 'getFreeActionSpeed', null, 
                 (username, character, now) => {
                     const compassDirection = event.msg[ATTR_DIRECTION];
                     if (compassDirection) {
                         character.set(FIELD_FACING, compassDirection);
-                        
-                        // Send movement change
-                        accountService.addMessageToUser(username, {type:TYPE_ALTER_CHARACTER, msg:{
-                            id:character.id, p:FIELD_FACING, v:compassDirection
-                        }});
                     } else {
                         accountService.addMessageToUser(username, {type:TYPE_FREE_FAILED, code:FREE_ERROR_CODES.INVALID_VALUE});
                     }

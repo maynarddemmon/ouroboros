@@ -37,19 +37,31 @@ const orb = require('./orb.js'),
             attrs[FIELD_SPIRIT] ??= false;
             attrs[FIELD_ZOMBIE] ??= false;
             attrs[FIELD_ASTRAL_PROJECTED] ??= false;
+            attrs[FIELD_FACING] ??= FACINGS.NORTH;
             
             this.callSuper(attrs);
         },
         
         [generateSetterName(FIELD_FACING)]: function(v) {
             if (isValidFacing(v)) {
-                //const curCell = this.getCell();
+                const curCell = this.getCell();
                 this.callSuper(v);
-                //if (characterService.isReady) //worldMap.updateListenersForCharacter(this, curCell);
+                if (curCell) curCell.notifyAllChangeListeners();
             } else {
                 console.error('Attempt to set invalid facing on character: ', v, this);
             }
         },
+        
+        /** Gets data that the provided character can see/hear/sense about this entity. */
+        getAsDataForCharacter: function(character) {
+            const retval = {};
+            retval[FIELD_ID] = this.getId();
+            retval[FIELD_SPIRIT] = this.isSpirit();
+            retval[FIELD_ZOMBIE] = this.isZombie();
+            retval[FIELD_ASTRAL_PROJECTED] = this.isAstralProjected();
+            retval[FIELD_FACING] = this.getFacing();
+            return retval;
+        }
     }),
     
     Character = new JS.Class('Character', EntityModel, {
@@ -65,7 +77,6 @@ const orb = require('./orb.js'),
             attrs[FIELD_NAME] ??= '';
             attrs[FIELD_IN_WORLD] ??= false;
             attrs[FIELD_LOC] ??= [0,0,0,0];
-            attrs[FIELD_FACING] ??= FACINGS.NORTH;
             attrs[FIELD_MOVE_SPEED] ??= 3;
             attrs[FIELD_LOCK_MOVE] ??= 0;
             attrs[FIELD_LOCK_ACTION] ??= 0;
@@ -113,8 +124,14 @@ const orb = require('./orb.js'),
             }
         },
         
-        getFreeActionSpeed: function() {
-            return 1;
+        getMoveSpeed: function(context) {
+            let mv = this.callSuper();
+            // Movement in a direction other than the one the character is facing costs extra time.
+            if (context) {
+                const direction = context.direction;
+                if (direction && direction !== this.getFacing()) mv *= 1.25;
+            } 
+            return mv;
         },
         
         // Methods /////////////////////////////////////////////////////////////
@@ -145,15 +162,10 @@ const orb = require('./orb.js'),
         /** Gets data that the provided character can see/hear/sense about this
             character. */
         getAsDataForCharacter: function(character) {
-            const retval = {};
-            for (const propName of [FIELD_NAME]) {
+            const retval = this.callSuper(character);
+            for (const propName of [FIELD_NAME, FIELD_IN_WORLD]) {
                 retval[propName] = this.get(propName);
             }
-            retval[FIELD_IN_WORLD] = this.isInWorld();
-            retval[FIELD_ZOMBIE] = this.isZombie();
-            retval[FIELD_SPIRIT] = this.isSpirit();
-            retval[FIELD_ASTRAL_PROJECTED] = this.isAstralProjected();
-            retval[FIELD_FACING] = this.getFacing();
             return retval;
         }
     }),

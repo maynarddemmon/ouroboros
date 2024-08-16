@@ -12,9 +12,11 @@
             CommonEntityModelMixin,
             CommonCharacterModelMixin,
             greek:{TYPE_MOVE},
+            entity:{FIELD_ID},
             character:{
                 FIELD_LOCK_MOVE, FIELD_LOCK_ACTION, FIELD_LOCK_REACT, FIELD_LOCK_FREE
             },
+            cell:{FIELD_ENTITIES},
             permissions:{
                 PERM_CREATOR
             }
@@ -29,7 +31,7 @@
                 const curValue = this[attrName],
                     retval = this.callSuper(attrName, v, skipSetter),
                     newValue = this[attrName];
-                if (curValue !== newValue) {
+                if (this.inited && curValue !== newValue) {
                     model?.fireEvent('entityChanged', {entity:this, attr:attrName, value:newValue});
                 }
                 return retval;
@@ -217,10 +219,32 @@
             
             storeCellData: data => {
                 const cellData = model.getCellData();
-                for (const key in data) {
-                    const cellDatum = data[key];
-                    cellDatum.locId = key;
-                    cellData[key] = cellDatum;
+                for (const locId in data) {
+                    const cellDatum = data[locId];
+                    cellDatum.locId = locId;
+                    
+                    const existingDatum = model.getCellDatum(locId);
+                    if (existingDatum) {
+                        for (const attrName in cellDatum) {
+                            existingDatum[attrName] = cellDatum[attrName];
+                        }
+                    } else {
+                        cellData[locId] = cellDatum;
+                    }
+                    
+                    const entities = cellDatum[FIELD_ENTITIES];
+                    if (entities?.length > 0) {
+                        const character = model.getCharacterInPlay();
+                        if (character) {
+                            const characterId = character.getId();
+                            for (const entity of entities) {
+                                if (entity[FIELD_ID] === characterId) {
+                                    character.callSetters(entity);
+                                }
+                            }
+                        }
+                    }
+                    
                     model.fireEvent('cellChanged', cellDatum);
                 }
             },
