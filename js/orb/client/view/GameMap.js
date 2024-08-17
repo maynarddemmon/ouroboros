@@ -8,7 +8,7 @@
     
     const JSClass = JS.Class,
         
-        {round:mathRound, ceil:mathCeil} = Math,
+        {round:mathRound, ceil:mathCeil, abs:mathAbs} = Math,
         
         {
             View, ImageSupport, Reusable, MouseOverAndDown, TrackActivesPool, Animator, TransformSupport,
@@ -29,14 +29,12 @@
             cfg:{mapRangeOffset, cellSize, entitySizeM}
         } = pkg,
         
-        halfCellSize = cellSize / 2,
-        
         observedLocIds = new Set(),
         obscuredLocIds = new Set(),
         cellViewsByLocId = new Map(),
-        getCellViewForLocId = locId => cellViewsByLocId.get(locId),
-        
         entityViewsByEntityId = new Map(),
+        
+        getCellViewForLocId = locId => cellViewsByLocId.get(locId),
         getEntityViewForEntityId = entityId => entityViewsByEntityId.get(entityId),
         
         EntityView = new JSClass('EntityView', View, {
@@ -53,7 +51,8 @@
                 
                 this.callSuper(parent, attrs);
                 
-                this.faceView = new View(this, {}, [TransformSupport]);
+                const twiceBorderWidth = 2*this.borderWidth;
+                this.faceView = new View(this, {width:6 + twiceBorderWidth, height:twiceBorderWidth}, [TransformSupport]);
             },
             
             clean: function() {
@@ -76,22 +75,20 @@
             },
             
             setEntity: function(v) {
-                const entity = this.entity = v,
+                const self = this,
+                    entity = self.entity = v,
                     size = entitySizeM,
                     halfSize = size / 2,
                     isAstralProjected = entity.isAstralProjected(),
                     isSpirit = entity.isSpirit(),
-                    borderWidth = this.borderWidth || 0,
-                    faceView = this.faceView;
+                    {borderWidth, faceView} = self;
                 
-                entityViewsByEntityId.set(entity.getId(), this);
+                entityViewsByEntityId.set(entity.getId(), self);
                 
-                this.setWidth(size);
-                this.setHeight(size);
-                this.setRoundedCorners(borderWidth + halfSize);
+                self.setWidth(size);
+                self.setHeight(size);
+                self.setRoundedCorners(borderWidth + halfSize);
                 
-                faceView.setWidth(6 + 2*borderWidth);
-                faceView.setHeight(2*borderWidth);
                 faceView.setX(size - 6);
                 faceView.setY(halfSize - borderWidth);
                 faceView.setTransformOrigin((halfSize - faceView.x) + 'px ' + (faceView.height / 2) + 'px');
@@ -121,65 +118,52 @@
                     }
                 }
                 
-                let angle = 0;
+                let angle;
                 switch (entity.getFacing()) {
-                    case NORTH:
-                        angle = 270;
-                        break;
-                    case SOUTH:
-                        angle = 90;
-                        break;
-                    case EAST:
-                        angle = 0;
-                        break;
-                    case WEST:
-                        angle = 180;
-                        break;
+                    case NORTH: angle = 270; break;
+                    case WEST:  angle = 180; break;
+                    case SOUTH: angle = 90; break;
+                    case EAST:  angle = 0; break;
                 }
                 
-                this.setVisible(true);
-                this.setBgColor(bgColor);
-                this.setBorderColor(color);
+                self.setVisible(true);
+                self.setBgColor(bgColor);
+                self.setBorderColor(color);
                 faceView.setBgColor(color);
                 faceView.setRotation(angle);
             },
             
-            setCellView: function(v) {
-                this.cellView = v;
-            },
-            
             updatePosition: function(position, cellView) {
-                if (cellView) {
-                    const inset = 3,
-                        borderWidth = this.borderWidth || 0;
-                    let adjX = 0,
-                        adjY = 0,
-                        {width, height} = this;
-                    switch (position) {
-                        case 1: // topLeft
-                            adjX = inset;
-                            adjY = inset;
-                            break;
-                        case 2: // bottomRight
-                            adjX = cellSize - width - inset;
-                            adjY = cellSize - height - inset;
-                            break;
-                        case 3: // bottomLeft
-                            adjX = inset;
-                            adjY = cellSize - height - inset;
-                            break;
-                        case 4: // topRight
-                            adjX = cellSize - width - inset;
-                            adjY = inset;
-                            break;
-                        case 0: // center
-                        default:
-                            adjX = halfCellSize - width / 2;
-                            adjY = halfCellSize - height / 2;
-                    }
-                    this.setX(cellView.x + adjX - borderWidth);
-                    this.setY(cellView.y + adjY - borderWidth);
+                const self = this,
+                    inset = 3,
+                    {width, height, borderWidth} = self;
+                self.cellView = cellView;
+                let adjX,
+                    adjY;
+                switch (position) {
+                    case 1: // topLeft
+                        adjX = inset;
+                        adjY = inset;
+                        break;
+                    case 2: // bottomRight
+                        adjX = cellSize - width - inset;
+                        adjY = cellSize - height - inset;
+                        break;
+                    case 3: // bottomLeft
+                        adjX = inset;
+                        adjY = cellSize - height - inset;
+                        break;
+                    case 4: // topRight
+                        adjX = cellSize - width - inset;
+                        adjY = inset;
+                        break;
+                    case 0: // center
+                    default:
+                        adjX = (cellSize - width) / 2;
+                        adjY = (cellSize - height) / 2;
                 }
+                self.setX(cellView.x + adjX - borderWidth);
+                self.setY(cellView.y + adjY - borderWidth);
             }
         }),
         
@@ -188,14 +172,14 @@
             
             initNode: function(parent, attrs) {
                 this.mouseOver = this.mouseDown = false;
-                attrs.isSeen ??= false;
                 
+                attrs.isSeen = false;
                 attrs.width = attrs.height = cellSize;
                 attrs.imageSize = 'contain';
                 
                 this.callSuper(parent, attrs);
                 
-                this._observedOverlay = new View(this, {width:cellSize, height:cellSize, pointerEvents:'none'});
+                this._observedOverlay = new View(this, {width:cellSize, height:cellSize, bgColor:'#0008', pointerEvents:'none'});
             },
             
             clean: function() {
@@ -230,97 +214,57 @@
             },
             
             setIsSeen: function(v) {
-                this._observedOverlay?.setBgColor(this.isSeen = v ? 'transparent' : '#0008');
+                this._observedOverlay?.setVisible(!(this.isSeen = v));
             }
         });
         
-        getLookupXY = (x, y, isPosX, isPosY, isYgtX, isYgtNegX) => {
+        getVisibilityPath = (x, y, isPosX, isPosY, isYgtX, isYgtNegX) => {
             let lookupX,
                 lookupY;
             if (x === y) {
-                if (x === 0) {
-                    // origin. Won't resolve to a path hence never obscured for now
-                    lookupX = x;
-                    lookupY = y;
-                } else {
-                    // diagonal
-                    if (isPosX) {
-                        if (isPosY) {
-                            lookupX = x;
-                            lookupY = y;
-                        } else {
-                            lookupX = x;
-                            lookupY = -y;
-                        }
-                    } else {
-                        if (isPosY) {
-                            lookupX = -x;
-                            lookupY = y;
-                        } else {
-                            lookupX = -x;
-                            lookupY = -y;
-                        }
-                    }
-                }
+                // origin and diagonals
+                lookupX = lookupY = mathAbs(x);
             } else if (x === 0) {
                 // horizontal
-                if (isPosY) {
-                    lookupX = 0;
-                    lookupY = y;
-                } else {
-                    lookupX = 0;
-                    lookupY = -y;
-                }
+                lookupX = 0;
+                lookupY = mathAbs(y);
             } else if (y === 0) {
                 // vertical
-                if (isPosX) {
-                    lookupX = 0;
+                lookupX = 0;
+                lookupY = mathAbs(x);
+            } else if (isPosX) {
+                if (isPosY) {
+                    if (isYgtX) {
+                        lookupX = x;
+                        lookupY = y;
+                    } else {
+                        lookupX = y;
+                        lookupY = x;
+                    }
+                } else if (isYgtNegX) {
+                    lookupX = -y;
                     lookupY = x;
                 } else {
-                    lookupX = 0;
+                    lookupX = x;
+                    lookupY = -y;
+                }
+            } else if (isPosY) {
+                if (isYgtNegX) {
+                    lookupX = -x;
+                    lookupY = y;
+                } else {
+                    lookupX = y;
                     lookupY = -x;
                 }
+            } else if (isYgtX) {
+                lookupX = -y;
+                lookupY = -x;
             } else {
-                // special
-                if (isPosX) {
-                    if (isPosY) {
-                        if (isYgtX) {
-                            lookupX = x;
-                            lookupY = y;
-                        } else {
-                            lookupX = y;
-                            lookupY = x;
-                        }
-                    } else {
-                        if (isYgtNegX) {
-                            lookupX = -y;
-                            lookupY = x;
-                        } else {
-                            lookupX = x;
-                            lookupY = -y;
-                        }
-                    }
-                } else {
-                    if (isPosY) {
-                        if (isYgtNegX) {
-                            lookupX = -x;
-                            lookupY = y;
-                        } else {
-                            lookupX = y;
-                            lookupY = -x;
-                        }
-                    } else {
-                        if (isYgtX) {
-                            lookupX = -y;
-                            lookupY = -x;
-                        } else {
-                            lookupX = -x;
-                            lookupY = -y;
-                        }
-                    }
-                }
+                lookupX = -x;
+                lookupY = -y;
             }
-            return {lookupX, lookupY};
+            
+            return visibilityPaths[lookupX][lookupY];
         };
     
     pkg.GameMap = new JSClass('GameMap', View, {
@@ -380,48 +324,43 @@
             }
         },
         
-        refreshMap: debounce((event) => {
+        refreshMap: debounce(event => {
             if (!character) return;
             
             cellPool.putActives();
             entityPool.putActives();
+            
             cellViewsByLocId.clear();
             entityViewsByEntityId.clear();
-            
-            const characterId = character.getId(),
-                facing = character.getFacing(),
-                centerX = mathRound(gameMap.width / 2),
-                centerY = mathRound(gameMap.height / 2),
-                originArr = character[FIELD_LOC],
-                locArr = originArr.slice(),
-                baseX = locArr[1],
-                baseY = locArr[2],
-                distance = character.getSightDistance();
-            
-            // Have backgroundImage track the map ofset.
-            gameMap.setImagePosition(-baseX * cellSize + 'px ' + -baseY * cellSize + 'px');
-            
-            // Make a lookup table of observed cell IDs.
             observedLocIds.clear();
-            if (distance >= 0 && distance < cellOffsetsByDistance.length) {
-                const offsets = cellOffsetsByDistance[distance];
+            obscuredLocIds.clear();
+            
+            // Make a lookup table of observed cell IDs. These are Cells that are within your
+            // sight distance. This produces a "set" of Cells in a circular shape.
+            const originArr = character[FIELD_LOC],
+                baseX = originArr[1],
+                baseY = originArr[2],
+                offsets = cellOffsetsByDistance[character.getSightDistance()];
+            if (offsets) {
+                let facingFilterFunction;
+                switch (character.getFacing()) {
+                    case NORTH:facingFilterFunction = (offsetX, offsetY) => offsetY <= 0; break;
+                    case SOUTH:facingFilterFunction = (offsetX, offsetY) => offsetY >= 0; break;
+                    case EAST: facingFilterFunction = (offsetX, offsetY) => offsetX >= 0; break;
+                    case WEST: facingFilterFunction = (offsetX, offsetY) => offsetX <= 0; break;
+                }
+                
+                const locArr = originArr.slice();
                 for (const [offsetX, offsetY] of offsets) {
-                    locArr[1] = baseX + offsetX;
-                    locArr[2] = baseY + offsetY;
-                    
-                    let isFacedLoc = false;
-                    switch (facing) {
-                        case NORTH:isFacedLoc = offsetY <= 0; break;
-                        case SOUTH:isFacedLoc = offsetY >= 0; break;
-                        case EAST:isFacedLoc = offsetX >= 0; break;
-                        case WEST:isFacedLoc = offsetX <= 0; break;
+                    if (facingFilterFunction(offsetX, offsetY)) {
+                        locArr[1] = baseX + offsetX;
+                        locArr[2] = baseY + offsetY;
+                        observedLocIds.add(locArrToId(locArr));
                     }
-                    if (isFacedLoc) observedLocIds.add(locArrToId(locArr));
                 }
             }
             
-            // Make a lookup table of obscured cellIDs.
-            obscuredLocIds.clear();
+            // Make a lookup table of obscured cellIDs. Only observed Cells can be obscured.
             for (const locId of observedLocIds) {
                 const cellDatum = model.getCellDatum(locId);
                 if (cellDatum) {
@@ -432,8 +371,7 @@
                         isPosY = y > 0,
                         isYgtX = y > x,
                         isYgtNegX = y > -x,
-                        {lookupX, lookupY} = getLookupXY(x, y, isPosX, isPosY, isYgtX, isYgtNegX),
-                        path = visibilityPaths[lookupX][lookupY];
+                        path = getVisibilityPath(x, y, isPosX, isPosY, isYgtX, isYgtNegX);
                     
                     if (path) {
                         const len = path.length,
@@ -530,9 +468,12 @@
                 }
             }
             
+            // Render the Cells and Entities
             let posX = 0,
                 posY = 0;
-            const xLimit = cellCountX - mapRangeOffset,
+            const characterId = character.getId(),
+                locArr = originArr.slice(),
+                xLimit = cellCountX - mapRangeOffset,
                 yLimit = cellCountY - mapRangeOffset;
             for (let x = -mapRangeOffset; x < xLimit; x++) {
                 locArr[1] = baseX + x;
@@ -554,7 +495,6 @@
                     if (x === 0 && y === 0) {
                         const characterView = entityPool.getInstance();
                         characterView.setEntity(character);
-                        characterView.setCellView(cellView);
                         characterView.updatePosition(posCount++, cellView);
                         gameMap.doCharacterCell(character, cellDatum, cellView);
                     }
@@ -563,7 +503,6 @@
                             if (entityDatum.id !== characterId) {
                                 const entityView = entityPool.getInstance();
                                 entityView.setEntity(model.makeEntityFromData(entityDatum));
-                                entityView.setCellView(cellView);
                                 entityView.updatePosition(posCount++, cellView);
                             }
                         }
@@ -574,6 +513,10 @@
                 posX += cellSize;
                 posY = 0;
             }
-        }, 50)
+            
+            // Have backgroundImage track the map offset so the background image does not drift
+            // as the character moves.
+            //gameMap.setImagePosition(-baseX * cellSize + 'px ' + -baseY * cellSize + 'px');
+        }, 35)
     });
 })(orb);
