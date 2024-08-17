@@ -20,6 +20,7 @@
         } = common,
         
         {
+            model,
             TextBtn, FormInputText, FieldErrorTextMixin, RevealPasswordBtn,
             componentUtil,
             formUtil:{
@@ -37,7 +38,8 @@
             titleHeader?.setTitle(I18N('title-lobby', pkg.username));
             
             if (characterContainer) {
-                const {maxCharacters, characters} = pkg.model;
+                const maxCharacters = model.maxCharacters,
+                    characters = model.getCharacters();
                 
                 characterContainer.destroyAllSubviews();
                 

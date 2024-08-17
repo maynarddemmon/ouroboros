@@ -286,7 +286,7 @@
                             this.setTooltip('Socket connected.');
                             this.setTextColor(colorFgSuccess);
                         } else {
-                            this.setDisabled(false);
+                            this.setDisabled(pkg.gamePanel?.visible === true ? false : true);
                             this.setTooltip('Socket not connected. Click to try to reconnect.');
                             this.setTextColor(colorFgError);
                         }

@@ -23,6 +23,7 @@
         } = common
         
         entityData = {},
+        characters = [],
         
         EntityModel = new JS.Class('EntityModel', Eventable, {
             include:[CommonEntityModelMixin],
@@ -97,26 +98,27 @@
             getEntity: id => entityData[id],
             setEntity: (id, entity) => entityData[id] = entity,
             removeEntity: id => delete entityData[id],
-            makeEntityFromData: (datum, storeIt) => {
-                const entity = new EntityModel(datum);
-                if (storeIt) {
-                    const id = entity.getId();
-                    if (id) model.setEntity(id, entity);
+            makeEntityFromData: entityDatum => {
+                const entityId = entityDatum[FIELD_ID];
+                let entity = model.getEntity(entityId);
+                if (entity) {
+                    // Update
+                    entity.callSetters(entityDatum);
+                } else {
+                    // Create
+                    entity = model.setEntity(entityId, new EntityModel(entityDatum));
                 }
                 return entity;
             },
             // Entity:end
             
             // Characters:start
-            setMaxCharacters: v => {
-                model.set('maxCharacters', v, true);
-            },
-            
+            setMaxCharacters: v => {model.set('maxCharacters', v, true);},
+            getCharacters: () => characters,
             setCharacterInPlay: v => {model.set('characterInPlay', v, true);},
             getCharacterInPlay: () => model.characterInPlay,
             
             getCharacterById: id => {
-                const characters = model.getCharacters();
                 let i = characters.length;
                 while (i) {
                     const character = characters[--i];
@@ -124,10 +126,7 @@
                 }
             },
             
-            getCharacters: () => model.characters ?? (model.characters = []),
-            
             setCharactersFromData: data => {
-                const characters = [];
                 if (Array.isArray(data)) {
                     for (const datum of data) {
                         const existingCharacter = model.getCharacterById(datum[FIELD_ID]);
@@ -136,17 +135,20 @@
                             characters.push(existingCharacter);
                         } else {
                             const character = new CharacterModel(datum);
-                            if (character) characters.push(character);
+                            if (character) {
+                                characters.push(character);
+                                model.setEntity(character.getId(), character);
+                            }
                         }
                     }
                 }
-                model.set('characters', characters, true);
+                model.fireEvent('characters', characters);
             },
             addCharacterFromData: datum => {
                 const character = new CharacterModel(datum);
                 if (character) {
-                    const characters = model.getCharacters();
                     characters.push(character);
+                    model.setEntity(character.getId(), character);
                     model.fireEvent('characters', characters);
                 }
             },
@@ -161,11 +163,11 @@
             },
             
             removeCharacterById: id => {
-                const characters = model.getCharacters();
                 let i = characters.length;
                 while (i) {
                     if (characters[--i].id === id) {
                         characters.splice(i, 1);
+                        model.removeEntity(id);
                         model.fireEvent('characters', characters);
                         return true;
                     }
@@ -249,7 +251,7 @@
             // Methods /////////////////////////////////////////////////////////
             wipeClean: () => {
                 model.maxCharacters = 0;
-                model.characters = [];
+                characters = [];
                 model.clearMapAndCellData();
             }
         });

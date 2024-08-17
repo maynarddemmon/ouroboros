@@ -8,7 +8,7 @@
     
     const JSClass = JS.Class,
         
-        {round:mathRound, ceil:mathCeil, abs:mathAbs} = Math,
+        {ceil:mathCeil, abs:mathAbs} = Math,
         
         {
             View, ImageSupport, Reusable, MouseOverAndDown, TrackActivesPool, Animator, TransformSupport,
@@ -29,13 +29,11 @@
             cfg:{mapRangeOffset, cellSize, entitySizeM}
         } = pkg,
         
-        observedLocIds = new Set(),
-        obscuredLocIds = new Set(),
-        cellViewsByLocId = new Map(),
+        /* A Map of EntityView instances by entity ID.  */
         entityViewsByEntityId = new Map(),
         
-        getCellViewForLocId = locId => cellViewsByLocId.get(locId),
-        getEntityViewForEntityId = entityId => entityViewsByEntityId.get(entityId),
+        observedLocIds = new Set(), // Reused inside the render function.
+        obscuredLocIds = new Set(), // Reused inside the render function.
         
         EntityView = new JSClass('EntityView', View, {
             include:[Reusable, MouseOverAndDown],
@@ -203,9 +201,7 @@
             
             setCell: function(v) {
                 const cell = this.cell = v;
-                cellViewsByLocId.set(cell.locId, this);
                 if (this.inited) {
-                    // Redraw
                     const {mapColor, tileUrl} = composition[cell.hasBeenSeen ? cell[FIELD_COMPOSITION] : 'unk'];
                     this.setVisible(true);
                     this.setBgColor(mapColor);
@@ -214,7 +210,8 @@
             },
             
             setIsSeen: function(v) {
-                this._observedOverlay?.setVisible(!(this.isSeen = v));
+                const isSeen = this.isSeen = v;
+                this._observedOverlay?.setVisible(!isSeen);
             }
         });
         
@@ -222,7 +219,7 @@
             let lookupX,
                 lookupY;
             if (x === y) {
-                // origin and diagonals
+                // origin and diagonal
                 lookupX = lookupY = mathAbs(x);
             } else if (x === 0) {
                 // horizontal
@@ -315,7 +312,7 @@
         doMouseDownEntity: (isDown, entity, entityView) => {},
         
         animateEntity: (entityId, animationType='shake', amount=6) => {
-            const entityView = getEntityViewForEntityId(entityId);
+            const entityView = entityViewsByEntityId.get(entityId);
             if (entityView) {
                 switch (animationType) {
                     case 'shake': Animator.shakeView(entityView, amount); break;
@@ -330,7 +327,6 @@
             cellPool.putActives();
             entityPool.putActives();
             
-            cellViewsByLocId.clear();
             entityViewsByEntityId.clear();
             observedLocIds.clear();
             obscuredLocIds.clear();
@@ -498,12 +494,15 @@
                         characterView.updatePosition(posCount++, cellView);
                         gameMap.doCharacterCell(character, cellDatum, cellView);
                     }
-                    if (isSeen && len > 0) {
+                    if (len > 0) {
                         for (const entityDatum of entities) {
-                            if (entityDatum.id !== characterId) {
-                                const entityView = entityPool.getInstance();
-                                entityView.setEntity(model.makeEntityFromData(entityDatum));
-                                entityView.updatePosition(posCount++, cellView);
+                            const entity = model.makeEntityFromData(entityDatum);
+                            if (isSeen) {
+                                if (entity.getId() !== characterId) {
+                                    const entityView = entityPool.getInstance();
+                                    entityView.setEntity(entity);
+                                    entityView.updatePosition(posCount++, cellView);
+                                }
                             }
                         }
                     }

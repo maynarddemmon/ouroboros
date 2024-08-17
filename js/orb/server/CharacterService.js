@@ -215,6 +215,10 @@ const orb = require('./orb.js'),
                 break;
             }
         }
+        
+        // Remove character from Cell if necessary
+        character?.getCell()?.removeEntity(character);
+        
         delete charactersById[id];
         delete charactersByName[character.getName()];
         return true;
