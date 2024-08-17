@@ -53,7 +53,7 @@ const orb = require('./orb.js'),
             if (this.inited && curValue !== this[attrName]) {
                 if (ATTRS_TO_NOTIFY_FOR.includes(attrName)) {
                     const curCell = this.getCell();
-                    if (curCell) curCell.notifyAllChangeListeners();
+                    if (curCell) curCell.notifyAllChangeListenersThatCellChanged();
                 }
             }
             return retval;
@@ -159,11 +159,10 @@ const orb = require('./orb.js'),
         },*/
         
         getAsData: function() {
-            // FIXME: need to iterate over a list of fields to save. This is
-            // currently only safe to call during die.
-            delete this.inited;
-            delete this._observedCells;
-            return this;
+            const retval = {...this};
+            delete retval.inited;
+            delete retval._observedCells;
+            return retval;
         },
         
         /** Gets data that the provided character can see/hear/sense about this
@@ -223,11 +222,21 @@ const orb = require('./orb.js'),
     
     getCharacterById = id => charactersById[id],
     getCharacterByName = name => charactersByName[name],
-    getCharactersByUserId = userId => {
+    getCharactersByUserId = (userId, asData) => {
         // Accept account objects as well.
         if (typeof userId === 'object') userId = userId.username;
         
-        return charactersByUserId[userId] || (charactersByUserId[userId] = []);
+        if (asData) {
+            // Generally used for sending data back to the client.
+            const retval = [],
+                characters = charactersByUserId[userId];
+            if (characters) {
+                for (const character of characters) retval.push(character.getAsData());
+            }
+            return retval;
+        } else {
+            return charactersByUserId[userId] || (charactersByUserId[userId] = []);
+        }
     },
     
     doCharacterExitWorld = character => {

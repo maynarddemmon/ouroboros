@@ -12,7 +12,6 @@
         teleportBtn,
         teleportLocField,
         
-        websocket,
         character,
         curLocId;
     
@@ -179,9 +178,10 @@
             gamePanel.callSuper(v);
             
             if (gamePanel.visible) {
-                websocket = pkg.websocketUtil.connectToWebsocket();
+                pkg.websocketUtil.connectToWebsocket();
                 componentUtil.reparentWorldClockView(titleHeader);
-                componentUtil.reparenSocketStatusIndicator(titleHeader);
+                componentUtil.reparentSocketStatusIndicator(titleHeader);
+                titleHeader.getFirstLayout().update();
                 
                 character = model.getCharacterInPlay();
                 gameMap.setCharacter(character);
@@ -230,7 +230,7 @@
         },
         
         buildUI: () => {
-            gamePanel.buildHeader(titleHeader = new pkg.TitleHeader(gamePanel, {}));
+            gamePanel.buildHeader(titleHeader = new pkg.TitleHeader(gamePanel));
             gamePanel.buildContent(contentView = new View(gamePanel, {bgColor:'#000', percentOfParentWidth:100, layoutHint:1}, [SizeToParent]));
             new ResizeLayout(gamePanel, {axis:'y'});
         },
@@ -239,7 +239,7 @@
             const exitBtn = new TextBtn(header, {valign:'middle', text:pkg.FA_CHEVRON_LEFT + I18N('btn-exitToLobby')}, [{
                 doActivated:() => {
                     pkg.app.lockUI('Leaving Ouroboros...', true);
-                    websocket.sendTypedMessage(TYPE_EXIT_WORLD, {id:character.getId()});
+                    pkg.websocket.sendTypedMessage(TYPE_EXIT_WORLD, {id:character.getId()});
                 }
             }]);
             header.sendSubviewBehind(exitBtn, header.titleView, header.getFirstLayout());

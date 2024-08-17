@@ -18,7 +18,7 @@ const {maxCharactersPerUser} = require('./orb.js'),
     HANDLERS = {
         [TYPE_LOBBY]: (username, type, msg) => {
             const msgObj = {
-                characters:characterService.getCharactersByUserId(username),
+                characters:characterService.getCharactersByUserId(username, true),
                 maxCharacters:maxCharactersPerUser,
                 worldClockTick:getTick()
             };

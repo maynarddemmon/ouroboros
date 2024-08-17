@@ -113,7 +113,7 @@ const orb = require('./orb.js'),
                 }
                 
                 if (character) {
-                    accountService.addMessageToUser(username, {type:TYPE_ENTER_WORLD, msg:{character:character}});
+                    accountService.addMessageToUser(username, {type:TYPE_ENTER_WORLD, msg:{character:character.getAsData()}});
                     accountService.addMessageToUser(username, {type:TYPE_MAP_DATA, msg:worldMap.getMapDataForCharacter(character)});
                     
                     worldMap.clearListenersForCharacter(character);
@@ -150,7 +150,7 @@ const orb = require('./orb.js'),
                 
                 if (character) {
                     worldMap.clearListenersForCharacter(character);
-                    accountService.addMessageToUser(username, {type:TYPE_EXIT_WORLD, msg:{character:character}});
+                    accountService.addMessageToUser(username, {type:TYPE_EXIT_WORLD, msg:{character:character.getAsData()}});
                 } else {
                     warningMessageToUser(username, 'Character not found for ' + characterId);
                 }

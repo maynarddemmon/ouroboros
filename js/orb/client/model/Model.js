@@ -130,8 +130,14 @@
                 const characters = [];
                 if (Array.isArray(data)) {
                     for (const datum of data) {
-                        const character = new CharacterModel(datum);
-                        if (character) characters.push(character);
+                        const existingCharacter = model.getCharacterById(datum[FIELD_ID]);
+                        if (existingCharacter) {
+                            existingCharacter.callSetters(datum);
+                            characters.push(existingCharacter);
+                        } else {
+                            const character = new CharacterModel(datum);
+                            if (character) characters.push(character);
+                        }
                     }
                 }
                 model.set('characters', characters, true);
@@ -145,20 +151,11 @@
                 }
             },
             
-            replaceCharacterFromData: datum => {
-                const character = new CharacterModel(datum);
-                if (character) {
-                    const id = character.id,
-                        characters = model.getCharacters();
-                    let i = characters.length;
-                    while (i) {
-                        const existingCharacter = characters[--i];
-                        if (existingCharacter.id === id) {
-                            characters.splice(i, 1, character);
-                            model.fireEvent('characters', characters);
-                            return character;
-                        }
-                    }
+            updateCharacterFromData: datum => {
+                const existingCharacter = model.getCharacterById(datum[FIELD_ID]);
+                if (existingCharacter) {
+                    existingCharacter.callSetters(datum);
+                    return existingCharacter;
                 }
                 return null;
             },

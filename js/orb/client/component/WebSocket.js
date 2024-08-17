@@ -354,7 +354,6 @@
         connectToWebsocket: () => {
             const websocket = pkg.websocket ??= pkg.websocketUtil.makeWebSocket(pkg.socketUrl);
             if (websocket.status === 'closed') websocket.connect();
-            return websocket;
         },
         
         makeWebSocket: url => {
@@ -419,9 +418,9 @@
             }, TYPE_NOW);
             
             websocket.registerListener(response => {
-                const {character} = response.msg;
-                if (character) {
-                    const characterModel = model.replaceCharacterFromData(character);
+                const {character:characterDatum} = response.msg;
+                if (characterDatum) {
+                    const characterModel = model.updateCharacterFromData(characterDatum);
                     if (characterModel) {
                         model.setCharacterInPlay(characterModel);
                         pkg.app.selectPanel(pkg.PANEL_ID_GAME);
@@ -433,9 +432,9 @@
             }, TYPE_ENTER_WORLD);
             
             websocket.registerListener(response => {
-                const {character} = response.msg;
-                if (character) {
-                    if (model.replaceCharacterFromData(character)) {
+                const {character:characterDatum} = response.msg;
+                if (characterDatum) {
+                    if (model.updateCharacterFromData(characterDatum)) {
                         model.setCharacterInPlay();
                         model.clearMapAndCellData();
                         pkg.app.selectPanel(pkg.PANEL_ID_LOBBY);

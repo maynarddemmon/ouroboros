@@ -1,5 +1,5 @@
 (pkg => {
-    let socketConnectedTxt,
+    let socketConnectedBtn,
         worldClockView;
     
     const JSClass = JS.Class,
@@ -272,26 +272,38 @@
         
         /** Moves the socketStatusIndicator to the provided View. Lazy
             instantiates it as well. */
-        reparenSocketStatusIndicator: parent => {
-            if (socketConnectedTxt) {
-                socketConnectedTxt.setParent(parent);
+        reparentSocketStatusIndicator: parent => {
+            if (socketConnectedBtn) {
+                socketConnectedBtn.setParent(parent);
             } else {
-                socketConnectedTxt = new Text(parent, {valign:'middle', text:pkg.FA_PLUG, fontSize:'18px'}, [{
+                socketConnectedBtn = new pkg.SquareBtn(parent, {
+                    valign:'middle', text:pkg.FA_PLUG, readyColor:'transparent'
+                }, [{
                     onWebsocketStatus: function(event) {
                         const status = event.value;
                         if (status === 'open') {
-                            this.setOpacity(1);
+                            this.setDisabled(true);
                             this.setTooltip('Socket connected.');
                             this.setTextColor(colorFgSuccess);
                         } else {
-                            this.setOpacity(0.25);
-                            this.setTooltip('Socket not connected.');
+                            this.setDisabled(false);
+                            this.setTooltip('Socket not connected. Click to try to reconnect.');
                             this.setTextColor(colorFgError);
                         }
+                    },
+                    doActivated: function() {
+                        // Try to restore the websocket.
+                        const websocket = pkg.websocket;
+                        if (websocket) {
+                            this.detachFrom(websocket, 'onWebsocketStatus', 'status');
+                            websocket.destroy();
+                            pkg.websocket = null;
+                        }
+                        pkg.websocketUtil.connectToWebsocket();
+                        this.syncTo(pkg.websocket, 'onWebsocketStatus', 'status');
                     }
                 }]);
-                registerForNotification(socketConnectedTxt);
-                socketConnectedTxt.syncTo(pkg.websocket, 'onWebsocketStatus', 'status');
+                socketConnectedBtn.syncTo(pkg.websocket, 'onWebsocketStatus', 'status');
             }
         },
     }

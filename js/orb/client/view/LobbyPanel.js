@@ -1,6 +1,5 @@
 (pkg => {
-    let websocket,
-        titleHeader,
+    let titleHeader,
         characterContainer,
         newCharNameField;
     
@@ -49,7 +48,10 @@
                     new CharacterRow(characterContainer, {character:character});
                 }
                 
-                if (inWorldCharacter && !pkg.model.getCharacterInPlay()) {
+                const characterInPlay = pkg.model.getCharacterInPlay();
+                if (pkg.gamePanel.visible && characterInPlay) {
+                    doPlay(characterInPlay);
+                } else if (inWorldCharacter && !characterInPlay) {
                     pkg.growl('info', 'Attempting to auto-join because one of your characters already appears to be in play.');
                     doPlay(inWorldCharacter);
                 }
@@ -58,7 +60,7 @@
         
         doPlay = character => {
             pkg.app.lockUI('Entering Ouroboros...', true);
-            websocket.sendTypedMessage(TYPE_ENTER_WORLD, {id:character.id});
+            pkg.websocket.sendTypedMessage(TYPE_ENTER_WORLD, {id:character.id});
         },
         
         cleanUpForDeauth = () => {
@@ -66,7 +68,7 @@
             pkg.model.wipeClean();
             
             // Close WebSocket if necessary
-            if (websocket && websocket.status !== 'closed') websocket.close();
+            if (pkg.websocket && pkg.websocket?.status !== 'closed') pkg.websocket.close();
             
             pkg.authenticated = false;
             pkg.username = null;
@@ -104,7 +106,7 @@
                                 'Delete Character',
                                 () => {
                                     pkg.app.lockUI('Deleting Character...', true);
-                                    websocket.sendTypedMessage(TYPE_DELETE_CHARACTER, {id:self.character.id});
+                                    pkg.websocket.sendTypedMessage(TYPE_DELETE_CHARACTER, {id:self.character.id});
                                 }
                             );
                         }
@@ -176,7 +178,7 @@
                         doActivated:() => {
                             if (formContainer.isValid) {
                                 pkg.app.lockUI('Creating Character...', true);
-                                websocket.sendTypedMessage(TYPE_CREATE_CHARACTER, formContainer.getValue());
+                                pkg.websocket.sendTypedMessage(TYPE_CREATE_CHARACTER, formContainer.getValue());
                             }
                         }
                     }]);
@@ -218,9 +220,10 @@
                 // Clean out any existing data.
                 refreshLobby();
                 
-                websocket = pkg.websocketUtil.connectToWebsocket();
+                pkg.websocketUtil.connectToWebsocket();
                 componentUtil.reparentWorldClockView(titleHeader);
-                componentUtil.reparenSocketStatusIndicator(titleHeader);
+                componentUtil.reparentSocketStatusIndicator(titleHeader);
+                titleHeader.getFirstLayout().update();
             }
         },
         
