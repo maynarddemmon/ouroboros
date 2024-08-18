@@ -95,12 +95,12 @@
         
         model = pkg.model = new JS.Singleton('Model', Node, {
             // Entity:start
-            getEntity: id => entityData[id],
-            setEntity: (id, entity) => entityData[id] = entity,
-            removeEntity: id => delete entityData[id],
+            getEntityById: entityId => entityData[entityId],
+            setEntity: (entityId, entity) => entityData[entityId] = entity,
+            removeEntity: entityId => delete entityData[entityId],
             makeEntityFromData: entityDatum => {
                 const entityId = entityDatum[FIELD_ID];
-                let entity = model.getEntity(entityId);
+                let entity = model.getEntityById(entityId);
                 if (entity) {
                     // Update
                     entity.callSetters(entityDatum);
@@ -195,12 +195,6 @@
             // Time:end
             
             // Map:start
-            getMapData: () => mapData ?? (mapData = {}),
-            getCellData: () => cellData ?? (cellData = {}),
-            
-            getMapDatum: mapId => mapData[mapId],
-            getCellDatum: locId => cellData[locId],
-            
             clearMapAndCellData: () => {
                 mapData = {};
                 model.fireEvent('mapDataCleared');
@@ -208,6 +202,8 @@
                 model.fireEvent('cellDataCleared');
             },
             
+            getMapData: () => mapData ?? (mapData = {}),
+            getMapDatum: mapId => mapData[mapId],
             storeMapData: data => {
                 const mapData = model.getMapData();
                 for (const key in data) {
@@ -216,34 +212,28 @@
                 }
             },
             
+            getCellData: () => cellData ?? (cellData = {}),
+            getCellDatum: locId => cellData[locId],
             storeCellData: data => {
                 const cellData = model.getCellData();
                 for (const locId in data) {
-                    const cellDatum = data[locId];
-                    cellDatum.locId = locId;
+                    const cellDatum = data[locId],
+                        existingDatum = model.getCellDatum(locId);
                     
-                    const existingDatum = model.getCellDatum(locId);
+                    // Convert all entityDatum to EntityModels
+                    const entities = cellDatum[FIELD_ENTITIES];
+                    let i = entities?.length ?? 0;
+                    while (i--) entities[i] = model.makeEntityFromData(entities[i]);
+                    
                     if (existingDatum) {
                         existingDatum[FIELD_COMPOSITION] = cellDatum[FIELD_COMPOSITION];
                         existingDatum[FIELD_ENTITIES] = cellDatum[FIELD_ENTITIES] || null;
                     } else {
+                        cellDatum.locId = locId;
                         cellData[locId] = cellDatum;
                     }
                     
-                    const entities = cellDatum[FIELD_ENTITIES];
-                    if (entities?.length > 0) {
-                        const character = model.getCharacterInPlay();
-                        if (character) {
-                            const characterId = character.getId();
-                            for (const entity of entities) {
-                                if (entity[FIELD_ID] === characterId) {
-                                    character.callSetters(entity);
-                                }
-                            }
-                        }
-                    }
-                    
-                    model.fireEvent('cellChanged', cellDatum);
+                    model.fireEvent('cellChanged', existingDatum ?? cellDatum);
                 }
             },
             // Map:end

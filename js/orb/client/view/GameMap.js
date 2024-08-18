@@ -494,15 +494,12 @@
                         characterView.updatePosition(posCount++, cellView);
                         gameMap.doCharacterCell(character, cellDatum, cellView);
                     }
-                    if (len > 0) {
-                        for (const entityDatum of entities) {
-                            const entity = model.makeEntityFromData(entityDatum);
-                            if (isSeen) {
-                                if (entity.getId() !== characterId) {
-                                    const entityView = entityPool.getInstance();
-                                    entityView.setEntity(entity);
-                                    entityView.updatePosition(posCount++, cellView);
-                                }
+                    if (isSeen && len > 0) {
+                        for (const entity of entities) {
+                            if (entity.getId() !== characterId) {
+                                const entityView = entityPool.getInstance();
+                                entityView.setEntity(entity);
+                                entityView.updatePosition(posCount++, cellView);
                             }
                         }
                     }

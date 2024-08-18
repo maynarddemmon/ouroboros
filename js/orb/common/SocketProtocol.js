@@ -27,6 +27,7 @@
             TYPE_CELL_DATA:'cellData',
             
             TYPE_ALTER_CHARACTER:'alterCharacter',
+            TYPE_ALTER_ENTITY:'alterEntity',
             
             // Movement
             TYPE_MOVE:'move',

@@ -13,7 +13,7 @@
                 TYPE_MOVE_FAILED, MOVE_ERROR_CODES,
                 TYPE_REACT_FAILED, REACT_ERROR_CODES,
                 TYPE_FREE_FAILED, FREE_ERROR_CODES,
-                TYPE_ALTER_CHARACTER,
+                TYPE_ALTER_ENTITY, TYPE_ALTER_CHARACTER,
                 ATTR_TIME
             },
             character:{
@@ -457,6 +457,11 @@
                 const msg = response.msg;
                 model.getCharacterById(msg.id)?.set(msg.p, msg.v);
             }, TYPE_ALTER_CHARACTER);
+            
+            websocket.registerListener(response => {
+                const msg = response.msg;
+                model.getEntityById(msg.id)?.set(msg.p, msg.v);
+            }, TYPE_ALTER_ENTITY);
             
             websocket.registerListener(response => {
                 switch (response.code) {

@@ -24,6 +24,7 @@ const orb = require('./orb.js'),
         cell:{FIELD_COMPOSITION}
     } = require('../common/common.js'),
     {isValidLocArr} = require('../common/util.js'),
+    {TYPE_ALTER_ENTITY} = require('../common/SocketProtocol.js'),
     
     FILENAME_CHARACTERS = 'characters',
     
@@ -48,12 +49,15 @@ const orb = require('./orb.js'),
         },
         
         set: function(attrName, v, skipSetter) {
-            const curValue = this[attrName],
-                retval = this.callSuper(attrName, v, skipSetter);
-            if (this.inited && curValue !== this[attrName]) {
+            const self = this,
+                curValue = self[attrName],
+                retval = self.callSuper(attrName, v, skipSetter),
+                newValue = self[attrName];
+            if (self.inited && curValue !== newValue) {
                 if (ATTRS_TO_NOTIFY_FOR.includes(attrName)) {
-                    const curCell = this.getCell();
-                    if (curCell) curCell.notifyAllChangeListenersThatCellChanged();
+                    self.getCell()?.notifyAllChangeListeners(TYPE_ALTER_ENTITY, {
+                        id:self.getId(), p:attrName, v:newValue
+                    });
                 }
             }
             return retval;
@@ -245,7 +249,7 @@ const orb = require('./orb.js'),
     
     doCharacterExitWorld = character => {
         if (character.isInWorld()) {
-            character.set(FIELD_IN_WORLD, false);
+            character.setInWorld(false);
             return true;
         } else {
             return false;
@@ -364,7 +368,7 @@ const orb = require('./orb.js'),
         convertAllCharactersToZombiesForAccount: userId => {
             const existingCharacters = getCharactersByUserId(userId);
             let i = existingCharacters.length;
-            while (i) existingCharacters[--i].set(FIELD_ZOMBIE, true);
+            while (i) existingCharacters[--i].setZombie(true);
             return true;
         }
     };

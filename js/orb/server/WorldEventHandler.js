@@ -19,9 +19,8 @@ const orb = require('./orb.js'),
         TYPE_ALTER_CHARACTER
     } = require('../common/SocketProtocol.js'),
     {
-        entity:{FIELD_FACING},
         character:{
-            FIELD_IN_WORLD, FIELD_PERMISSIONS, FIELD_LOC,
+            FIELD_PERMISSIONS, FIELD_LOC,
             FIELD_LOCK_MOVE, FIELD_LOCK_ACTION, FIELD_LOCK_REACT, FIELD_LOCK_FREE
         },
         FACINGS:{NORTH, SOUTH, EAST, WEST},
@@ -104,11 +103,11 @@ const orb = require('./orb.js'),
                         if (usersCharacter.isInWorld()) {
                             //warningMessageToUser(username, 'Character already in world ' + characterId);
                         } else {
-                            usersCharacter.set(FIELD_IN_WORLD, true);
+                            usersCharacter.setInWorld(true);
                         }
                         character = usersCharacter;
                     } else {
-                        usersCharacter.set(FIELD_IN_WORLD, false);
+                        usersCharacter.setInWorld(false);
                     }
                 }
                 
@@ -182,8 +181,7 @@ const orb = require('./orb.js'),
                     // Determine if the new location will allow the character
                     const cell = worldMap.getCell(locArrToId(locArr), true);
                     if (cell.mayMoveInto(character)) {
-                        // Apply Change to Character
-                        character.set(FIELD_LOC, locArr);
+                        character.setLoc(locArr);
                         
                         // Send movement change
                         accountService.addMessageToUser(username, {type:TYPE_ALTER_CHARACTER, msg:{
@@ -217,7 +215,7 @@ const orb = require('./orb.js'),
                 (username, character, now) => {
                     const compassDirection = event.msg[ATTR_DIRECTION];
                     if (compassDirection) {
-                        character.set(FIELD_FACING, compassDirection);
+                        character.setFacing(compassDirection);
                     } else {
                         accountService.addMessageToUser(username, {type:TYPE_FREE_FAILED, code:FREE_ERROR_CODES.INVALID_VALUE});
                     }
