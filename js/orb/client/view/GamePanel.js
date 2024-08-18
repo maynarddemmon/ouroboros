@@ -1,12 +1,15 @@
 (pkg => {
-    let titleHeader,
-        contentView,
+    let gameMap,
+        headerOverlay,
+        footerOverlay,
+        leftOverlay,
+        rightOverlay,
+        rightPanel,
         
         mapInfo,
+        playingAsTxt,
         myLocInfo,
-        gameMap,
         
-        rightPanel,
         alterCellBtn,
         alterCellCompositionSelector,
         teleportBtn,
@@ -16,10 +19,11 @@
         curLocId;
     
     const I18N = BABEL.get,
+        JSClass = JS.Class,
+        
         M = myt,
         {
-            View, Text, PaddedText, SpacedLayout, ResizeLayout, SizeToParent, 
-            InputSelect,
+            View, Text, PaddedText, InputSelect, SpacedLayout, ResizeLayout, 
             global:{keys:GlobalKeys}
         } = M,
         
@@ -39,11 +43,14 @@
         } = common,
         
         {
-            TextBtn, componentUtil, FormInputText,
-            theme:{padding, spacing, colorBgF},
             model,
+            TextBtn, TranslucentSquareBtn, componentUtil, FormInputText,
+            theme:{padding, spacing, cornerRadius, colorBgF},
             cfg:{cellSize, entitySizeM}
         } = pkg,
+        
+        overlayMargin = 4,
+        overlaySize = cellSize - overlayMargin,
         
         getMapInfo = cell => {
             const locArr = locIdToArr(cell.locId),
@@ -83,6 +90,7 @@
                 // FIXME: msg into chat log? "You can't move right now."
             }
         },
+        
         notifyCanNotAct = entity => {
             gameMap.animateEntity(entity.getId());
             // FIXME: msg into chat log? "You can't act right now."
@@ -106,11 +114,9 @@
                 infoTxt;
             const borderWidth = 1,
                 size = cellSize - 4*borderWidth,
-                color = '#333',
-                shadowColor = '#000',
                 hv = new View(parent, {
                     height:cellSize, pointerEvents:'none', visible:false,
-                    bgColor:color, opacity:0.8, boxShadow:[0,0,8,shadowColor], 
+                    bgColor:'#333', opacity:0.8, boxShadow:[0,0,8,'#000'], 
                     zIndex:11
                 }, [{
                     update: function(isOver, entity, entityView) {
@@ -162,14 +168,42 @@
             infoContainer = new View(hv, {x:cellSize + bw4x, height:cellSize + bw4x, bgColor:color});
             infoTxt = new Text(hv, {x:cellSize + bw4x + spacing, valign:'middle', textColor:'#000'});
             return hv;
+        },
+        
+        updateWidth = () => {
+            const w = gamePanel.width,
+                rightPanelX = 760,
+                overlayWidth = rightPanelX - 2*overlayMargin;
+            gameMap.setWidth(w);
+            
+            rightPanel.setX(rightPanelX);
+            rightPanel.setWidth(w - rightPanelX);
+            
+            leftOverlay.setX(overlayMargin);
+            rightOverlay.setX(rightPanelX - rightOverlay.width - overlayMargin);
+            
+            headerOverlay.setWidth(overlayWidth);
+            footerOverlay.setWidth(overlayWidth);
+        },
+        
+        updateHeight = () => {
+            const h = gamePanel.height,
+                overlayHeight = h - 2*(2*overlayMargin + overlaySize);
+            gameMap.setHeight(h);
+            rightPanel.setHeight(h);
+            
+            headerOverlay.setY(overlayMargin);
+            footerOverlay.setY(h - footerOverlay.height - overlayMargin);
+            
+            leftOverlay.setHeight(overlayHeight);
+            rightOverlay.setHeight(overlayHeight);
         };
     
-    pkg.GamePanel = new JS.Class('GamePanel', pkg.BaseStackablePanel, {
+    pkg.GamePanel = new JSClass('GamePanel', pkg.BaseStackablePanel, {
         // Life Cycle //////////////////////////////////////////////////////////
         initNode: function(parent, attrs) {
             gamePanel = pkg.gamePanel = this;
-            
-            gamePanel.callSuper();
+            gamePanel.callSuper(parent, attrs);
         },
         
         
@@ -179,19 +213,23 @@
             
             if (gamePanel.visible) {
                 pkg.websocketUtil.connectToWebsocket();
-                componentUtil.reparentWorldClockView(titleHeader);
-                componentUtil.reparentSocketStatusIndicator(titleHeader);
-                titleHeader.getFirstLayout().update();
+                componentUtil.reparentWorldClockView(headerOverlay);
+                headerOverlay.getFirstLayout().update();
+                
+                componentUtil.reparentSocketStatusIndicator(footerOverlay);
+                footerOverlay.getFirstLayout().update();
                 
                 character = model.getCharacterInPlay();
                 gameMap.setCharacter(character);
+                updateWidth();
+                updateHeight();
                 
                 const hasCreatorPerm = character.hasPermission('creator');
                 for (const view of [alterCellBtn, alterCellCompositionSelector, teleportBtn, teleportLocField]) {
                     view.setVisible(hasCreatorPerm);
                 }
                 
-                titleHeader.setTitle('Playing As: <b>' + character[FIELD_NAME] + '</b>');
+                playingAsTxt.setText(pkg.FA_CHARACTER + ' ' + character[FIELD_NAME]);
                 
                 gamePanel.attachToDom(GlobalKeys, '_keyDown', 'keydown', true);
             } else {
@@ -204,6 +242,16 @@
             }
         },
         
+        setWidth: v => {
+            gamePanel.callSuper(v);
+            if (gamePanel.inited) updateWidth();
+        },
+        
+        setHeight: v => {
+            gamePanel.callSuper(v);
+            if (gamePanel.inited) updateHeight();
+        },
+        
         
         // Methods /////////////////////////////////////////////////////////////
         /** @private */
@@ -212,7 +260,7 @@
                 srcView = M.DomObserver.getSourceViewFromEvent(domEvent);
             if (
                 // Don't handle keys from native form elements.
-                !srcView || !(srcView.isA(M.BaseInputText) || srcView.isA(M.InputSelect))
+                !srcView || !(srcView.isA(M.BaseInputText) || srcView.isA(InputSelect))
             ) {
                 switch (M.KeyObservable.getCodeFromEvent(event)) {
                     case GlobalKeys.CODE_ARROW_LEFT:  return doArrowKey(domEvent, FACINGS.WEST);
@@ -230,67 +278,28 @@
         },
         
         buildUI: () => {
-            gamePanel.buildHeader(titleHeader = new pkg.TitleHeader(gamePanel));
-            gamePanel.buildContent(contentView = new View(gamePanel, {bgColor:'#000', percentOfParentWidth:100, layoutHint:1}, [SizeToParent]));
-            new ResizeLayout(gamePanel, {axis:'y'});
-        },
-        
-        buildHeader: header => {
-            const exitBtn = new TextBtn(header, {valign:'middle', text:pkg.FA_CHEVRON_LEFT + I18N('btn-exitToLobby')}, [{
-                doActivated:() => {
-                    pkg.app.lockUI('Leaving Ouroboros...', true);
-                    pkg.websocket.sendTypedMessage(TYPE_EXIT_WORLD, {id:character.getId()});
-                }
-            }]);
-            header.sendSubviewBehind(exitBtn, header.titleView, header.getFirstLayout());
-            
-            new View(header, {layoutHint:1});
-            
-            const makeCooldown = propTargetName => {
-                new PaddedText(header, {valign:'middle', text:I18N('btnTxt-' + propTargetName), paddingLeft:12});
-                new pkg.CharacterCooldownRadialGuage(header, {
-                    y:4, propTargetName:propTargetName, tooltip:I18N('btnTip-' + propTargetName)
-                });
-            };
-            makeCooldown(FIELD_LOCK_MOVE);
-            makeCooldown(FIELD_LOCK_ACTION);
-            makeCooldown(FIELD_LOCK_REACT);
-            makeCooldown(FIELD_LOCK_FREE);
-            
-            new View(header, {width:10});
-        },
-        
-        buildContent: content => {
-            gameMap = new pkg.GameMap(content, {
-                percentOfParentWidth:100, percentOfParentHeight:100,
-                overflow:'hidden'
-            }, [SizeToParent, {
+            gameMap = new pkg.GameMap(gamePanel, {}, [{
                 doCharacterCell: (character, cell, cellView) => {
                     if (curLocId !== cell.locId) {
                         curLocId = cell.locId;
                         cellHV.setVisible(false);
                     }
-                    mapInfo.setText(getMapInfo(cell));
+                    mapInfo.setText(pkg.FA_LOCATION + ' ' + getMapInfo(cell));
                     myLocInfo.setText('My Location: ' + getLocInfo(cell));
                 }
             }]);
+            rightPanel = new View(gamePanel, {bgColor:'#0003'});
             
-            mapInfo = new PaddedText(content, {
-                x:spacing, y:spacing, padding:spacing, pointerEvents:'none',
-                textColor:colorBgF, bgColor:'#0003'
-            });
+            gamePanel.buildOverlays();
             
-            const cellHV = buildCellHighlightView(content),
-                entityHV = buildEntityHighlightView(content);
+            // Highlight Views
+            const cellHV = buildCellHighlightView(gamePanel),
+                entityHV = buildEntityHighlightView(gamePanel);
             gameMap.doMouseOverCell = cellHV.update.bind(cellHV);
             gameMap.doMouseOverEntity = entityHV.update.bind(entityHV);
             
-            
-            rightPanel = new View(content, {
-                align:'right', width:280, percentOfParentHeight:100, bgColor:'#0003'
-            }, [SizeToParent]);
-            
-            myLocInfo = new Text(rightPanel, {textColor:colorBgF});
+            // Right Panel
+            myLocInfo = new Text(rightPanel, {textColor:colorBgF, layoutHint:'break'});
             
             // Vocalize
             const vocalizationVolumeSelector = new InputSelect(rightPanel, {
@@ -348,6 +357,90 @@
                 inset:padding, spacing:spacing, outset:padding, 
                 lineInset:padding, lineSpacing:spacing, lineOutset:padding
             });
+        },
+        
+        buildOverlays: () => {
+            const Overlay = new JSClass('Overlay', View, {
+                    initNode: function(parent, attrs) {
+                        attrs.roundedCorners = cornerRadius + 2;
+                        attrs.textColor = colorBgF;
+                        attrs.pointerEvents = 'none';
+                        this.callSuper();
+                    }
+                }),
+                
+                HorizontalOverlay = new JSClass('HorizontalOverlay', Overlay, {
+                    initNode: function(parent, attrs) {
+                        const insets = attrs.insets ??= 12;
+                        delete attrs.insets;
+                        
+                        attrs.x = overlayMargin;
+                        attrs.height ??= overlaySize;
+                        
+                        this.callSuper();
+                        this.getIDS().background = 'linear-gradient(to left, #0003, #0000, #0000, #0003)';
+                        new ResizeLayout(this, {inset:insets, spacing:spacing, outset:insets});
+                    }
+                }),
+                
+                VerticalOverlay = new JSClass('VerticalOverlay', Overlay, {
+                    initNode: function(parent, attrs) {
+                        const insets = attrs.insets ??= 8;
+                        delete attrs.insets;
+                        
+                        attrs.y = 2*overlayMargin + overlaySize;
+                        attrs.width ??= overlaySize;
+                        
+                        this.callSuper();
+                        this.getIDS().background = 'linear-gradient(to bottom, #0003, #0000, #0000, #0003)';
+                        new ResizeLayout(this, {axis:'y', inset:insets, spacing:spacing, outset:insets});
+                    }
+                });
+            
+            // Header Overlay
+            headerOverlay = new HorizontalOverlay(gamePanel);
+            mapInfo = new Text(headerOverlay, {valign:'middle'});
+            new View(headerOverlay, {layoutHint:1});
+            playingAsTxt = new Text(headerOverlay, {valign:'middle'});
+            new View(headerOverlay, {layoutHint:1});
+            
+            // Footer Overlay
+            footerOverlay = new HorizontalOverlay(gamePanel, {insets:4});
+            new TranslucentSquareBtn(footerOverlay, {
+                valign:'middle', text:pkg.FA_CLOSE, tooltip:'Leave Ouroboros.'
+            }, [{
+                doActivated:() => {
+                    const confirmFunc = () => {
+                        pkg.app.lockUI('Leaving Ouroboros...', true);
+                        pkg.websocket.sendTypedMessage(TYPE_EXIT_WORLD, {id:character.getId()});
+                    };
+                    if (GlobalKeys.isShiftKeyDown()) {
+                        confirmFunc();
+                    } else {
+                        orb.showConfirmDialog('Yes, I meant to click the exit button and leave the game world.', 'Exit Ouroboros?', 'Exit', confirmFunc);
+                    }
+                }
+            }]);
+            new View(footerOverlay, {layoutHint:1});
+            
+            // Left Overlay
+            leftOverlay = new VerticalOverlay(gamePanel, {insets:4});
+            
+            const makeCooldown = (propTargetName, readyIcon) => {
+                new pkg.CharacterCooldownRadialGuage(leftOverlay, {
+                    x:1, propTargetName:propTargetName, cooldownName:I18N('cooldownName-' + propTargetName),
+                    pointerEvents:'auto', readyIcon:readyIcon
+                });
+            };
+            makeCooldown(FIELD_LOCK_MOVE, pkg.FA_MOVE);
+            makeCooldown(FIELD_LOCK_ACTION, pkg.FA_ACTION);
+            makeCooldown(FIELD_LOCK_REACT, pkg.FA_REACT);
+            makeCooldown(FIELD_LOCK_FREE, pkg.FA_FREE_ACTION);
+            
+            
+            
+            // Right Overlay
+            rightOverlay = new VerticalOverlay(gamePanel);
         }
     });
 })(orb);

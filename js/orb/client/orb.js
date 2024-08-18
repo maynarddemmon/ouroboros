@@ -105,6 +105,7 @@ orb = (() => {
             FA_CHEVRON_LEFT:       makeTagFunc(['chevron-left']),
             FA_CHEVRON_RIGHT:      makeTagFunc(['chevron-right']),
             FA_CHEVRON_UP:         makeTagFunc(['chevron-up']),
+            FA_CLOCK:              makeTagFunc(['clock']),
             FA_CLOSE:              makeTagFunc(['times']),
             FA_EDIT:               makeTagFunc(['edit']),
             FA_ERROR:              makeTagFunc(['fa-exclamation-circle']),
@@ -116,6 +117,7 @@ orb = (() => {
             FA_HELP:               makeTagFunc(['question-circle']),
             FA_LOGIN:              makeTagFunc(['sign-in-alt']),
             FA_LOGOUT:             makeTagFunc(['sign-out-alt']),
+            FA_LOCATION:           makeTagFunc(['location-arrow']),
             FA_MINUS:              makeTagFunc(['minus']),
             FA_MINUS_SQUARE:       makeTagFunc(['minus-square']),
             FA_PLUG:               makeTagFunc(['plug']),
@@ -126,6 +128,12 @@ orb = (() => {
             FA_SEARCH:             makeTagFunc(['search']),
             FA_SUCCESS:            makeTagFunc(['smile']),
             FA_WARNING:            makeTagFunc(['exclamation-triangle']),
+            
+            FA_MOVE:               makeTagFunc(['walking']),
+            FA_ACTION:             makeTagFunc(['fist-raised']),
+            FA_REACT:              makeTagFunc(['sync']),
+            FA_FREE_ACTION:        makeTagFunc(['comment']),
+            FA_CHARACTER:          makeTagFunc(['user']),
             
             theme:{
                 padding:12,

@@ -465,7 +465,7 @@
             
             websocket.registerListener(response => {
                 const {locId, from, volume, message} = response.msg;
-                console.log(locId, from, volume, message);
+                console.log(locId, from, volume, message); // FIXME
                 //model.getEntityById(msg.id)?.set(msg.p, msg.v);
             }, TYPE_SOUND);
             

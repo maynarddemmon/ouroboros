@@ -10,14 +10,10 @@
             doFetch,
             global:G
         } = M,
-        {mouse:GlobalMouse} = G,
         
         {
             PANEL_ID_REG, PANEL_ID_AUTH, PANEL_ID_LOBBY, PANEL_ID_GAME,
-        
-            theme:{
-                padding, spacing, cornerRadius
-            }
+            theme:{cornerRadius}
         } = pkg,
         
         doPost = (url, formValues, callback) => {
@@ -45,10 +41,10 @@
             G.register('app', appView);
             
             attrs.minWidth = 1040;
-            attrs.minHeight = 812;
+            attrs.minHeight = 760;
             
             appView.callSuper(parent, attrs);
-            appView.attachToDom(GlobalMouse, 'noop', 'contextmenu', true);
+            appView.attachToDom(G.mouse, 'noop', 'contextmenu', true);
             
             new pkg.RegPanel(appView, {panelId:PANEL_ID_REG});
             new pkg.AuthPanel(appView, {panelId:PANEL_ID_AUTH});
@@ -95,7 +91,7 @@
                 if (!lockView) {
                     lockView = new M.Dimmer(appView);
                     
-                    const padding = 20,
+                    const PADDING = 20,
                         
                         // Compensate for the spinner dom element being 4px larger than the provided width.
                         adj = 2,
@@ -103,7 +99,7 @@
                         container = lockView.container = new View(lockView, {
                             align:'center', valign:'middle', bgColor:'#fff', roundedCorners:cornerRadius
                         }),
-                        subContainer = new View(container, {x:padding, y:padding});
+                        subContainer = new View(container, {x:PADDING, y:PADDING});
                     
                     lockView.spinner = new View(subContainer, {domClass:'roundspinner', width:60, height:60, visible:false}, [{
                         setX: function(v) {this.callSuper(v - adj);},
@@ -111,8 +107,8 @@
                     }]);
                     lockView.msgView = new Text(subContainer);
                     lockView.alignLayout = new M.AlignedLayout(subContainer, {align:'center', collapseParent:true});
-                    new SpacedLayout(subContainer, {axis:'y', spacing:padding, collapseParent:true});
-                    lockView.sizeToChildren = new M.SizeToChildren(container, {axis:'both', paddingX:padding, paddingY:padding - adj});
+                    new SpacedLayout(subContainer, {axis:'y', spacing:PADDING, collapseParent:true});
+                    lockView.sizeToChildren = new M.SizeToChildren(container, {axis:'both', paddingX:PADDING, paddingY:PADDING - adj});
                 }
                 
                 if (!lockView.visible) {

@@ -183,6 +183,19 @@
         }
     });
     
+    pkg.TranslucentBtn = new JS.Module('TranslucentBtn', {
+        initNode: function(parent, attrs) {
+            attrs.activeColor ??= '#0006';
+            attrs.hoverColor ??= '#0002';
+            attrs.readyColor ??= '#0004';
+            attrs.pointerEvents ??= 'auto';
+            this.callSuper(parent, attrs);
+        }
+    });
+    
+    pkg.TranslucentSquareBtn = new JSClass('TranslucentSquareBtn', pkg.SquareBtn, {
+        include:[pkg.TranslucentBtn]
+    });
     
     pkg.BaseRadialGuage = new JSClass('BaseRadialGuage', M.RadialGuage, {
         initNode: function(parent, attrs) {
@@ -207,7 +220,16 @@
     
     pkg.CharacterCooldownRadialGuage = new JSClass('CharacterCooldownRadialGuage', pkg.BaseRadialGuage, {
         initNode: function(parent, attrs) {
-            this.quickSet(['propTargetName'], attrs);
+            attrs.radius ??= 16;
+            attrs.thickness ??= 1;
+            attrs.color ??= '#06f';
+            attrs.bgColor ??= '#0008';
+            attrs.borderColor ??= '#888';
+            
+            attrs.readyIcon ??= pkg.FA_READY;
+            attrs.cooldownName ??= '';
+            
+            this.quickSet(['propTargetName','readyIcon', 'cooldownName'], attrs);
             this.callSuper(parent, attrs);
             
             this.syncTo(pkg.model, 'characterInPlayChanged', 'characterInPlay');
@@ -243,16 +265,16 @@
             if (newValue <= 0) this.detachFrom(model, 'notifyWorldClockTime', 'worldClockTime');
         },
         
-        getTooltipByValue: value => {
+        getTooltipByValue: function(value) {
             if (value > 0) {
-                return '' + value + ' ticks of the clock until this cooldown is ready.';
+                return '' + value + ' ticks of the clock until the ' + this.cooldownName + ' cooldown is ready.';
             } else {
-                return 'The cooldown is ready.';
+                return 'The ' + this.cooldownName + ' cooldown is ready.';
             }
         },
         
         getTextByValue: function(value) {
-            return value > 0 ? this.callSuper(value) : pkg.FA_READY;
+            return value > 0 ? this.callSuper(value) : this.readyIcon;
         }
     });
     
@@ -263,7 +285,7 @@
             } else {
                 worldClockView = new Text(parent, {valign:'middle', fontFamily:'monospace'}, [{
                     onWorldClockTime: function(event) {
-                        this.setText(worldTimeToParts(event.value, true));
+                        this.setText(worldTimeToParts(event.value, true) + ' ' + pkg.FA_CLOCK);
                     }
                 }]);
                 worldClockView.syncTo(pkg.model, 'onWorldClockTime', 'worldClockTime');
@@ -276,8 +298,8 @@
             if (socketConnectedBtn) {
                 socketConnectedBtn.setParent(parent);
             } else {
-                socketConnectedBtn = new pkg.SquareBtn(parent, {
-                    valign:'middle', text:pkg.FA_PLUG, readyColor:'transparent'
+                socketConnectedBtn = new pkg.TranslucentSquareBtn(parent, {
+                    valign:'middle', text:pkg.FA_PLUG
                 }, [{
                     onWebsocketStatus: function(event) {
                         const status = event.value;
