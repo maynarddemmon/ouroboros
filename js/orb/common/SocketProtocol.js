@@ -29,6 +29,8 @@
             TYPE_ALTER_CHARACTER:'alterCharacter',
             TYPE_ALTER_ENTITY:'alterEntity',
             
+            TYPE_SOUND:'sound',
+            
             // Movement
             TYPE_MOVE:'move',
             TYPE_MOVE_FAILED:'moveFailed',
@@ -51,6 +53,7 @@
             
             // Free Actions
             TYPE_CHANGE_FACING:'changeFacing',
+            TYPE_VOCALIZE:'vocalize',
             TYPE_ALTER_CELL:'alterCell',
             TYPE_FREE_FAILED:'freeFailed',
             FREE_ERROR_CODES:{

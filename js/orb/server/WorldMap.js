@@ -102,8 +102,9 @@ const orb = require('./orb.js'),
                 }
             }
         },
-        notifyAllChangeListeners: function(type, msg) {
+        notifyAllChangeListeners: function(type, msg, includeLocId) {
             if (isReady) {
+                if (includeLocId) msg.locId = this.locId;
                 for (const character of this.getChangeListeners()) {
                     accountService.addMessageToUser(character.getUserId(), {type:type, msg:msg});
                 }

@@ -24,7 +24,7 @@ const orb = require('./orb.js'),
         cell:{FIELD_COMPOSITION}
     } = require('../common/common.js'),
     {isValidLocArr} = require('../common/util.js'),
-    {TYPE_ALTER_ENTITY} = require('../common/SocketProtocol.js'),
+    {TYPE_ALTER_ENTITY, TYPE_SOUND} = require('../common/SocketProtocol.js'),
     
     FILENAME_CHARACTERS = 'characters',
     
@@ -57,7 +57,7 @@ const orb = require('./orb.js'),
                 if (ATTRS_TO_NOTIFY_FOR.includes(attrName)) {
                     self.getCell()?.notifyAllChangeListeners(TYPE_ALTER_ENTITY, {
                         id:self.getId(), p:attrName, v:newValue
-                    });
+                    }, false);
                 }
             }
             return retval;
@@ -72,6 +72,13 @@ const orb = require('./orb.js'),
             retval[FIELD_ASTRAL_PROJECTED] = this.isAstralProjected();
             retval[FIELD_FACING] = this.getFacing();
             return retval;
+        },
+        
+        doVocalize: function(volume, message) {
+            const self = this;
+            self.getCell()?.notifyAllChangeListeners(TYPE_SOUND, {
+                from:self.getId(), volume:volume, message:message
+            }, true);
         }
     }),
     

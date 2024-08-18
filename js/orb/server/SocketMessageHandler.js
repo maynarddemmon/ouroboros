@@ -4,7 +4,7 @@ const {maxCharactersPerUser} = require('./orb.js'),
     {
         TYPE_LOBBY, TYPE_CREATE_CHARACTER, TYPE_DELETE_CHARACTER,
         TYPE_ENTER_WORLD, TYPE_EXIT_WORLD,
-        TYPE_MOVE, TYPE_ALTER_CELL, TYPE_CHANGE_FACING,
+        TYPE_MOVE, TYPE_ALTER_CELL, TYPE_CHANGE_FACING, TYPE_VOCALIZE,
         ATTR_TIME
     } = require('../common/SocketProtocol.js'),
     
@@ -44,6 +44,7 @@ const {maxCharactersPerUser} = require('./orb.js'),
         [TYPE_MOVE]:doEventNowHandler,
         [TYPE_ALTER_CELL]:doEventNowHandler,
         [TYPE_CHANGE_FACING]:doEventNowHandler,
+        [TYPE_VOCALIZE]:doEventNowHandler,
     };
 
 module.exports = {

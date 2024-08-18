@@ -15,7 +15,7 @@ const orb = require('./orb.js'),
         TYPE_MOVE, TYPE_MOVE_FAILED, MOVE_ERROR_CODES,
         TYPE_ACTION_FAILED, ACTION_ERROR_CODES,
         TYPE_REACT_FAILED, REACT_ERROR_CODES,
-        TYPE_CHANGE_FACING, TYPE_ALTER_CELL, TYPE_FREE_FAILED, FREE_ERROR_CODES,
+        TYPE_CHANGE_FACING, TYPE_VOCALIZE, TYPE_ALTER_CELL, TYPE_FREE_FAILED, FREE_ERROR_CODES,
         TYPE_ALTER_CHARACTER
     } = require('../common/SocketProtocol.js'),
     {
@@ -216,6 +216,20 @@ const orb = require('./orb.js'),
                     const compassDirection = event.msg[ATTR_DIRECTION];
                     if (compassDirection) {
                         character.setFacing(compassDirection);
+                    } else {
+                        accountService.addMessageToUser(username, {type:TYPE_FREE_FAILED, code:FREE_ERROR_CODES.INVALID_VALUE});
+                    }
+                }
+            );
+        },
+        
+        [TYPE_VOCALIZE]:event => {
+            performAction(
+                event, FIELD_LOCK_FREE, 'getFreeActionSpeed', null, 
+                (username, character, now) => {
+                    const {volume, message} = event.msg;
+                    if (volume && message) {
+                        character.doVocalize(volume, message);
                     } else {
                         accountService.addMessageToUser(username, {type:TYPE_FREE_FAILED, code:FREE_ERROR_CODES.INVALID_VALUE});
                     }

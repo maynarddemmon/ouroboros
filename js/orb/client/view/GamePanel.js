@@ -30,7 +30,7 @@
             },
             greek:{
                 ATTR_DIRECTION,
-                TYPE_EXIT_WORLD, TYPE_ALTER_CELL, TYPE_CHANGE_FACING
+                TYPE_EXIT_WORLD, TYPE_ALTER_CELL, TYPE_CHANGE_FACING, TYPE_VOCALIZE
             },
             cell:{FIELD_COMPOSITION},
             FACINGS,
@@ -291,6 +291,29 @@
             }, [SizeToParent]);
             
             myLocInfo = new Text(rightPanel, {textColor:colorBgF});
+            
+            // Vocalize
+            const vocalizationVolumeSelector = new InputSelect(rightPanel, {
+                    height:28, layoutHint:'break', options:[
+                        {label:'Whisper', value:'whisper'},
+                        {label:'Speak', value:'speak'},
+                        {label:'Yell', value:'yell'},
+                    ]
+                }),
+                messageField = new FormInputText(rightPanel, {
+                    width:125, maxLength:200, acceleratorScope:'root'
+                },[{doAccept: () => {sendBtn.doActivated();}}]),
+                sendBtn = new TextBtn(rightPanel, {text:'Send'}, [{
+                    doActivated: () => {
+                        const message = messageField.value;
+                        if (message) {
+                            if (!character.doFree(TYPE_VOCALIZE, {volume:vocalizationVolumeSelector.value, message:message})) {
+                                notifyCanNotAct(character);
+                            }
+                        }
+                    }
+                }]);
+            vocalizationVolumeSelector.selectValue('speak');
             
             // Alter Cell
             alterCellBtn = new TextBtn(rightPanel, {text:'Alter Cell', visible:false, layoutHint:'break'}, [{
