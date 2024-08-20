@@ -55,7 +55,7 @@
                 
                 this.callSuper(parent, attrs);
                 
-                this.getIDS().maxWidth = '140px';
+                this.getIDS().maxWidth = '160px';
             },
             
             clean: function() {
@@ -90,7 +90,7 @@
                     self.stopActiveAnimators('opacity');
                     self.setOpacity(1);
                     
-                    const duration = 1000 + mathMin(msg.length * 50, 2000);
+                    const duration = 1500 + mathMin(msg.length * 50, 2500);
                     self.animate({attribute:'opacity', to:0, duration:duration, easingFunction:'inExpo'}).next(success => {
                         chatBubblePool.putInstance(self);
                     });
@@ -410,12 +410,13 @@
                 case 'speak': actionLabel = isCharacter ? 'say' : 'says'; break;
                 case 'whisper': actionLabel = isCharacter ? 'whisper' : 'whispers'; break;
                 case 'yell': actionLabel = isCharacter ? 'yell' : 'yells'; break;
+                    
+                // FIXME: numeric volumes
             }
             
             const chatMsg = entityName + ' ' + actionLabel + ': ' + message;
             pkg.gamePanel.appendToChatLog(chatMsg);
             
-            // FIXME: show a chat bubble overlay
             if (entity) {
                 const chatBubble = chatBubblePool.getInstance();
                 chatBubble.configure(chatMsg, entity, locId);

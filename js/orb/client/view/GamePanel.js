@@ -414,7 +414,7 @@
             
             const row = new View(chatTab, {percentOfParentWidth:100, height:28}, [SizeToParent]);
             const messageField = new FormInputText(row, {
-                    maxLength:50, acceleratorScope:'root', layoutHint:1
+                    maxLength:80, acceleratorScope:'root', layoutHint:1
                 },[{doAccept: () => {sendBtn.doActivated();}}]),
                 
                 sendBtn = new TextBtn(row, {width:55, text:'Send'}, [{

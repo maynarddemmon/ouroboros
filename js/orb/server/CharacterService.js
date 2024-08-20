@@ -55,7 +55,7 @@ const orb = require('./orb.js'),
                 newValue = self[attrName];
             if (self.inited && curValue !== newValue) {
                 if (ATTRS_TO_NOTIFY_FOR.includes(attrName)) {
-                    self.getCell()?.notifyAllChangeListeners(TYPE_ALTER_ENTITY, {
+                    self.getCell()?.notifyAllVisualChangeListeners(TYPE_ALTER_ENTITY, {
                         id:self.getId(), p:attrName, v:newValue
                     }, false);
                 }
@@ -76,7 +76,7 @@ const orb = require('./orb.js'),
         
         doVocalize: function(volume, message) {
             const self = this;
-            self.getCell()?.notifyAllChangeListeners(TYPE_SOUND, {
+            self.getCell()?.notifyAllAuditoryChangeListeners(TYPE_SOUND, {
                 from:self.getId(), volume:volume, message:message
             }, true);
         }
@@ -88,7 +88,8 @@ const orb = require('./orb.js'),
         
         // Life Cycle //////////////////////////////////////////////////////////
         init: function(attrs) {
-            this._observedCells = [];
+            this._visualObservedCells = [];
+            this._auditoryObservedCells = [];
             
             attrs[FIELD_USER_ID] ??= null;
             attrs[FIELD_PERMISSIONS] ??= null;
@@ -106,10 +107,6 @@ const orb = require('./orb.js'),
         
         
         // Accessors ///////////////////////////////////////////////////////////
-        getMonitorDistance: function() {
-            return Math.max(this.getSightDistance(), this.getHearDistance());
-        },
-        
         getCell: function() {
             const curLocArr = this[FIELD_LOC];
             return curLocArr ? worldMap.getCellByLocArr(curLocArr) : null;
@@ -123,6 +120,11 @@ const orb = require('./orb.js'),
         [generateSetterName(FIELD_ASTRAL_PROJECTED)]: function(v) {
             this.callSuper(v);
             orb.rules.doOnSpiritualChangeForCharacter(this);
+        },
+        
+        [generateSetterName(FIELD_FACING)]: function(v) {
+            this.callSuper(v);
+            if (characterService.isReady) worldMap.updateVisualListenersForCharacter(this, this.getCell());
         },
         
         [generateSetterName(FIELD_LOC)]: function(v) {
@@ -153,8 +155,12 @@ const orb = require('./orb.js'),
         },
         
         // Methods /////////////////////////////////////////////////////////////
-        getObservedCells: function() {return this._observedCells;},
-        setObservedCells: function(v) {this._observedCells = v;},
+        getVisualObservedCells: function() {return this._visualObservedCells;},
+        setVisualObservedCells: function(v) {this._visualObservedCells = v;},
+        
+        getAuditoryObservedCells: function() {return this._auditoryObservedCells;},
+        setAuditoryObservedCells: function(v) {this._auditoryObservedCells = v;},
+        
         /*observeCell: function(cell) {
             if (cell) this._observedCells.push(cell);
         },
@@ -172,7 +178,8 @@ const orb = require('./orb.js'),
         getAsData: function() {
             const retval = {...this};
             delete retval.inited;
-            delete retval._observedCells;
+            delete retval._visualObservedCells;
+            delete retval._auditoryObservedCells;
             return retval;
         },
         

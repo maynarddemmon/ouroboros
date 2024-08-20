@@ -19,7 +19,8 @@ const orb = require('./orb.js'),
     {
         cellOffsetsByDistance,
         cell:{FIELD_COMPOSITION, FIELD_ENTITIES},
-        composition
+        composition,
+        FACINGS:{NORTH, SOUTH, EAST, WEST}
     } = require('../common/common.js'),
     {locIdToArr, locArrToId, locArrToMapId} = require('../common/util.js'),
     {TYPE_CELL_DATA} = require('../common/SocketProtocol.js'),
@@ -38,7 +39,7 @@ const orb = require('./orb.js'),
         // Accessors ///////////////////////////////////////////////////////////
         [generateSetterName(FIELD_COMPOSITION)]: function(v) {
             this.set(FIELD_COMPOSITION, v, true);
-            this.notifyAllChangeListenersThatCellChanged();
+            this.notifyAllVisualChangeListenersThatCellChanged();
         },
         setComposition: function(v) {this.set(FIELD_COMPOSITION, v);},
         getComposition: function() {return this[FIELD_COMPOSITION];},
@@ -81,31 +82,47 @@ const orb = require('./orb.js'),
             return orb.rules.characterMayMoveIntoCell(character, this);
         },
         
-        // ChangeListener //
-        getChangeListeners: function() {
-            return this._changeListeners ??= new Set();
-        },
-        addChangeListener: function(character) {
-            this.getChangeListeners().add(character);
-        },
-        removeChangeListener: function(character) {
-            this.getChangeListeners().delete(character);
-        },
-        notifyAllChangeListenersThatCellChanged: function() {
+        // Change Listeners //
+        getVisualChangeListeners: function() {return this._visualChangeListeners ??= new Set();},
+        getAuditoryChangeListeners: function() {return this._auditoryChangeListeners ??= new Set();},
+        addVisualChangeListener: function(character) {this.getVisualChangeListeners().add(character);},
+        addAuditoryChangeListener: function(character) {this.getAuditoryChangeListeners().add(character);},
+        removeVisualChangeListener: function(character) {this.getVisualChangeListeners().delete(character);},
+        removeAuditoryChangeListener: function(character) {this.getAuditoryChangeListeners().delete(character);},
+        
+        notifyAllVisualChangeListenersThatCellChanged: function() {
             if (isReady) {
                 const self = this;
-                for (const character of self.getChangeListeners()) {
+                for (const character of self.getVisualChangeListeners()) {
                     accountService.addMessageToUser(character.getUserId(), {
-                        type:TYPE_CELL_DATA, 
-                        msg:{[self.locId]:self.getAsDataForCharacter(character)}
+                        type:TYPE_CELL_DATA, msg:{[self.locId]:self.getAsDataForCharacter(character)}
                     });
                 }
             }
         },
-        notifyAllChangeListeners: function(type, msg, includeLocId) {
+        notifyAllAuditoryChangeListenersThatCellChanged: function() {
+            if (isReady) {
+                const self = this;
+                for (const character of self.getAuditoryChangeListeners()) {
+                    accountService.addMessageToUser(character.getUserId(), {
+                        type:TYPE_CELL_DATA, msg:{[self.locId]:self.getAsDataForCharacter(character)}
+                    });
+                }
+            }
+        },
+        
+        notifyAllVisualChangeListeners: function(type, msg, includeLocId) {
             if (isReady) {
                 if (includeLocId) msg.locId = this.locId;
-                for (const character of this.getChangeListeners()) {
+                for (const character of this.getVisualChangeListeners()) {
+                    accountService.addMessageToUser(character.getUserId(), {type:type, msg:msg});
+                }
+            }
+        },
+        notifyAllAuditoryChangeListeners: function(type, msg, includeLocId) {
+            if (isReady) {
+                if (includeLocId) msg.locId = this.locId;
+                for (const character of this.getAuditoryChangeListeners()) {
                     accountService.addMessageToUser(character.getUserId(), {type:type, msg:msg});
                 }
             }
@@ -115,7 +132,7 @@ const orb = require('./orb.js'),
         getEntitiesMap: function() {return this.entities ??= new Map();},
         addEntity: function(entity) {
             this.getEntitiesMap().set(entity.getId(), entity);
-            this.notifyAllChangeListenersThatCellChanged();
+            this.notifyAllVisualChangeListenersThatCellChanged();
         },
         removeEntity: function(entity) {return this.removeEntityById(entity.getId());},
         removeEntityById: function(entityId) {
@@ -123,7 +140,7 @@ const orb = require('./orb.js'),
                 removedEntity = entities.get(entityId);
             if (removedEntity) {
                 entities.delete(entityId);
-                this.notifyAllChangeListenersThatCellChanged();
+                this.notifyAllVisualChangeListenersThatCellChanged();
                 return removedEntity;
             }
         },
@@ -189,19 +206,30 @@ const orb = require('./orb.js'),
         return cell;
     },
     
-    getCellsToObserve = (character, newCell) => {
+    getCellsToObserve = (character, distance, newCell, useFacing) => {
         const retval = [];
         if (newCell) {
-            const distance = character.getMonitorDistance();
             if (distance >= 0 && distance < cellOffsetsByDistance.length) {
+                let facingFilterFunction;
+                if (useFacing) {
+                    switch (character.getFacing()) {
+                        case NORTH:facingFilterFunction = (offsetX, offsetY) => offsetY <= 0; break;
+                        case SOUTH:facingFilterFunction = (offsetX, offsetY) => offsetY >= 0; break;
+                        case EAST: facingFilterFunction = (offsetX, offsetY) => offsetX >= 0; break;
+                        case WEST: facingFilterFunction = (offsetX, offsetY) => offsetX <= 0; break;
+                    }
+                }
+                
                 const offsets = cellOffsetsByDistance[distance],
                     locArr = locIdToArr(newCell.locId),
                     baseX = locArr[1],
                     baseY = locArr[2];
-                for (const offset of offsets) {
-                    locArr[1] = baseX + offset[0];
-                    locArr[2] = baseY + offset[1];
-                    retval.push(getCell(locArrToId(locArr), true));
+                for (const [offsetX, offsetY] of offsets) {
+                    if (!facingFilterFunction || facingFilterFunction(offsetX, offsetY)) {
+                        locArr[1] = baseX + offsetX;
+                        locArr[2] = baseY + offsetY;
+                        retval.push(getCell(locArrToId(locArr), true));
+                    }
                 }
             }
         }
@@ -299,34 +327,6 @@ const orb = require('./orb.js'),
         cellExistsForArr:cellExistsForArr,
         makeAndSetCell:makeAndSetCell,
         
-        clearListenersForCharacter: function(character) {
-            worldMap.updateListenersForCharacter(character);
-        },
-        
-        updateListenersForCharacter: function(character, newCell) {
-            const observedCells = character.getObservedCells(),
-                newObservedCells = getCellsToObserve(character, newCell),
-                {inAOnly, inBoth, inBOnly} = intersectCellArrays(observedCells, newObservedCells);
-            
-            // Stop Observing
-            for (const cell of inAOnly) cell.removeChangeListener(character);
-            
-            // Start Observing
-            if (inBOnly.length > 0) {
-                const msgAccum = {};
-                for (const cell of inBOnly) {
-                    cell.addChangeListener(character);
-                    msgAccum[cell.locId] = cell.getAsDataForCharacter(character);
-                }
-                
-                // Send data for new cells to the listener immediately
-                accountService.addMessageToUser(character.getUserId(), {type:TYPE_CELL_DATA, msg:msgAccum});
-            }
-            
-            // Quickly update observedCells in character
-            character.setObservedCells([...inBoth, ...inBOnly])
-        },
-        
         getMapDataForCharacter: character => {
             // Send all mapData since it doesn't hurt and it's needed when a character changes maps.
             return mapData;
@@ -337,5 +337,65 @@ const orb = require('./orb.js'),
                 accum[mapId] = getMapData(mapId);
             }
             return accum;*/
+        },
+        
+        // Start:Listener Management
+        clearListenersForCharacter: function(character) {
+            worldMap.updateVisualListenersForCharacter(character);
+            worldMap.updateAuditoryListenersForCharacter(character);
+        },
+        
+        updateListenersForCharacter: function(character, newCell) {
+            worldMap.updateVisualListenersForCharacter(character, newCell);
+            worldMap.updateAuditoryListenersForCharacter(character, newCell);
+        },
+        
+        updateVisualListenersForCharacter: function(character, newCell) {
+            const observedCells = character.getVisualObservedCells(),
+                newObservedCells = getCellsToObserve(character, character.getSightDistance(), newCell, true),
+                {inAOnly, inBoth, inBOnly} = intersectCellArrays(observedCells, newObservedCells);
+            
+            // Stop Observing
+            for (const cell of inAOnly) cell.removeVisualChangeListener(character);
+            
+            // Start Observing
+            if (inBOnly.length > 0) {
+                const msgAccum = {};
+                for (const cell of inBOnly) {
+                    cell.addVisualChangeListener(character);
+                    msgAccum[cell.locId] = cell.getAsDataForCharacter(character);
+                }
+                
+                // Send data for new cells to the listener immediately
+                accountService.addMessageToUser(character.getUserId(), {type:TYPE_CELL_DATA, msg:msgAccum});
+            }
+            
+            // Quickly update observedCells in character
+            character.setVisualObservedCells([...inBoth, ...inBOnly]);
+        },
+        
+        updateAuditoryListenersForCharacter: function(character, newCell) {
+            const observedCells = character.getAuditoryObservedCells(),
+                newObservedCells = getCellsToObserve(character, character.getHearDistance(), newCell, false),
+                {inAOnly, inBoth, inBOnly} = intersectCellArrays(observedCells, newObservedCells);
+            
+            // Stop Observing
+            for (const cell of inAOnly) cell.removeAuditoryChangeListener(character);
+            
+            // Start Observing
+            if (inBOnly.length > 0) {
+                const msgAccum = {};
+                for (const cell of inBOnly) {
+                    cell.addAuditoryChangeListener(character);
+                    msgAccum[cell.locId] = cell.getAsDataForCharacter(character);
+                }
+                
+                // Send data for new cells to the listener immediately
+                accountService.addMessageToUser(character.getUserId(), {type:TYPE_CELL_DATA, msg:msgAccum});
+            }
+            
+            // Quickly update observedCells in character
+            character.setAuditoryObservedCells([...inBoth, ...inBOnly]);
         }
+        // End:Listener Management
     };

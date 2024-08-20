@@ -9,6 +9,8 @@ const path = require('path'),
     {JS, tym} = require(PATH_PREFIX + 'lib/tym.js'),
     {getRandomInt} = tym,
     
+    {TYPE_SOUND} = require('../common/SocketProtocol.js'),
+    
     FILENAME_PACKAGE_STATE = 'pkg_state',
     
     getGuid = () => ++GUID_COUNTER,
@@ -191,6 +193,17 @@ const path = require('path'),
                 }
                 
                 return false;
+            },
+            
+            generateSoundForEntityAction: function(entity, cell, actionType) {
+                let soundEffect = 'sound';
+                switch (actionType) {
+                    case 'move': soundEffect = 'footsteps'; break;
+                }
+                
+                cell.notifyAllAuditoryChangeListeners(TYPE_SOUND, {
+                    from:entity.getId(), volume:2, message:'*' + soundEffect + '*'
+                }, true);
             }
         }
     };

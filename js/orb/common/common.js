@@ -237,7 +237,7 @@
             [generateSetterName(FIELD_PERMISSIONS)]: function(v) {this.set(FIELD_PERMISSIONS, v, true);},
             
             getSightDistance: () => 3,
-            getHearDistance: () => 4,
+            getHearDistance: () => 9, // Maximum so sound propogation can handle things.
             
             
             // Methods /////////////////////////////////////////////////////////,
@@ -318,7 +318,8 @@
                     name:'Unknown',
                     mapColor:'transparent',
                     solidity:0,
-                    opacity:1
+                    opacity:1,
+                    damping:1
                 },
                 
                 // Void
@@ -327,28 +328,32 @@
                     mapColor:'#0ff9',
                     tileUrl:'/img/tile/void.png',
                     solidity:-1,
-                    opacity:0.5
+                    opacity:0.5,
+                    damping:0.25
                 },
                 v2:{
                     name:'Null',
                     mapColor:'#09f9',
                     tileUrl:'/img/tile/null.png',
                     solidity:-1,
-                    opacity:0.5
+                    opacity:0.5,
+                    damping:0.25
                 },
                 v3:{
                     name:'Æthoid',
                     mapColor:'#9ff9',
                     tileUrl:'/img/tile/aethoid.png',
                     solidity:0,
-                    opacity:0.25
+                    opacity:0.25,
+                    damping:0.15
                 },
                 v4:{
                     name:'Æthrull',
                     mapColor:'#09f9',
                     tileUrl:'/img/tile/aethrull.png',
                     solidity:0,
-                    opacity:0.25
+                    opacity:0.25,
+                    damping:0.15
                 },
                 
                 // Earth
@@ -357,7 +362,8 @@
                     mapColor:'#0003',
                     tileUrl:'/img/tile/stone_solid.png',
                     solidity:1,
-                    opacity:1
+                    opacity:1,
+                    damping:0.95
                 },
                 
                 // Air
@@ -366,14 +372,16 @@
                     mapColor:'transparent',
                     tileUrl:'/img/tile/stone_floor.png',
                     solidity:0,
-                    opacity:0.01
+                    opacity:0.01,
+                    damping:0.01
                 },
                 a2:{
                     name:'Dirt Floor',
                     mapColor:'transparent',
                     tileUrl:'/img/tile/dirt_floor.png',
                     solidity:0,
-                    opacity:0.01
+                    opacity:0.01,
+                    damping:0.01
                 },
                 
                 // Fire
@@ -382,7 +390,8 @@
                     mapColor:'#f66',
                     tileUrl:'/img/tile/fire.png',
                     solidity:0,
-                    opacity:0.5
+                    opacity:0.5,
+                    damping:0.1
                 },
                 
                 // Water
@@ -391,7 +400,8 @@
                     mapColor:'#ccf',
                     tileUrl:'/img/tile/ice_solid.png',
                     solidity:1,
-                    opacity:0.5
+                    opacity:0.5,
+                    damping:0.75
                 },
             }
         };
