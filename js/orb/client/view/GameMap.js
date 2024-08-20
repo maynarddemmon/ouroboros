@@ -2,16 +2,18 @@
     let gameMap,
         cellPool,
         entityPool,
+        chatBubblePool,
         character,
         cellCountX,
         cellCountY;
     
     const JSClass = JS.Class,
         
-        {ceil:mathCeil, abs:mathAbs} = Math,
+        {min:mathMin, ceil:mathCeil, abs:mathAbs} = Math,
         
         {
-            View, ImageSupport, Reusable, MouseOverAndDown, TrackActivesPool, Animator, TransformSupport,
+            View, PaddedText, ImageSupport, Reusable, MouseOverAndDown, TrackActivesPool, 
+            Animator, TransformSupport,
             debounce
         } = myt,
         
@@ -32,8 +34,69 @@
         /* A Map of EntityView instances by entity ID.  */
         entityViewsByEntityId = new Map(),
         
+        /* A Map of CellViews by location ID. */
+        cellViewsByLocId = new Map(),
+        
         observedLocIds = new Set(), // Reused inside the render function.
         obscuredLocIds = new Set(), // Reused inside the render function.
+        
+        ChatBubbleView = new JSClass('ChatBubbleView', PaddedText, {
+            include:[Reusable],
+            
+            initNode: function(parent, attrs) {
+                attrs.pointerEvents = 'none';
+                
+                attrs.zIndex = 2;
+                attrs.bgColor ??= '#fffc';
+                attrs.boxShadow ??= [0,0,8,'#000'];
+                attrs.roundedCorners ??= 6;
+                attrs.padding ??= 6;
+                attrs.whiteSpace ??= 'normal';
+                
+                this.callSuper(parent, attrs);
+                
+                this.getIDS().maxWidth = '140px';
+            },
+            
+            clean: function() {
+                this.setVisible(false);
+            },
+            
+            reposition: function() {
+                const self = this,
+                    entity = self.entity,
+                    locId = self.locId,
+                    anchorView = entityViewsByEntityId.get(entity.getId()) ?? cellViewsByLocId.get(locId);
+                if (anchorView) {
+                    self.setX(anchorView.x - (self.width - anchorView.width) / 2);
+                    self.setY(anchorView.y - self.height - 6);
+                    return true;
+                } else {
+                    chatBubblePool.putInstance(self);
+                    return false;
+                }
+            },
+            
+            configure: function(msg, entity, locId) {
+                const self = this;
+                
+                self.entity = entity;
+                self.locId = locId;
+                
+                self.setVisible(true);
+                self.setText(msg);
+                
+                if (self.reposition()) {
+                    self.stopActiveAnimators('opacity');
+                    self.setOpacity(1);
+                    
+                    const duration = 1000 + mathMin(msg.length * 50, 2000);
+                    self.animate({attribute:'opacity', to:0, duration:duration, easingFunction:'inExpo'}).next(success => {
+                        chatBubblePool.putInstance(self);
+                    });
+                }
+            }
+        }),
         
         EntityView = new JSClass('EntityView', View, {
             include:[Reusable, MouseOverAndDown],
@@ -41,7 +104,7 @@
             initNode: function(parent, attrs) {
                 this.mouseOver = this.mouseDown = false;
                 
-                attrs.zIndex = 2;
+                attrs.zIndex = 1;
                 attrs.bgColor ??= '#000';
                 attrs.outline ??= [1, 'solid', '#000'];
                 attrs.border ??= [1, 'solid', '#fff'];
@@ -209,6 +272,8 @@
                     this.setVisible(true);
                     this.setBgColor(mapColor);
                     this.setImageUrl(tileUrl);
+                    
+                    cellViewsByLocId.set(cell.locId, this);
                 }
             },
             
@@ -282,6 +347,7 @@
             
             cellPool = new TrackActivesPool(CellView, gameMap);
             entityPool = new TrackActivesPool(EntityView, gameMap);
+            chatBubblePool = new TrackActivesPool(ChatBubbleView, gameMap);
             
             gameMap.constrain('refreshMap', [
                 model, 'cellChanged', model, 'mapChanged',
@@ -346,7 +412,14 @@
                 case 'yell': actionLabel = isCharacter ? 'yell' : 'yells'; break;
             }
             
-            pkg.gamePanel.appendToChatLog(entityName + ' ' + actionLabel + ': ' + message);
+            const chatMsg = entityName + ' ' + actionLabel + ': ' + message;
+            pkg.gamePanel.appendToChatLog(chatMsg);
+            
+            // FIXME: show a chat bubble overlay
+            if (entity) {
+                const chatBubble = chatBubblePool.getInstance();
+                chatBubble.configure(chatMsg, entity, locId);
+            }
         },
         
         refreshMap: debounce(event => {
@@ -355,6 +428,7 @@
             cellPool.putActives();
             entityPool.putActives();
             
+            cellViewsByLocId.clear();
             entityViewsByEntityId.clear();
             observedLocIds.clear();
             obscuredLocIds.clear();
@@ -537,6 +611,12 @@
                 posX += cellSize;
                 posY = 0;
             }
+            
+            // Update ChatBubbles
+            for (const bubble of chatBubblePool.getActives()) {
+                bubble.reposition();
+            }
+            
             
             // Have backgroundImage track the map offset so the background image does not drift
             // as the character moves.

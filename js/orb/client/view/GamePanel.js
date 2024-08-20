@@ -108,7 +108,9 @@
         
         doFacingKey = (domEvent, compassDirection) => {
             domEvent.preventDefault();
-            if (!character.doFree(TYPE_CHANGE_FACING, {[ATTR_DIRECTION]:compassDirection})) {
+            if (compassDirection === character.getFacing()) {
+                gamePanel.appendToChatLog('<i>You\'re already facing that direction.</i>');
+            } else if (!character.doFree(TYPE_CHANGE_FACING, {[ATTR_DIRECTION]:compassDirection})) {
                 gameMap.animateEntity(character.getId());
                 gamePanel.appendToChatLog('<i>You can\'t face a different direction right now.</i>');
             }
@@ -132,8 +134,8 @@
                             this.setWidth(infoTxt.x + infoTxt.width + padding);
                             this.setHeight(infoTxt.y + infoTxt.height + spacing);
                             
-                            this.setX(gameMap.x + entityView.x);
-                            this.setY(entityView.y - this.height - cellSize / 2); // FIXME: above/below
+                            this.setX(gameMap.x + entityView.x - (this.width - entityView.width) / 2);
+                            this.setY(entityView.y + entityView.height + cellSize / 2); // FIXME: above/below
                         }
                     }
                 }]);
@@ -412,7 +414,7 @@
             
             const row = new View(chatTab, {percentOfParentWidth:100, height:28}, [SizeToParent]);
             const messageField = new FormInputText(row, {
-                    maxLength:200, acceleratorScope:'root', layoutHint:1
+                    maxLength:50, acceleratorScope:'root', layoutHint:1
                 },[{doAccept: () => {sendBtn.doActivated();}}]),
                 
                 sendBtn = new TextBtn(row, {width:55, text:'Send'}, [{
