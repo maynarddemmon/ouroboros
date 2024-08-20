@@ -17,6 +17,7 @@
                 FIELD_LOCK_MOVE, FIELD_LOCK_ACTION, FIELD_LOCK_REACT, FIELD_LOCK_FREE
             },
             cell:{FIELD_COMPOSITION, FIELD_ENTITIES},
+            composition,
             permissions:{
                 PERM_CREATOR
             }
@@ -214,6 +215,10 @@
             
             getCellData: () => cellData ?? (cellData = {}),
             getCellDatum: locId => cellData[locId],
+            getCellComposition: locId => {
+                const cellDatum = model.getCellDatum(locId);
+                if (cellDatum) return composition[cellDatum[FIELD_COMPOSITION]];
+            },
             storeCellData: data => {
                 const cellData = model.getCellData();
                 for (const locId in data) {

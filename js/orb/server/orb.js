@@ -196,13 +196,17 @@ const path = require('path'),
             },
             
             generateSoundForEntityAction: function(entity, cell, actionType) {
-                let soundEffect = 'sound';
+                let soundEffect = 'sound',
+                    volume = 1;
                 switch (actionType) {
-                    case 'move': soundEffect = 'footsteps'; break;
+                    case 'move':
+                        soundEffect = 'footsteps';
+                        volume = 5;
+                        break;
                 }
                 
                 cell.notifyAllAuditoryChangeListeners(TYPE_SOUND, {
-                    from:entity.getId(), volume:2, message:'*' + soundEffect + '*'
+                    from:entity.getId(), type:actionType, volume:volume, message:'*' + soundEffect + '*'
                 }, true);
             }
         }

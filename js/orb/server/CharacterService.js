@@ -77,7 +77,7 @@ const orb = require('./orb.js'),
         doVocalize: function(volume, message) {
             const self = this;
             self.getCell()?.notifyAllAuditoryChangeListeners(TYPE_SOUND, {
-                from:self.getId(), volume:volume, message:message
+                from:self.getId(), type:'vocalize', volume:volume, message:message
             }, true);
         }
     }),

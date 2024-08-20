@@ -430,19 +430,19 @@
                                 msg = parts[1] ? parts[1] : '';
                             }
                             
-                            let volume = 'speak';
+                            let volume;
                             switch (command) {
                                 case 'w': case 'whisper':
-                                    volume = 'whisper';
+                                    volume = 2;
                                     break;
                                 case 'y': case 'yell':
-                                    volume = 'yell';
+                                    volume = 10;
                                     break;
                                 case 's': case 'speak':
-                                    volume = 'speak';
+                                    volume = 6;
                                     break;
                                 default:
-                                    volume = 'speak';
+                                    volume = 6;
                                     msg = rawMsg;
                             }
                             

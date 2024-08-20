@@ -47,7 +47,6 @@
                 attrs.pointerEvents = 'none';
                 
                 attrs.zIndex = 2;
-                attrs.bgColor ??= '#fffc';
                 attrs.boxShadow ??= [0,0,8,'#000'];
                 attrs.roundedCorners ??= 6;
                 attrs.padding ??= 6;
@@ -77,7 +76,7 @@
                 }
             },
             
-            configure: function(msg, entity, locId) {
+            configure: function(msg, type, entity, locId) {
                 const self = this;
                 
                 self.entity = entity;
@@ -87,6 +86,9 @@
                 self.setText(msg);
                 
                 if (self.reposition()) {
+                    self.setBgColor(type === 'vocalize' ? '#fffc' : '#666c');
+                    self.setTextColor(type === 'vocalize' ? '#000' : '#fff');
+                    
                     self.stopActiveAnimators('opacity');
                     self.setOpacity(1);
                     
@@ -390,9 +392,63 @@
             }
         },
         
+        propogateValue: (startLocId, value, endLocId) => {
+            // Succeed Fast
+            if (startLocId === endLocId) {
+                const comp = model.getCellComposition(startLocId);
+                return comp ? comp.damping * value : value;
+            }
+            
+            let retval;
+            
+            const storeToValue = (to, locArr, value) => {
+                const locId = locArrToId(locArr),
+                    existingToEntry = to.get(locId);
+                if (existingToEntry == null || existingToEntry < value) {
+                    to.set(locId, value);
+                    if (locId === endLocId && (retval == null || value > retval)) {
+                        retval = value;
+                    }
+                }
+            };
+            const propogate = from => {
+                const to = new Map();
+                for (const [locId, fromValue] of from) {
+                    const comp = model.getCellComposition(locId),
+                        toValue = (comp ? comp.damping * fromValue : fromValue) - 1;
+                    if (toValue > 0) {
+                        const locArr = locIdToArr(locId);
+                        locArr[1] -= 1;
+                        storeToValue(to, locArr, toValue);
+                        locArr[1] += 2;
+                        storeToValue(to, locArr, toValue);
+                        locArr[1] -= 1;
+                        locArr[2] -= 1;
+                        storeToValue(to, locArr, toValue);
+                        locArr[2] += 2;
+                        storeToValue(to, locArr, toValue);
+                    }
+                }
+                if (to.size > 0) propogate(to);
+            };
+            
+            const from = new Map();
+            from.set(startLocId, value);
+            propogate(from);
+            
+            return retval ?? 0;
+        },
+        
         handleSoundMessage: socketMsg => {
-            const {locId, from, volume, message} = socketMsg,
+            const {locId, from, type, volume, message} = socketMsg,
                 entity = model.getEntityById(from);
+            
+            const effectiveVolume = gameMap.propogateValue(locId, volume, locArrToId(character.getLocArr()));
+            
+            if (effectiveVolume <= 0) {
+                // Sound to low to hear.
+                return;
+            }
             
             let entityName = '<i>unknown</i>',
                 isCharacter = false;
@@ -405,21 +461,28 @@
                 }
             }
             
-            let actionLabel;
-            switch (volume) {
-                case 'speak': actionLabel = isCharacter ? 'say' : 'says'; break;
-                case 'whisper': actionLabel = isCharacter ? 'whisper' : 'whispers'; break;
-                case 'yell': actionLabel = isCharacter ? 'yell' : 'yells'; break;
-                    
-                // FIXME: numeric volumes
+            let actionLabel = '';
+            switch (type) {
+                case 'move':
+                    break;
+                case 'vocalize':
+                    if (volume >= 7) {
+                        actionLabel = isCharacter ? 'yell' : 'yells';
+                    } else if (volume >= 3) {
+                        actionLabel = isCharacter ? 'say' : 'says';
+                    } else {
+                        actionLabel = isCharacter ? 'whisper' : 'whispers';
+                    }
+                    actionLabel = ' ' + actionLabel;
+                    break;
             }
             
-            const chatMsg = entityName + ' ' + actionLabel + ': ' + message;
-            pkg.gamePanel.appendToChatLog(chatMsg);
+            let chatMsg = entityName + actionLabel;
+            chatMsg += (chatMsg ? ': ' : '') + message;
             
+            pkg.gamePanel.appendToChatLog(chatMsg);
             if (entity) {
-                const chatBubble = chatBubblePool.getInstance();
-                chatBubble.configure(chatMsg, entity, locId);
+                chatBubblePool.getInstance().configure(chatMsg, type, entity, locId);
             }
         },
         

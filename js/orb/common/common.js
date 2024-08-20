@@ -319,7 +319,7 @@
                     mapColor:'transparent',
                     solidity:0,
                     opacity:1,
-                    damping:1
+                    damping:0
                 },
                 
                 // Void
@@ -329,7 +329,7 @@
                     tileUrl:'/img/tile/void.png',
                     solidity:-1,
                     opacity:0.5,
-                    damping:0.25
+                    damping:0.75
                 },
                 v2:{
                     name:'Null',
@@ -337,7 +337,7 @@
                     tileUrl:'/img/tile/null.png',
                     solidity:-1,
                     opacity:0.5,
-                    damping:0.25
+                    damping:0.75
                 },
                 v3:{
                     name:'Æthoid',
@@ -345,7 +345,7 @@
                     tileUrl:'/img/tile/aethoid.png',
                     solidity:0,
                     opacity:0.25,
-                    damping:0.15
+                    damping:0.85
                 },
                 v4:{
                     name:'Æthrull',
@@ -353,7 +353,7 @@
                     tileUrl:'/img/tile/aethrull.png',
                     solidity:0,
                     opacity:0.25,
-                    damping:0.15
+                    damping:0.85
                 },
                 
                 // Earth
@@ -363,7 +363,7 @@
                     tileUrl:'/img/tile/stone_solid.png',
                     solidity:1,
                     opacity:1,
-                    damping:0.95
+                    damping:0.05
                 },
                 
                 // Air
@@ -373,7 +373,7 @@
                     tileUrl:'/img/tile/stone_floor.png',
                     solidity:0,
                     opacity:0.01,
-                    damping:0.01
+                    damping:1
                 },
                 a2:{
                     name:'Dirt Floor',
@@ -381,7 +381,7 @@
                     tileUrl:'/img/tile/dirt_floor.png',
                     solidity:0,
                     opacity:0.01,
-                    damping:0.01
+                    damping:1
                 },
                 
                 // Fire
@@ -391,7 +391,7 @@
                     tileUrl:'/img/tile/fire.png',
                     solidity:0,
                     opacity:0.5,
-                    damping:0.1
+                    damping:0.9
                 },
                 
                 // Water
@@ -401,7 +401,7 @@
                     tileUrl:'/img/tile/ice_solid.png',
                     solidity:1,
                     opacity:0.5,
-                    damping:0.75
+                    damping:0.25
                 },
             }
         };

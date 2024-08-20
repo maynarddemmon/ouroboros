@@ -182,12 +182,14 @@ const orb = require('./orb.js'),
                     const cell = worldMap.getCell(locArrToId(locArr), true);
                     if (cell.mayMoveInto(character)) {
                         character.setLoc(locArr);
-                        orb.rules.generateSoundForEntityAction(character, cell, 'move');
                         
                         // Send movement change
                         accountService.addMessageToUser(username, {type:TYPE_ALTER_CHARACTER, msg:{
                             id:character.id, p:FIELD_LOC, v:locArr
                         }});
+                        
+                        // Generate movement sound
+                        orb.rules.generateSoundForEntityAction(character, cell, 'move');
                     } else {
                         accountService.addMessageToUser(username, {type:TYPE_MOVE_FAILED, code:MOVE_ERROR_CODES.LOCATION_NOT_ALLOWED});
                     }
