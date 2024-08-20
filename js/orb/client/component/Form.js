@@ -83,7 +83,7 @@
             updateUIColors: function(isValid) {
                 this.setBorderColor(isValid ? this.normalColor : this.errorColor);
                 this.setBgColor(isValid ? colorBgInput : colorBgError);
-                this.setTextColor(isValid ? 'inherit' : this.errorColor);
+                this.setTextColor(isValid ? '#000' : this.errorColor);
             },
             
             setVisible: function(v) {

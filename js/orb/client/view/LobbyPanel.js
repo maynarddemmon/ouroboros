@@ -54,7 +54,7 @@
                 if (pkg.gamePanel.visible && characterInPlay) {
                     doPlay(characterInPlay);
                 } else if (inWorldCharacter && !characterInPlay) {
-                    pkg.growl('info', 'Attempting to auto-join because one of your characters already appears to be in play.');
+                    //pkg.growl('info', 'Attempting to auto-join because one of your characters already appears to be in play.');
                     doPlay(inWorldCharacter);
                 }
             }

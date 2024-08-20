@@ -171,6 +171,9 @@
             initNode: function(parent, attrs) {
                 this.mouseOver = this.mouseDown = false;
                 
+                attrs.focusable = true;
+                attrs.focusIndicator = false;
+                
                 attrs.isSeen = false;
                 attrs.width = attrs.height = cellSize;
                 attrs.imageSize = 'contain';
@@ -319,6 +322,31 @@
                     case 'bounce': Animator.bounceView(entityView, amount); break;
                 }
             }
+        },
+        
+        handleSoundMessage: socketMsg => {
+            const {locId, from, volume, message} = socketMsg,
+                entity = model.getEntityById(from);
+            
+            let entityName = '<i>unknown</i>',
+                isCharacter = false;
+            if (entity) {
+                if (entity === character) {
+                    isCharacter = true;
+                    entityName = 'You';
+                } else {
+                    entityName = entity.name ?? '<i>Entity ' + from + '</i>';
+                }
+            }
+            
+            let actionLabel;
+            switch (volume) {
+                case 'speak': actionLabel = isCharacter ? 'say' : 'says'; break;
+                case 'whisper': actionLabel = isCharacter ? 'whisper' : 'whispers'; break;
+                case 'yell': actionLabel = isCharacter ? 'yell' : 'yells'; break;
+            }
+            
+            pkg.gamePanel.appendToChatLog(entityName + ' ' + actionLabel + ': ' + message);
         },
         
         refreshMap: debounce(event => {

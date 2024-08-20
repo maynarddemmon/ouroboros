@@ -45,12 +45,14 @@ orb = (() => {
                         attrs.textColor = THEME.colorFgError;
                         attrs.icon = pkg.FA_ERROR;
                         attrs.showCloseButton = true;
+                        attrs.showCopyButton = true;
                         attrs.closeOnly = true;
                         break;
                     case 'warning':
                         attrs.textColor = THEME.colorFgWarning;
                         attrs.icon = pkg.FA_WARNING;
                         attrs.showCloseButton = true;
+                        attrs.showCopyButton = true;
                         attrs.closeOnly = true;
                         break;
                     case 'info':
@@ -134,6 +136,7 @@ orb = (() => {
             FA_REACT:              makeTagFunc(['sync']),
             FA_FREE_ACTION:        makeTagFunc(['comment']),
             FA_CHARACTER:          makeTagFunc(['user']),
+            FA_INVENTORY:          makeTagFunc(['briefcase']),
             
             theme:{
                 padding:12,

@@ -464,9 +464,7 @@
             }, TYPE_ALTER_ENTITY);
             
             websocket.registerListener(response => {
-                const {locId, from, volume, message} = response.msg;
-                console.log(locId, from, volume, message); // FIXME
-                //model.getEntityById(msg.id)?.set(msg.p, msg.v);
+                pkg.gameMap.handleSoundMessage(response.msg);
             }, TYPE_SOUND);
             
             websocket.registerListener(response => {
@@ -476,7 +474,7 @@
                         pkg.gameMap.animateEntity(model.getCharacterInPlay().getId());
                         break;
                     default:
-                        growl('info', response.msg);
+                        growl('warning', JSON.stringify(response));
                 }
             }, TYPE_MOVE_FAILED);
             
@@ -486,7 +484,7 @@
                         pkg.gameMap.animateEntity(model.getCharacterInPlay().getId());
                         break;
                     default:
-                        growl('info', response.msg);
+                        growl('warning', JSON.stringify(response));
                 }
             }, TYPE_ACTION_FAILED);
             
@@ -496,14 +494,14 @@
                         pkg.gameMap.animateEntity(model.getCharacterInPlay().getId());
                         break;
                     default:
-                        growl('info', response.msg);
+                        growl('warning', JSON.stringify(response));
                 }
             }, TYPE_REACT_FAILED);
             
             websocket.registerListener(response => {
                 switch (response.code) {
                     case FREE_ERROR_CODES.INVALID_VALUE:
-                        growl('warning', response.msg);
+                        growl('warning', JSON.stringify(response));
                     case FREE_ERROR_CODES.FREE_NOT_ALLOWED:
                         pkg.gameMap.animateEntity(model.getCharacterInPlay().getId());
                         break;

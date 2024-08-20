@@ -4,10 +4,13 @@
         footerOverlay,
         leftOverlay,
         rightOverlay,
+        leftPanel,
         rightPanel,
+        characterTab,
+        
+        msgLog,
         
         mapInfo,
-        playingAsTxt,
         myLocInfo,
         
         alterCellBtn,
@@ -23,7 +26,8 @@
         
         M = myt,
         {
-            View, Text, PaddedText, InputSelect, SpacedLayout, ResizeLayout, 
+            View, Text, PaddedText, InputSelect, SizeToParent,
+            SpacedLayout, ResizeLayout, WrappingLayout,
             global:{keys:GlobalKeys}
         } = M,
         
@@ -51,6 +55,7 @@
         
         overlayMargin = 4,
         overlaySize = cellSize - overlayMargin,
+        tabSliderBtnHeight = cellSize,
         
         getMapInfo = cell => {
             const locArr = locIdToArr(cell.locId),
@@ -87,13 +92,13 @@
         doMoveCharacter = direction => {
             if (!character.doMove(direction)) {
                 gameMap.animateEntity(character.getId());
-                // FIXME: msg into chat log? "You can't move right now."
+                gamePanel.appendToChatLog('<i>You can\'t move right now.</i>');
             }
         },
         
         notifyCanNotAct = entity => {
             gameMap.animateEntity(entity.getId());
-            // FIXME: msg into chat log? "You can't act right now."
+            gamePanel.appendToChatLog('<i>You can\'t act right now.</i>');
         },
         
         doArrowKey = (domEvent, direction) => {
@@ -105,7 +110,7 @@
             domEvent.preventDefault();
             if (!character.doFree(TYPE_CHANGE_FACING, {[ATTR_DIRECTION]:compassDirection})) {
                 gameMap.animateEntity(character.getId());
-                // FIXME: msg into chat log? "You can't face a different direction right now."
+                gamePanel.appendToChatLog('<i>You can\'t face a different direction right now.</i>');
             }
         },
         
@@ -127,7 +132,7 @@
                             this.setWidth(infoTxt.x + infoTxt.width + padding);
                             this.setHeight(infoTxt.y + infoTxt.height + spacing);
                             
-                            this.setX(entityView.x);
+                            this.setX(gameMap.x + entityView.x);
                             this.setY(entityView.y - this.height - cellSize / 2); // FIXME: above/below
                         }
                     }
@@ -152,7 +157,7 @@
                     update: function(isOver, cell, cellView) {
                         this.setVisible(isOver);
                         if (isOver) {
-                            this.setX(cellView.x - bw2x);
+                            this.setX(gameMap.x + cellView.x - bw2x);
                             this.setY(cellView.y - bw2x);
                             infoTxt.setText(getLocInfo(cell));
                             this.setWidth(infoTxt.x + infoTxt.width + padding);
@@ -172,23 +177,35 @@
         
         updateWidth = () => {
             const w = gamePanel.width,
-                rightPanelX = 760,
-                overlayWidth = rightPanelX - 2*overlayMargin;
-            gameMap.setWidth(w);
+                mapWidth = cellSize * 19,
+                overlayWidth = mapWidth - 2*overlayMargin,
+                leftWidth = (w - mapWidth) / 2,
+                rightWidth = leftWidth,
+                mapX = leftWidth,
+                overlayX = mapX + overlayMargin,
+                rightPanelX = mapX + mapWidth;
             
-            rightPanel.setX(rightPanelX);
-            rightPanel.setWidth(w - rightPanelX);
+            leftPanel.setWidth(leftWidth);
             
-            leftOverlay.setX(overlayMargin);
+            gameMap.setX(leftWidth);
+            gameMap.setWidth(mapWidth);
+            
+            leftOverlay.setX(leftWidth + overlayMargin);
             rightOverlay.setX(rightPanelX - rightOverlay.width - overlayMargin);
             
+            headerOverlay.setX(overlayX);
             headerOverlay.setWidth(overlayWidth);
+            footerOverlay.setX(overlayX);
             footerOverlay.setWidth(overlayWidth);
+            
+            rightPanel.setX(rightPanelX);
+            rightPanel.setWidth(rightWidth);
         },
         
         updateHeight = () => {
             const h = gamePanel.height,
                 overlayHeight = h - 2*(2*overlayMargin + overlaySize);
+            leftPanel.setHeight(h);
             gameMap.setHeight(h);
             rightPanel.setHeight(h);
             
@@ -197,7 +214,65 @@
             
             leftOverlay.setHeight(overlayHeight);
             rightOverlay.setHeight(overlayHeight);
-        };
+        },
+        
+        LocalTabSliderContainer = new JSClass('LocalTabSliderContainer', View, {
+            include: [M.TabSliderContainer],
+            
+            initNode: function(parent, attrs) {
+                attrs.maxSelected ??= -1;
+                attrs.spacing ??= 0;
+                attrs.bgColor ??= '#000';
+                
+                this.callSuper(parent, attrs);
+            },
+            
+            updateLayout: function(ignoredEvent, temporaryDuration) {
+                const tabSliders = this.getTabSliders(),
+                    openCount = this.selectedCount,
+                    closedCount = tabSliders.length - openCount,
+                    height = (this.height - closedCount * tabSliderBtnHeight) / openCount;
+                for (const tabSlider of tabSliders) {
+                    if (tabSlider.selected) {
+                        tabSlider.expand(height);
+                    } else {
+                        tabSlider.collapse();
+                    }
+                }
+            },
+            
+            deselect: function(item) {
+                if (this.selectedCount > 1) this.callSuper(item);
+            }
+        }),
+        
+        LocalTabSlider = new JSClass('LocalTabSlider', M.TabSlider, {
+            initNode: function(parent, attrs) {
+                attrs.pointerEvents = 'auto';
+                
+                attrs.buttonHeight ??= tabSliderBtnHeight;
+                attrs.fillColorSelected ??= '#333';
+                attrs.fillColorActive ??= '#111';
+                attrs.fillColorHover ??= '#333';
+                attrs.fillColorReady ??= '#222';
+                attrs.textColor ??= colorBgF;
+                
+                this.callSuper(parent, attrs);
+                
+                this.labelView = new Text(this.button, {
+                    x:padding, ignorePlacement:true,
+                    text:this.text, valign:'middle'
+                });
+            },
+            
+            // Accessors ///////////////////////////////////////////////////////
+            setText: function(v) {
+                if (this.text !== v) {
+                    this.text = v;
+                    this.labelView?.setText(v);
+                }
+            }
+        });
     
     pkg.GamePanel = new JSClass('GamePanel', pkg.BaseStackablePanel, {
         // Life Cycle //////////////////////////////////////////////////////////
@@ -229,7 +304,7 @@
                     view.setVisible(hasCreatorPerm);
                 }
                 
-                playingAsTxt.setText(pkg.FA_CHARACTER + ' ' + character[FIELD_NAME]);
+                characterTab.setText(pkg.FA_CHARACTER + ' ' + character[FIELD_NAME]);
                 
                 gamePanel.attachToDom(GlobalKeys, '_keyDown', 'keydown', true);
             } else {
@@ -254,6 +329,8 @@
         
         
         // Methods /////////////////////////////////////////////////////////////
+        appendToChatLog: msg => {if (msg) msgLog.appendMsg(msg);},
+        
         /** @private */
         _keyDown: event => {
             const domEvent = event.value,
@@ -278,19 +355,19 @@
         },
         
         buildUI: () => {
+            gamePanel.buildLeftPanel();
             gameMap = new pkg.GameMap(gamePanel, {}, [{
                 doCharacterCell: (character, cell, cellView) => {
                     if (curLocId !== cell.locId) {
                         curLocId = cell.locId;
                         cellHV.setVisible(false);
                     }
-                    mapInfo.setText(pkg.FA_LOCATION + ' ' + getMapInfo(cell));
+                    mapInfo.setText(pkg.FA_GLOBE + ' ' + getMapInfo(cell));
                     myLocInfo.setText('My Location: ' + getLocInfo(cell));
                 }
             }]);
-            rightPanel = new View(gamePanel, {bgColor:'#0003'});
-            
             gamePanel.buildOverlays();
+            gamePanel.buildRightPanel();
             
             // Highlight Views
             const cellHV = buildCellHighlightView(gamePanel),
@@ -298,65 +375,88 @@
             gameMap.doMouseOverCell = cellHV.update.bind(cellHV);
             gameMap.doMouseOverEntity = entityHV.update.bind(entityHV);
             
-            // Right Panel
-            myLocInfo = new Text(rightPanel, {textColor:colorBgF, layoutHint:'break'});
+        },
+        
+        buildLeftPanel: () => {
+            leftPanel = new LocalTabSliderContainer(gamePanel, {persistenceId:'orb.GamePanel.leftTabIds'});
             
-            // Vocalize
-            const vocalizationVolumeSelector = new InputSelect(rightPanel, {
-                    height:28, layoutHint:'break', options:[
-                        {label:'Whisper', value:'whisper'},
-                        {label:'Speak', value:'speak'},
-                        {label:'Yell', value:'yell'},
-                    ]
-                }),
-                messageField = new FormInputText(rightPanel, {
-                    width:125, maxLength:200, acceleratorScope:'root'
+            // Location Tab
+            const locationTab = new LocalTabSlider(leftPanel, {
+                tabId:'location', text:pkg.FA_LOCATION + ' Location'
+            });
+            
+            myLocInfo = new Text(locationTab, {height:20, textColor:colorBgF});
+            
+            new WrappingLayout(locationTab, {
+                inset:padding, spacing:spacing, outset:padding, 
+                lineInset:padding, lineSpacing:spacing, lineOutset:padding
+            });
+            
+            
+            // Chat Tab
+            const chatTab = new LocalTabSlider(leftPanel, {
+                tabId:'chat', text:pkg.FA_FREE_ACTION + ' Messages and Events',
+                noWrapperContainer:true, bgColor:'#333'
+            });
+            
+            msgLog = new PaddedText(chatTab, {
+                percentOfParentWidth:100, layoutHint:1, padding:spacing, text:'',
+                whiteSpace:'normal', overflow:'autoy', userUnselectable:false
+            }, [SizeToParent, {
+                appendMsg: function(msg) {
+                    this.setText(this.text + msg + '<br>');
+                    const ide = this.getIDE();
+                    ide.scrollTo({top:ide.scrollHeight, behavior:'smooth'});
+                }
+            }]);
+            
+            const row = new View(chatTab, {percentOfParentWidth:100, height:28}, [SizeToParent]);
+            const messageField = new FormInputText(row, {
+                    maxLength:200, acceleratorScope:'root', layoutHint:1
                 },[{doAccept: () => {sendBtn.doActivated();}}]),
-                sendBtn = new TextBtn(rightPanel, {text:'Send'}, [{
+                
+                sendBtn = new TextBtn(row, {width:55, text:'Send'}, [{
                     doActivated: () => {
-                        const message = messageField.value;
-                        if (message) {
-                            if (!character.doFree(TYPE_VOCALIZE, {volume:vocalizationVolumeSelector.value, message:message})) {
+                        const rawMsg = messageField.value;
+                        if (rawMsg) {
+                            // Parse "slash" commands
+                            let command,
+                                msg = rawMsg.trim();
+                            if (msg.startsWith('/')) {
+                                const parts = msg.slice(1).split(' ', 2);
+                                command = parts[0];
+                                msg = parts[1] ? parts[1] : '';
+                            }
+                            
+                            let volume = 'speak';
+                            switch (command) {
+                                case 'w': case 'whisper':
+                                    volume = 'whisper';
+                                    break;
+                                case 'y': case 'yell':
+                                    volume = 'yell';
+                                    break;
+                                case 's': case 'speak':
+                                    volume = 'speak';
+                                    break;
+                                default:
+                                    volume = 'speak';
+                                    msg = rawMsg;
+                            }
+                            
+                            if (character.doFree(TYPE_VOCALIZE, {volume:volume, message:msg})) {
+                                messageField.setValue('');
+                            } else {
                                 notifyCanNotAct(character);
                             }
                         }
                     }
                 }]);
-            vocalizationVolumeSelector.selectValue('speak');
+            new ResizeLayout(row, {inset:spacing, spacing:spacing, outset:spacing});
             
-            // Alter Cell
-            alterCellBtn = new TextBtn(rightPanel, {text:'Alter Cell', visible:false, layoutHint:'break'}, [{
-                doActivated: () => {
-                    if (!character.doFree(TYPE_ALTER_CELL, {direction:'here', prop:'c', value:alterCellCompositionSelector.value})) {
-                        notifyCanNotAct(character);
-                    }
-                }
-            }]);
-            const options = [];
-            for (const key in composition) {
-                const entry = composition[key];
-                options.push({label:entry.name, value:key});
-            }
-            alterCellCompositionSelector = new InputSelect(rightPanel, {
-                visible:false, height:28, options:options
-            });
+            new ResizeLayout(chatTab, {axis:'y', spacing:spacing, outset:spacing});
             
-            // Teleport
-            teleportBtn = new TextBtn(rightPanel, {text:'Teleport', visible:false, layoutHint:'break'}, [{
-                doActivated: () => {
-                    const value = teleportLocField.value;
-                    if (value && value.length >= 7) doMoveCharacter(value);
-                }
-            }]);
-            teleportLocField = new FormInputText(rightPanel, {
-                width:100, visible:false, maxLength:24, allowedChars:'-,0123456789',
-                acceleratorScope:'root'
-            },[{doAccept:teleportBtn.doActivated}]);
-            
-            new M.WrappingLayout(rightPanel, {
-                inset:padding, spacing:spacing, outset:padding, 
-                lineInset:padding, lineSpacing:spacing, lineOutset:padding
-            });
+            leftPanel.restoreState(['location', 'chat']);
         },
         
         buildOverlays: () => {
@@ -374,7 +474,6 @@
                         const insets = attrs.insets ??= 12;
                         delete attrs.insets;
                         
-                        attrs.x = overlayMargin;
                         attrs.height ??= overlaySize;
                         
                         this.callSuper();
@@ -400,8 +499,6 @@
             // Header Overlay
             headerOverlay = new HorizontalOverlay(gamePanel);
             mapInfo = new Text(headerOverlay, {valign:'middle'});
-            new View(headerOverlay, {layoutHint:1});
-            playingAsTxt = new Text(headerOverlay, {valign:'middle'});
             new View(headerOverlay, {layoutHint:1});
             
             // Footer Overlay
@@ -437,10 +534,57 @@
             makeCooldown(FIELD_LOCK_REACT, pkg.FA_REACT);
             makeCooldown(FIELD_LOCK_FREE, pkg.FA_FREE_ACTION);
             
-            
-            
             // Right Overlay
             rightOverlay = new VerticalOverlay(gamePanel);
+        },
+        
+        buildRightPanel: () => {
+            rightPanel = new LocalTabSliderContainer(gamePanel, {persistenceId:'orb.GamePanel.rightTabIds'});
+            
+            characterTab = new LocalTabSlider(rightPanel, {
+                tabId:'character', text:pkg.FA_CHARACTER + ' Character'
+            });
+            
+            const inventoryTab = new LocalTabSlider(rightPanel, {
+                tabId:'inventory', text:pkg.FA_INVENTORY + ' Inventory'
+            });
+            
+            // Character Tab
+            // Alter Cell
+            alterCellBtn = new TextBtn(characterTab, {text:'Alter Cell', visible:false, layoutHint:'break'}, [{
+                doActivated: () => {
+                    if (!character.doFree(TYPE_ALTER_CELL, {direction:'here', prop:'c', value:alterCellCompositionSelector.value})) {
+                        notifyCanNotAct(character);
+                    }
+                }
+            }]);
+            const options = [];
+            for (const key in composition) {
+                const entry = composition[key];
+                options.push({label:entry.name, value:key});
+            }
+            alterCellCompositionSelector = new InputSelect(characterTab, {
+                visible:false, height:28, options:options
+            });
+            
+            // Teleport
+            teleportBtn = new TextBtn(characterTab, {text:'Teleport', visible:false, layoutHint:'break'}, [{
+                doActivated: () => {
+                    const value = teleportLocField.value;
+                    if (value && value.length >= 7) doMoveCharacter(value);
+                }
+            }]);
+            teleportLocField = new FormInputText(characterTab, {
+                width:100, visible:false, maxLength:24, allowedChars:'-,0123456789',
+                acceleratorScope:'root'
+            },[{doAccept:teleportBtn.doActivated}]);
+            
+            new M.WrappingLayout(characterTab, {
+                inset:padding, spacing:spacing, outset:padding, 
+                lineInset:padding, lineSpacing:spacing, lineOutset:padding
+            });
+            
+            rightPanel.restoreState(['character','inventory']);
         }
     });
 })(orb);

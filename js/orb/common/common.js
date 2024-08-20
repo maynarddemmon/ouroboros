@@ -368,6 +368,13 @@
                     solidity:0,
                     opacity:0.01
                 },
+                a2:{
+                    name:'Dirt Floor',
+                    mapColor:'transparent',
+                    tileUrl:'/img/tile/dirt_floor.png',
+                    solidity:0,
+                    opacity:0.01
+                },
                 
                 // Fire
                 f1:{
