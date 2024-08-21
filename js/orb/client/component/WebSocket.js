@@ -15,10 +15,6 @@
                 TYPE_FREE_FAILED, FREE_ERROR_CODES,
                 TYPE_ALTER_ENTITY, TYPE_ALTER_CHARACTER, TYPE_SOUND,
                 ATTR_TIME
-            },
-            character:{
-                FIELD_LOC, 
-                FIELD_LOCK_ACTION, FIELD_LOCK_MOVE, FIELD_LOCK_REACT, FIELD_LOCK_FREE
             }
         } = common,
         

@@ -18,17 +18,19 @@
         
         PERM_CREATOR = 'creator',
         
+        // Entity Fields
         FIELD_ID ='id',
         FIELD_SPIRIT = 'spirit',
         FIELD_ZOMBIE = 'zombie',
         FIELD_ASTRAL_PROJECTED = 'astral',
+        FIELD_LOC = 'loc',
         FIELD_FACING = 'facing',
         
+        // Character Fields
         FIELD_USER_ID = 'uid',
         FIELD_PERMISSIONS = 'perms',
         FIELD_IN_WORLD = 'inWorld',
         FIELD_NAME = 'name',
-        FIELD_LOC = 'loc',
         FIELD_MOVE_SPEED = 'moveSpeed',
         FIELD_LOCK_MOVE = 'lockMove',
         FIELD_LOCK_ACTION = 'lockAct',
@@ -196,6 +198,13 @@
             isZombie: function() {return this[FIELD_ZOMBIE];},
             [generateSetterName(FIELD_ASTRAL_PROJECTED)]: function(v) {this.set(FIELD_ASTRAL_PROJECTED, v, true);},
             isAstralProjected: function() {return this[FIELD_ASTRAL_PROJECTED];},
+            
+
+            [generateSetterName(FIELD_LOC)]: function(v) {this.set(FIELD_LOC, v, true);},
+            getLocArr: function(asCopy) {
+                const locArr = this[FIELD_LOC];
+                return asCopy ? locArr.slice() : locArr;
+            },
             [generateSetterName(FIELD_FACING)]: function(v) {this.set(FIELD_FACING, v, true);},
             getFacing: function() {return this[FIELD_FACING];},
         }),
@@ -212,12 +221,6 @@
             },
             [generateSetterName(FIELD_IN_WORLD)]: function(v) {this.set(FIELD_IN_WORLD, v, true);},
             isInWorld: function() {return this[FIELD_IN_WORLD];},
-            
-            [generateSetterName(FIELD_LOC)]: function(v) {this.set(FIELD_LOC, v, true);},
-            getLocArr: function(asCopy) {
-                const locArr = this[FIELD_LOC];
-                return asCopy ? locArr.slice() : locArr;
-            },
             
             // Action Speeds
             [generateSetterName(FIELD_MOVE_SPEED)]: function(v) {this.set(FIELD_MOVE_SPEED, v, true);},
@@ -291,6 +294,7 @@
                 FIELD_SPIRIT:FIELD_SPIRIT,
                 FIELD_ZOMBIE:FIELD_ZOMBIE,
                 FIELD_ASTRAL_PROJECTED:FIELD_ASTRAL_PROJECTED,
+                FIELD_LOC:FIELD_LOC,
                 FIELD_FACING:FIELD_FACING
             },
             
@@ -299,7 +303,6 @@
                 FIELD_NAME:FIELD_NAME,
                 FIELD_PERMISSIONS:FIELD_PERMISSIONS,
                 FIELD_IN_WORLD:FIELD_IN_WORLD,
-                FIELD_LOC:FIELD_LOC,
                 FIELD_MOVE_SPEED:FIELD_MOVE_SPEED,
                 FIELD_LOCK_MOVE:FIELD_LOCK_MOVE,
                 FIELD_LOCK_ACTION:FIELD_LOCK_ACTION,

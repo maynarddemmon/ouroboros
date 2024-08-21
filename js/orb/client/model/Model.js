@@ -133,7 +133,6 @@
                         const existingCharacter = model.getCharacterById(datum[FIELD_ID]);
                         if (existingCharacter) {
                             existingCharacter.callSetters(datum);
-                            characters.push(existingCharacter);
                         } else {
                             const character = new CharacterModel(datum);
                             if (character) {

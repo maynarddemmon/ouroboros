@@ -12,10 +12,10 @@ const orb = require('./orb.js'),
     {
         CommonEntityModelMixin,
         CommonCharacterModelMixin,
-        entity:{FIELD_ID, FIELD_SPIRIT, FIELD_ZOMBIE, FIELD_ASTRAL_PROJECTED, FIELD_FACING},
+        entity:{FIELD_ID, FIELD_SPIRIT, FIELD_ZOMBIE, FIELD_ASTRAL_PROJECTED, FIELD_LOC, FIELD_FACING},
         character:{
             FIELD_NAME, FIELD_USER_ID, FIELD_IN_WORLD,
-            FIELD_LOC, FIELD_MOVE_SPEED, FIELD_PERMISSIONS,
+            FIELD_MOVE_SPEED, FIELD_PERMISSIONS,
             FIELD_LOCK_MOVE, FIELD_LOCK_ACTION, FIELD_LOCK_FREE, FIELD_LOCK_REACT
         },
         FACINGS,
@@ -43,6 +43,7 @@ const orb = require('./orb.js'),
             attrs[FIELD_SPIRIT] ??= false;
             attrs[FIELD_ZOMBIE] ??= false;
             attrs[FIELD_ASTRAL_PROJECTED] ??= false;
+            attrs[FIELD_LOC] ??= [0,0,0,0];
             attrs[FIELD_FACING] ??= FACINGS.NORTH;
             
             this.callSuper(attrs);
@@ -61,6 +62,11 @@ const orb = require('./orb.js'),
                 }
             }
             return retval;
+        },
+        
+        getCell: function() {
+            const curLocArr = this[FIELD_LOC];
+            return curLocArr ? worldMap.getCellByLocArr(curLocArr) : null;
         },
         
         /** Gets data that the provided character can see/hear/sense about this entity. */
@@ -95,7 +101,6 @@ const orb = require('./orb.js'),
             attrs[FIELD_PERMISSIONS] ??= null;
             attrs[FIELD_NAME] ??= '';
             attrs[FIELD_IN_WORLD] ??= false;
-            attrs[FIELD_LOC] ??= [0,0,0,0];
             attrs[FIELD_MOVE_SPEED] ??= 3;
             attrs[FIELD_LOCK_MOVE] ??= 0;
             attrs[FIELD_LOCK_ACTION] ??= 0;
@@ -107,11 +112,6 @@ const orb = require('./orb.js'),
         
         
         // Accessors ///////////////////////////////////////////////////////////
-        getCell: function() {
-            const curLocArr = this[FIELD_LOC];
-            return curLocArr ? worldMap.getCellByLocArr(curLocArr) : null;
-        },
-        
         [generateSetterName(FIELD_SPIRIT)]: function(v) {
             this.callSuper(v);
             orb.rules.doOnSpiritualChangeForCharacter(this);

@@ -19,7 +19,7 @@
         
         {
             cellOffsetsByDistance, visibilityPaths,
-            character:{FIELD_LOC},
+            entity:{FIELD_LOC},
             util:{locArrToId,locIdToArr},
             composition,
             cell:{FIELD_COMPOSITION, FIELD_ENTITIES},

@@ -19,8 +19,9 @@ const orb = require('./orb.js'),
         TYPE_ALTER_CHARACTER
     } = require('../common/SocketProtocol.js'),
     {
+        entity:{FIELD_LOC},
         character:{
-            FIELD_PERMISSIONS, FIELD_LOC,
+            FIELD_PERMISSIONS,
             FIELD_LOCK_MOVE, FIELD_LOCK_ACTION, FIELD_LOCK_REACT, FIELD_LOCK_FREE
         },
         FACINGS:{NORTH, SOUTH, EAST, WEST},
