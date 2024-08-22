@@ -78,6 +78,16 @@
                     return true;
                 }
                 return false;
+            },
+            areLocArrEqual: (locArrA, locArrB) => {
+                if (locArrA !== locArrB) {
+                    if (locArrA == null || locArrB == null) return false;
+                    if (locArrA[1] !== locArrB[1]) return false;
+                    if (locArrA[2] !== locArrB[2]) return false;
+                    if (locArrA[3] !== locArrB[3]) return false;
+                    if (locArrA[0] !== locArrB[0]) return false;
+                }
+                return true;
             }
         };
     

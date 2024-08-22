@@ -3,12 +3,14 @@
         mapData,
         cellData;
     
-    const {
+    const JSClass = JS.Class,
+        {
             Node, Eventable,
             AccessorSupport:{generateSetterName}
         } = myt,
         
         {
+            CommonCellModelMixin,
             CommonEntityModelMixin,
             CommonCharacterModelMixin,
             greek:{TYPE_MOVE},
@@ -20,7 +22,8 @@
             composition,
             permissions:{
                 PERM_CREATOR
-            }
+            },
+            util:{locArrToId, locIdToArr},
         } = common
         
         getMapData = () => mapData ?? (mapData = {}),
@@ -29,7 +32,24 @@
         entityData = {},
         characters = [],
         
-        EntityModel = new JS.Class('EntityModel', Eventable, {
+        CellModel = new JSClass('CellModel', Eventable, {
+            include:[CommonCellModelMixin],
+            
+            setLocId: function(v) {
+                if (this.locId !== v) {
+                    this.locId = v;
+                    this.locArr = null;
+                }
+            },
+            getLocArr: function() {
+                return this.locArr ??= locIdToArr(this.locId);
+            },
+            getCompositionObject: function() {
+                return composition[this.getComposition()]; // FIXME: CompositionModel object
+            },
+        }),
+        
+        EntityModel = new JSClass('EntityModel', Eventable, {
             include:[CommonEntityModelMixin],
             
             set: function(attrName, v, skipSetter) {
@@ -43,7 +63,7 @@
             }
         }),
         
-        CharacterModel = new JS.Class('CharacterModel', EntityModel, {
+        CharacterModel = new JSClass('CharacterModel', EntityModel, {
             include:[CommonCharacterModelMixin],
             
             
@@ -215,29 +235,31 @@
             // Map:end
             
             // Cell:start
-            getCellDatum: locId => cellData[locId],
+            makeUnknownCell: locId => new CellModel({locId:locId, [FIELD_COMPOSITION]:'unk'}),
+            getCell: locId => cellData[locId],
+            getCellByLocArr: locArr => cellData[locArrToId(locArr)],
             getCellComposition: locId => {
-                const cellDatum = model.getCellDatum(locId);
-                if (cellDatum) return composition[cellDatum[FIELD_COMPOSITION]];
+                const cell = model.getCell(locId);
+                if (cell) return cell.getCompositionObject();
             },
             storeCellData: data => {
                 const cellData = getCellData();
                 for (const locId in data) {
+                    // Fixup cellDatum into an Object ready to be used as attrs to a new or existing
+                    // Cell. A big part of this is converting all entityDatum to EntityModels.
                     const cellDatum = data[locId],
-                        existingDatum = model.getCellDatum(locId);
-                    
-                    // Convert all entityDatum to EntityModels
-                    const entities = cellDatum[FIELD_ENTITIES];
-                    let i = entities?.length ?? 0;
-                    while (i--) entities[i] = model.makeEntityFromData(entities[i]);
-                    
-                    if (existingDatum) {
-                        existingDatum[FIELD_COMPOSITION] = cellDatum[FIELD_COMPOSITION];
-                        existingDatum[FIELD_ENTITIES] = cellDatum[FIELD_ENTITIES] || null;
+                        entities = cellDatum[FIELD_ENTITIES];
+                    if (entities) {
+                        let i = entities.length;
+                        while (i--) entities[i] = model.makeEntityFromData(entities[i]);
                     } else {
-                        cellDatum.locId = locId;
-                        cellData[locId] = cellDatum;
+                        cellDatum[FIELD_ENTITIES] = null;
                     }
+                    cellDatum.locId = locId;
+                    
+                    // Create/Update the CellModel
+                    const cell = model.getCell(locId) ?? (cellData[locId] = new CellModel());
+                    cell.callSetters(cellDatum);
                 }
                 model.fireEvent('cellsChanged');
             },

@@ -439,9 +439,8 @@
         
         handleSoundMessage: socketMsg => {
             const {locId, from, type, volume, message} = socketMsg,
-                entity = model.getEntityById(from);
-            
-            const effectiveVolume = gameMap.propogateValue(locId, volume, locArrToId(character.getLocArr()));
+                entity = model.getEntityById(from),
+                effectiveVolume = gameMap.propogateValue(locId, volume, locArrToId(character.getLocArr()));
             
             if (effectiveVolume <= 0) {
                 // Sound to low to hear.
@@ -522,9 +521,9 @@
             
             // Make a lookup table of obscured cellIDs. Only observed Cells can be obscured.
             for (const locId of observedLocIds) {
-                const cellDatum = model.getCellDatum(locId);
-                if (cellDatum) {
-                    const observedLocArr = locIdToArr(locId),
+                const cell = model.getCell(locId);
+                if (cell) {
+                    const observedLocArr = cell.getLocArr(),
                         x = observedLocArr[1] - baseX,
                         y = observedLocArr[2] - baseY,
                         isPosX = x > 0,
@@ -545,10 +544,10 @@
                         let opacityTotal = 0,
                             endedOnObserved = false;
                         const isCellObscured = locArrToCheck => {
-                            const cellDatumToCheck = model.getCellDatum(locArrToId(locArrToCheck));
-                            if (cellDatumToCheck) {
+                            const cellToCheck = model.getCellByLocArr(locArrToCheck);
+                            if (cellToCheck) {
                                 // FIXME check cell walls once we have walls implemented.
-                                opacityTotal += composition[cellDatumToCheck[FIELD_COMPOSITION]].opacity;
+                                opacityTotal += cellToCheck.getCompositionObject().opacity;
                                 if (opacityTotal < 1) return false;
                             }
                             return true;
@@ -624,6 +623,7 @@
                         }
                     }
                 } else {
+                    // Cells that don't exist yet are always considered obscured.
                     obscuredLocIds.add(locId);
                 }
             }
@@ -642,21 +642,21 @@
                     
                     const locId = locArrToId(locArr),
                         isSeen = observedLocIds.has(locId) && !obscuredLocIds.has(locId),
-                        cellDatum = model.getCellDatum(locId) ?? {locId:locId, [FIELD_COMPOSITION]:'unk'},
+                        cell = model.getCell(locId) ?? model.makeUnknownCell(locId),
                         cellView = cellPool.getInstance();
                     
-                    if (isSeen) cellDatum.hasBeenSeen = true;
+                    if (isSeen) cell.hasBeenSeen = true;
                     
-                    cellView.callSetters({x:posX, y:posY, cell:cellDatum, isSeen:isSeen});
+                    cellView.callSetters({x:posX, y:posY, cell:cell, isSeen:isSeen});
                     
-                    const entities = cellDatum[FIELD_ENTITIES],
+                    const entities = cell[FIELD_ENTITIES],
                         len = entities?.length;
                     let posCount = len > 1 ? 1 : 0;
                     if (x === 0 && y === 0) {
                         const characterView = entityPool.getInstance();
                         characterView.setEntity(character);
                         characterView.updatePosition(posCount++, cellView);
-                        gameMap.doCharacterCell(character, cellDatum, cellView);
+                        gameMap.doCharacterCell(character, cell, cellView);
                     }
                     if (isSeen && len > 0) {
                         for (const entity of entities) {
