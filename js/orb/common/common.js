@@ -16,7 +16,13 @@
             AccessorSupport:{generateSetterName}
         } = tym,
         
+        JSModule = JS.Module,
+        
         PERM_CREATOR = 'creator',
+        
+        // Cell Fields
+        FIELD_COMPOSITION = 'c',
+        FIELD_ENTITIES = 'e',
         
         // Entity Fields
         FIELD_ID ='id',
@@ -37,7 +43,7 @@
         FIELD_LOCK_FREE = 'lockFree',
         FIELD_LOCK_REACT = 'lockReact',
         
-        COMPASS_NORTH =1,
+        COMPASS_NORTH = 1,
         COMPASS_SOUTH = 2,
         COMPASS_EAST = 3,
         COMPASS_WEST = 4,
@@ -188,7 +194,76 @@
         CIRCLE_8 = [...CIRCLE_7, ...RING_8],
         CIRCLE_9 = [...CIRCLE_8, ...RING_9],
         
-        CommonEntityModelMixin = new JS.Module('CommonEntityModelMixin', {
+        CommonCellModelMixin = new JSModule('CommonCellModelMixin', {
+            // Accessors ///////////////////////////////////////////////////////////
+            [generateSetterName(FIELD_COMPOSITION)]: function(v) {
+                this.set(FIELD_COMPOSITION, v, true);
+            },
+            setComposition: function(v) {this.set(FIELD_COMPOSITION, v);},
+            getComposition: function() {return this[FIELD_COMPOSITION];},
+            
+            isCompositionVoid: function() {return this.getCompositionObject().solidity === -1;},
+            isCompositionAether: function() {
+                switch (this.getComposition()) {
+                    case 'v3':
+                    case 'v4':
+                        return true;
+                    default:
+                        return false;
+                }
+            },
+            
+            // Entities //
+            getEntitiesMap: function() {return this.entities ??= new Map();},
+            addEntity: function(entity) {
+                this.getEntitiesMap().set(entity.getId(), entity);
+            },
+            removeEntity: function(entity) {return this.removeEntityById(entity.getId());},
+            removeEntityById: function(entityId) {
+                const entities = this.getEntitiesMap(),
+                    removedEntity = entities.get(entityId);
+                if (removedEntity) {
+                    entities.delete(entityId);
+                    return removedEntity;
+                }
+            },
+            
+            getSpiritEntityCount: function(atLeast) {
+                return this.getEntityCount(entity => entity.isSpirit(), atLeast);
+            },
+            
+            getAstralProjectedEntityCount: function(atLeast) {
+                return this.getEntityCount(entity => entity.isAstralProjected(), atLeast);
+            },
+            
+            getCorporealEntityCount: function(atLeast) {
+                return this.getEntityCount(entity => !entity.isSpirit() && !entity.isAstralProjected(), atLeast);
+            },
+            
+            getEntityCount: function(filterFunc, atLeast) {
+                const entities = this.entities;
+                if (filterFunc) {
+                    let count = 0;
+                    if (entities) {
+                        for (const entity of entities.values()) {
+                            if (filterFunc(entity)) {
+                                count++;
+                                if (atLeast && count >= atLeast) return true;
+                            }
+                        }
+                    }
+                    return atLeast ? false : count;
+                } else {
+                    if (atLeast) {
+                        return entities ? entities.size >= atLeast : false;
+                    } else {
+                        return entities ? entities.size : 0;
+                    }
+                }
+            }
+        }),
+        
+        CommonEntityModelMixin = new JSModule('CommonEntityModelMixin', {
             // Accessors ///////////////////////////////////////////////////////
             [generateSetterName(FIELD_ID)]: function(v) {this.set(FIELD_ID, v, true);},
             getId: function() {return this[FIELD_ID];},
@@ -198,8 +273,6 @@
             isZombie: function() {return this[FIELD_ZOMBIE];},
             [generateSetterName(FIELD_ASTRAL_PROJECTED)]: function(v) {this.set(FIELD_ASTRAL_PROJECTED, v, true);},
             isAstralProjected: function() {return this[FIELD_ASTRAL_PROJECTED];},
-            
-
             [generateSetterName(FIELD_LOC)]: function(v) {this.set(FIELD_LOC, v, true);},
             getLocArr: function(asCopy) {
                 const locArr = this[FIELD_LOC];
@@ -209,7 +282,7 @@
             getFacing: function() {return this[FIELD_FACING];},
         }),
         
-        CommonCharacterModelMixin = new JS.Module('CommonCharacterModelMixin', {
+        CommonCharacterModelMixin = new JSModule('CommonCharacterModelMixin', {
             // Accessors ///////////////////////////////////////////////////////
             [generateSetterName(FIELD_USER_ID)]: function(v) {this.set(FIELD_USER_ID, v, true);},
             getUserId: function() {return this[FIELD_USER_ID];},
@@ -251,6 +324,7 @@
         }),
         
         EXPORT = {
+            CommonCellModelMixin:CommonCellModelMixin,
             CommonEntityModelMixin:CommonEntityModelMixin,
             CommonCharacterModelMixin:CommonCharacterModelMixin,
             
@@ -311,8 +385,8 @@
             },
             
             cell:{
-                FIELD_COMPOSITION:'c',
-                FIELD_ENTITIES:'e',
+                FIELD_COMPOSITION:FIELD_COMPOSITION,
+                FIELD_ENTITIES:FIELD_ENTITIES,
             },
             
             composition:{

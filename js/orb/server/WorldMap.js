@@ -17,6 +17,7 @@ const orb = require('./orb.js'),
     } = require('../../../lib/tym.js'),
     
     {
+        CommonCellModelMixin,
         cellOffsetsByDistance,
         cell:{FIELD_COMPOSITION, FIELD_ENTITIES},
         composition,
@@ -36,26 +37,27 @@ const orb = require('./orb.js'),
     }),
     
     Cell = new JSClass('Cell', Eventable, {
+        include:[CommonCellModelMixin],
+        
+        
         // Accessors ///////////////////////////////////////////////////////////
         [generateSetterName(FIELD_COMPOSITION)]: function(v) {
-            this.set(FIELD_COMPOSITION, v, true);
+            this.callSuper(v);
             this.notifyAllVisualChangeListenersThatCellChanged();
         },
-        setComposition: function(v) {this.set(FIELD_COMPOSITION, v);},
-        getComposition: function() {return this[FIELD_COMPOSITION];},
         getCompositionObject: function() {
             return compositionsByCompId[this.getComposition()];
         },
         
-        isCompositionVoid: function() {return this.getCompositionObject().solidity === -1;},
-        isCompositionAether: function() {
-            switch (this.getComposition()) {
-                case 'v3':
-                case 'v4':
-                    return true;
-                default:
-                    return false;
-            }
+        // Entities //
+        addEntity: function(entity) {
+            this.callSuper(entity);
+            this.notifyAllVisualChangeListenersThatCellChanged();
+        },
+        removeEntityById: function(entityId) {
+            const removedEntity = this.callSuper(entityId);
+            if (removedEntity) this.notifyAllVisualChangeListenersThatCellChanged();
+            return removedEntity;
         },
         
         
@@ -85,8 +87,10 @@ const orb = require('./orb.js'),
         // Change Listeners //
         getVisualChangeListeners: function() {return this._visualChangeListeners ??= new Set();},
         getAuditoryChangeListeners: function() {return this._auditoryChangeListeners ??= new Set();},
+        
         addVisualChangeListener: function(character) {this.getVisualChangeListeners().add(character);},
         addAuditoryChangeListener: function(character) {this.getAuditoryChangeListeners().add(character);},
+        
         removeVisualChangeListener: function(character) {this.getVisualChangeListeners().delete(character);},
         removeAuditoryChangeListener: function(character) {this.getAuditoryChangeListeners().delete(character);},
         
@@ -124,57 +128,6 @@ const orb = require('./orb.js'),
                 if (includeLocId) msg.locId = this.locId;
                 for (const character of this.getAuditoryChangeListeners()) {
                     accountService.addMessageToUser(character.getUserId(), {type:type, msg:msg});
-                }
-            }
-        },
-        
-        // Entities //
-        getEntitiesMap: function() {return this.entities ??= new Map();},
-        addEntity: function(entity) {
-            this.getEntitiesMap().set(entity.getId(), entity);
-            this.notifyAllVisualChangeListenersThatCellChanged();
-        },
-        removeEntity: function(entity) {return this.removeEntityById(entity.getId());},
-        removeEntityById: function(entityId) {
-            const entities = this.getEntitiesMap(),
-                removedEntity = entities.get(entityId);
-            if (removedEntity) {
-                entities.delete(entityId);
-                this.notifyAllVisualChangeListenersThatCellChanged();
-                return removedEntity;
-            }
-        },
-        
-        getSpiritEntityCount: function(atLeast) {
-            return this.getEntityCount(entity => entity.isSpirit(), atLeast);
-        },
-        
-        getAstralProjectedEntityCount: function(atLeast) {
-            return this.getEntityCount(entity => entity.isAstralProjected(), atLeast);
-        },
-        
-        getCorporealEntityCount: function(atLeast) {
-            return this.getEntityCount(entity => !entity.isSpirit() && !entity.isAstralProjected(), atLeast);
-        },
-        
-        getEntityCount: function(filterFunc, atLeast) {
-            const entities = this.entities;
-            if (filterFunc) {
-                let count = 0;
-                if (entities) {
-                    for (const entity of entities.values()) {
-                        if (filterFunc(entity)) {
-                            count++;
-                            if (atLeast && count >= atLeast) return true;
-                        }
-                    }
-                }
-                return atLeast ? false : count;
-            } else {
-                if (atLeast) {
-                    return entities ? entities.size >= atLeast : false;
-                } else {
-                    return entities ? entities.size : 0;
                 }
             }
         }

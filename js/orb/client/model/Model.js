@@ -23,6 +23,9 @@
             }
         } = common
         
+        getMapData = () => mapData ?? (mapData = {}),
+        getCellData = () => cellData ?? (cellData = {}),
+        
         entityData = {},
         characters = [],
         
@@ -194,32 +197,31 @@
             },
             // Time:end
             
-            // Map:start
+            // Map and Cell
             clearMapAndCellData: () => {
                 mapData = {};
-                model.fireEvent('mapDataCleared');
+                model.fireEvent('mapsChanged');
                 cellData = {};
-                model.fireEvent('cellDataCleared');
+                model.fireEvent('cellsChanged');
             },
             
-            getMapData: () => mapData ?? (mapData = {}),
+            // Map:start
             getMapDatum: mapId => mapData[mapId],
             storeMapData: data => {
-                const mapData = model.getMapData();
-                for (const key in data) {
-                    const mapDatum = mapData[key] = data[key];
-                    model.fireEvent('mapChanged', mapDatum);
-                }
+                const mapData = getMapData();
+                for (const key in data) mapData[key] = data[key];
+                model.fireEvent('mapsChanged');
             },
+            // Map:end
             
-            getCellData: () => cellData ?? (cellData = {}),
+            // Cell:start
             getCellDatum: locId => cellData[locId],
             getCellComposition: locId => {
                 const cellDatum = model.getCellDatum(locId);
                 if (cellDatum) return composition[cellDatum[FIELD_COMPOSITION]];
             },
             storeCellData: data => {
-                const cellData = model.getCellData();
+                const cellData = getCellData();
                 for (const locId in data) {
                     const cellDatum = data[locId],
                         existingDatum = model.getCellDatum(locId);
@@ -236,11 +238,10 @@
                         cellDatum.locId = locId;
                         cellData[locId] = cellDatum;
                     }
-                    
-                    model.fireEvent('cellChanged', existingDatum ?? cellDatum);
                 }
+                model.fireEvent('cellsChanged');
             },
-            // Map:end
+            // Cell:end
             
             // Methods /////////////////////////////////////////////////////////
             wipeClean: () => {

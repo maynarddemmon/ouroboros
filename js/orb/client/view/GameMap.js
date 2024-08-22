@@ -352,9 +352,7 @@
             chatBubblePool = new TrackActivesPool(ChatBubbleView, gameMap);
             
             gameMap.constrain('refreshMap', [
-                model, 'cellChanged', model, 'mapChanged',
-                model, 'cellDataCleared', model, 'mapDataCleared',
-                model, 'entityChanged'
+                model, 'cellsChanged', model, 'mapsChanged', model, 'entityChanged'
             ]);
         },
         

@@ -3,24 +3,14 @@
         
         M = myt,
         
+        {greek} = common,
         {
-            greek:{
-                TYPE_WARNING, TYPE_ERROR, TYPE_SERVERINFO, TYPE_NOW,
-                TYPE_LOBBY, TYPE_CREATE_CHARACTER, TYPE_DELETE_CHARACTER,
-                TYPE_ENTER_WORLD, TYPE_EXIT_WORLD,
-                TYPE_MAP_DATA, TYPE_CELL_DATA,
-                TYPE_ACTION_FAILED, ACTION_ERROR_CODES,
-                TYPE_MOVE_FAILED, MOVE_ERROR_CODES,
-                TYPE_REACT_FAILED, REACT_ERROR_CODES,
-                TYPE_FREE_FAILED, FREE_ERROR_CODES,
-                TYPE_ALTER_ENTITY, TYPE_ALTER_CHARACTER, TYPE_SOUND,
-                ATTR_TIME
-            }
-        } = common,
+            TYPE_LOBBY,
+            ACTION_ERROR_CODES, MOVE_ERROR_CODES, REACT_ERROR_CODES, FREE_ERROR_CODES,
+            ATTR_TIME
+        } = greek,
         
         {growl} = pkg,
-        
-        consoleError = console.error,
         
         CLOSE_NORMAL = 1000,
         
@@ -146,7 +136,7 @@
                 @param {!Object} event - The error event fired by the WebSocket.
                 @returns {undefined} */
             onError: function(event) {
-                consoleError(event);
+                console.error(event);
                 
                 if (this._ws && this._ws.readyState !== WebSocket.OPEN) this.close();
             },
@@ -212,6 +202,11 @@
                     });
                 });
             };
+        },
+        
+        notifyUserOfFailure = function(msg) {
+            pkg.gameMap.animateEntity(model.getCharacterInPlay().getId());
+            pkg.gamePanel.appendToChatLog(msg);
         };
     
     /** A WebSocket where messages are JSON objects with the following structure:
@@ -380,7 +375,7 @@
                     growl('failure', 'Character Creation Failed', message);
                 }
                 pkg.app.unlockUI();
-            }, TYPE_CREATE_CHARACTER);
+            }, greek.TYPE_CREATE_CHARACTER);
             
             websocket.registerListener(response => {
                 const {success, message, id} = response.msg;
@@ -392,26 +387,26 @@
                     growl('failure', 'Character Deletion Failed', message);
                 }
                 pkg.app.unlockUI();
-            }, TYPE_DELETE_CHARACTER);
+            }, greek.TYPE_DELETE_CHARACTER);
             
             websocket.registerListener(response => {
                 growl('warning', 'Server Warning', response.msg);
                 pkg.app.unlockUI();
-            }, TYPE_WARNING);
+            }, greek.TYPE_WARNING);
             
             websocket.registerListener(response => {
                 growl('failure', 'Server Warning', response.msg);
                 pkg.app.unlockUI();
-            }, TYPE_ERROR);
+            }, greek.TYPE_ERROR);
             
             websocket.registerListener(response => {
                 growl('info', 'Server Info', response.msg);
                 pkg.app.unlockUI();
-            }, TYPE_SERVERINFO);
+            }, greek.TYPE_SERVERINFO);
             
             websocket.registerListener(response => {
                 model.updateWorldClockTime(response.msg);
-            }, TYPE_NOW);
+            }, greek.TYPE_NOW);
             
             websocket.registerListener(response => {
                 const {character:characterDatum} = response.msg;
@@ -425,7 +420,7 @@
                     }
                 }
                 pkg.app.unlockUI();
-            }, TYPE_ENTER_WORLD);
+            }, greek.TYPE_ENTER_WORLD);
             
             websocket.registerListener(response => {
                 const {character:characterDatum} = response.msg;
@@ -439,72 +434,74 @@
                     }
                 }
                 pkg.app.unlockUI();
-            }, TYPE_EXIT_WORLD);
+            }, greek.TYPE_EXIT_WORLD);
             
             websocket.registerListener(response => {
                 model.storeMapData(response.msg);
-            }, TYPE_MAP_DATA);
+            }, greek.TYPE_MAP_DATA);
             
             websocket.registerListener(response => {
                 model.storeCellData(response.msg);
-            }, TYPE_CELL_DATA);
+            }, greek.TYPE_CELL_DATA);
             
             websocket.registerListener(response => {
                 const msg = response.msg;
                 model.getCharacterById(msg.id)?.set(msg.p, msg.v);
-            }, TYPE_ALTER_CHARACTER);
+            }, greek.TYPE_ALTER_CHARACTER);
             
             websocket.registerListener(response => {
                 const msg = response.msg;
                 model.getEntityById(msg.id)?.set(msg.p, msg.v);
-            }, TYPE_ALTER_ENTITY);
+            }, greek.TYPE_ALTER_ENTITY);
             
             websocket.registerListener(response => {
                 pkg.gameMap.handleSoundMessage(response.msg);
-            }, TYPE_SOUND);
+            }, greek.TYPE_SOUND);
             
             websocket.registerListener(response => {
                 switch (response.code) {
                     case MOVE_ERROR_CODES.INVALID_LOCATION:
+                        notifyUserOfFailure('<i>You can\'t move to an invalid location.</i>');
+                        break;
                     case MOVE_ERROR_CODES.LOCATION_NOT_ALLOWED:
-                        pkg.gameMap.animateEntity(model.getCharacterInPlay().getId());
+                        notifyUserOfFailure('<i>Movement to that location not allowed.</i>');
                         break;
                     default:
                         growl('warning', JSON.stringify(response));
                 }
-            }, TYPE_MOVE_FAILED);
+            }, greek.TYPE_MOVE_FAILED);
             
             websocket.registerListener(response => {
                 switch (response.code) {
                     case ACTION_ERROR_CODES.ACTION_NOT_ALLOWED:
-                        pkg.gameMap.animateEntity(model.getCharacterInPlay().getId());
+                        notifyUserOfFailure('<i>Action not allowed.</i>');
                         break;
                     default:
                         growl('warning', JSON.stringify(response));
                 }
-            }, TYPE_ACTION_FAILED);
+            }, greek.TYPE_ACTION_FAILED);
             
             websocket.registerListener(response => {
                 switch (response.code) {
                     case REACT_ERROR_CODES.REACT_NOT_ALLOWED:
-                        pkg.gameMap.animateEntity(model.getCharacterInPlay().getId());
+                        notifyUserOfFailure('<i>Reaction not allowed.</i>');
                         break;
                     default:
                         growl('warning', JSON.stringify(response));
                 }
-            }, TYPE_REACT_FAILED);
+            }, greek.TYPE_REACT_FAILED);
             
             websocket.registerListener(response => {
                 switch (response.code) {
                     case FREE_ERROR_CODES.INVALID_VALUE:
                         growl('warning', JSON.stringify(response));
                     case FREE_ERROR_CODES.FREE_NOT_ALLOWED:
-                        pkg.gameMap.animateEntity(model.getCharacterInPlay().getId());
+                        notifyUserOfFailure('<i>Free action not allowed.</i>');
                         break;
                     default:
                         growl('info', response.msg);
                 }
-            }, TYPE_FREE_FAILED);
+            }, greek.TYPE_FREE_FAILED);
             
             return websocket;
         }
