@@ -649,7 +649,7 @@
                     
                     cellView.callSetters({x:posX, y:posY, cell:cell, isSeen:isSeen});
                     
-                    const entities = cell[FIELD_ENTITIES],
+                    const entities = cell.getEntities(),
                         len = entities?.length;
                     let posCount = len > 1 ? 1 : 0;
                     if (x === 0 && y === 0) {

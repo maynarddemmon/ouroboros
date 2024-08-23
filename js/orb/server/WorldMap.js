@@ -1,5 +1,5 @@
 let isReady = false,
-    mapData = {},
+    maps = {},
     cells = {},
     compositionsByCompId = {};
 
@@ -17,13 +17,15 @@ const orb = require('./orb.js'),
     } = require('../../../lib/tym.js'),
     
     {
-        CommonCellModelMixin,
+        CommonMapModelMixin, CommonCellModelMixin,
         cellOffsetsByDistance,
+        map:{FIELD_NAME, FIELD_DESCRIPTION,FIELD_ELEMENTS},
         cell:{FIELD_COMPOSITION, FIELD_ENTITIES},
+        MEL_LOOKUP,
         composition,
         FACINGS:{NORTH, SOUTH, EAST, WEST}
     } = require('../common/common.js'),
-    {locIdToArr, locArrToId, locArrToMapId} = require('../common/util.js'),
+    {locIdToArr, locArrToId, locArrToMapId, locIdToMapId} = require('../common/util.js'),
     {TYPE_CELL_DATA} = require('../common/SocketProtocol.js'),
     accountService = require('./AccountService.js'),
     
@@ -34,6 +36,53 @@ const orb = require('./orb.js'),
     
     Composition = new JSClass('Composition', Eventable, {
         getSolidity: function() {return this[FIELD_SOLIDITY];}
+    }),
+    
+    MapModel = new JSClass('MapModel', Eventable, {
+        include:[CommonMapModelMixin],
+        
+        // Methods /////////////////////////////////////////////////////////////
+        getAsData: function() {
+            return {
+                [FIELD_NAME]:this[FIELD_NAME],
+                [FIELD_DESCRIPTION]:this[FIELD_DESCRIPTION],
+                [FIELD_ELEMENTS]:this[FIELD_ELEMENTS]
+            };
+        },
+        
+        getMissingCellComposition: function() {
+            const elements = this.getElements();
+            
+            let matter = getRandomInt(1,100),
+                energy = getRandomInt(1,100),
+                life = getRandomInt(1,100);
+            
+            if (matter <= elements.earth) {
+                matter = 0;
+            } else if (matter <= elements.earth + elements.air) {
+                matter = 1;
+            } else {
+                matter = 2;
+            }
+            
+            if (energy <= elements.fire) {
+                energy = 0;
+            } else if (energy <= elements.fire + elements.water) {
+                energy = 1;
+            } else {
+                energy = 2;
+            }
+            
+            if (life <= elements.light) {
+                life = 0;
+            } else if (life <= elements.light + elements.shadow) {
+                life = 1;
+            } else {
+                life = 2;
+            }
+            
+            return MEL_LOOKUP[matter][energy][life];
+        }
     }),
     
     Cell = new JSClass('Cell', Eventable, {
@@ -50,16 +99,55 @@ const orb = require('./orb.js'),
         },
         
         // Entities //
+        getEntitiesMap: function() {return this.entities ??= new Map();},
         addEntity: function(entity) {
-            this.callSuper(entity);
+            this.getEntitiesMap().set(entity.getId(), entity);
             this.notifyAllVisualChangeListenersThatCellChanged();
         },
+        removeEntity: function(entity) {return this.removeEntityById(entity.getId());},
         removeEntityById: function(entityId) {
-            const removedEntity = this.callSuper(entityId);
-            if (removedEntity) this.notifyAllVisualChangeListenersThatCellChanged();
-            return removedEntity;
+            const entities = this.getEntitiesMap(),
+                removedEntity = entities.get(entityId);
+            if (removedEntity) {
+                entities.delete(entityId);
+                this.notifyAllVisualChangeListenersThatCellChanged();
+                return removedEntity;
+            }
         },
         
+        getSpiritEntityCount: function(atLeast) {
+            return this.getEntityCount(entity => entity.isSpirit(), atLeast);
+        },
+        
+        getAstralProjectedEntityCount: function(atLeast) {
+            return this.getEntityCount(entity => entity.isAstralProjected(), atLeast);
+        },
+        
+        getCorporealEntityCount: function(atLeast) {
+            return this.getEntityCount(entity => !entity.isSpirit() && !entity.isAstralProjected(), atLeast);
+        },
+        
+        getEntityCount: function(filterFunc, atLeast) {
+            const entities = this.entities;
+            if (filterFunc) {
+                let count = 0;
+                if (entities) {
+                    for (const entity of entities.values()) {
+                        if (filterFunc(entity)) {
+                            count++;
+                            if (atLeast && count >= atLeast) return true;
+                        }
+                    }
+                }
+                return atLeast ? false : count;
+            } else {
+                if (atLeast) {
+                    return entities ? entities.size >= atLeast : false;
+                } else {
+                    return entities ? entities.size : 0;
+                }
+            }
+        },
         
         // Methods /////////////////////////////////////////////////////////////
         getAsData: function() {
@@ -133,7 +221,13 @@ const orb = require('./orb.js'),
         }
     }),
     
-    getMapData = mapId => mapData[mapId],
+    makeMap = params => new MapModel(params),
+    getMap = mapId => maps[mapId],
+    setMap = (mapId, map) => {
+        maps[mapId] = map;
+        map.mapId = mapId;
+        return map;
+    },
     
     coerceToLocId = locArrOrId => (typeof locArrOrId === 'string' ? locArrOrId : locArrToId(locArrOrId)),
     cellExistsForId = locId => getCell(locId) != null,
@@ -144,9 +238,14 @@ const orb = require('./orb.js'),
     makeAndSetCell = (locArrOrId, params) => setCell(coerceToLocId(locArrOrId), makeCell(params)),
     makeAndSetMissingCell = locId => {
         let comp;
-        switch (getRandomInt(0,1)) {
-            case 0: comp = 'v1'; break;
-            case 1: comp = 'v2'; break;
+        const map = getMap(locIdToMapId(locId));
+        if (map) {
+            comp = map.getMissingCellComposition();
+        } else {
+            switch (getRandomInt(0,1)) {
+                case 0: comp = 'v1'; break;
+                case 1: comp = 'v2'; break;
+            }
         }
         return makeAndSetCell(locId, {[FIELD_COMPOSITION]:comp});
     },
@@ -231,8 +330,11 @@ const orb = require('./orb.js'),
         
         let jsonData = orb.readDataFile(FILENAME_MAPS);
         if (jsonData) {
-            mapData = jsonData || {};
-            console.log('  Loaded ' + objectKeys(mapData).length + ' maps.');
+            const mapData = jsonData || {};
+            for (const mapId in mapData) {
+                setMap(mapId, makeMap(mapData[mapId]));
+            }
+            console.log('  Loaded ' + objectKeys(maps).length + ' maps.');
         }
         
         jsonData = orb.readDataFile(FILENAME_CELLS);
@@ -257,11 +359,16 @@ const orb = require('./orb.js'),
             cellData[locId] = cells[locId].getAsData();
         }
         
+        const mapData = {};
+        for (const mapId in maps) {
+            mapData[mapId] = maps[mapId].getAsData();
+        }
+        
         orb.saveDataToFile(FILENAME_MAPS, mapData);
         console.log('  Saved ' + objectKeys(mapData).length + '  maps.');
         
         orb.saveDataToFile(FILENAME_CELLS, cellData);
-        console.log('  Saved ' + objectKeys(cells).length + ' cells.');
+        console.log('  Saved ' + objectKeys(cellData).length + ' cells.');
         
         resolve();
     },
@@ -282,14 +389,11 @@ const orb = require('./orb.js'),
         
         getMapDataForCharacter: character => {
             // Send all mapData since it doesn't hurt and it's needed when a character changes maps.
-            return mapData;
-            /*const locArr = character.getLocArr(),
-                accum = {};
-            if (locArr) {
-                const mapId = locArrToMapId(locArr);
-                accum[mapId] = getMapData(mapId);
+            const mapData = {};
+            for (const mapId in maps) {
+                mapData[mapId] = maps[mapId].getAsData();
             }
-            return accum;*/
+            return mapData;
         },
         
         // Start:Listener Management

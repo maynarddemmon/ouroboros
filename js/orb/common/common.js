@@ -20,12 +20,19 @@
         
         PERM_CREATOR = 'creator',
         
+        // Common Fields
+        FIELD_ID ='id',
+        FIELD_NAME = 'name',
+        FIELD_DESCRIPTION = 'description',
+        
+        // Map Fields
+        FIELD_ELEMENTS = 'elements',
+        
         // Cell Fields
         FIELD_COMPOSITION = 'c',
         FIELD_ENTITIES = 'e',
         
         // Entity Fields
-        FIELD_ID ='id',
         FIELD_SPIRIT = 'spirit',
         FIELD_ZOMBIE = 'zombie',
         FIELD_ASTRAL_PROJECTED = 'astral',
@@ -36,7 +43,6 @@
         FIELD_USER_ID = 'uid',
         FIELD_PERMISSIONS = 'perms',
         FIELD_IN_WORLD = 'inWorld',
-        FIELD_NAME = 'name',
         FIELD_MOVE_SPEED = 'moveSpeed',
         FIELD_LOCK_MOVE = 'lockMove',
         FIELD_LOCK_ACTION = 'lockAct',
@@ -194,11 +200,18 @@
         CIRCLE_8 = [...CIRCLE_7, ...RING_8],
         CIRCLE_9 = [...CIRCLE_8, ...RING_9],
         
+        CommonMapModelMixin = new JSModule('CommonMapModelMixin', {
+            [generateSetterName(FIELD_NAME)]: function(v) {this.set(FIELD_NAME, v, true);},
+            getName: function() {return this[FIELD_NAME];},
+            [generateSetterName(FIELD_DESCRIPTION)]: function(v) {this.set(FIELD_DESCRIPTION, v, true);},
+            getDescription: function() {return this[FIELD_DESCRIPTION];},
+            [generateSetterName(FIELD_ELEMENTS)]: function(v) {this.set(FIELD_ELEMENTS, v, true);},
+            getElements: function() {return this[FIELD_ELEMENTS];}
+        }),
+        
         CommonCellModelMixin = new JSModule('CommonCellModelMixin', {
             // Accessors ///////////////////////////////////////////////////////////
-            [generateSetterName(FIELD_COMPOSITION)]: function(v) {
-                this.set(FIELD_COMPOSITION, v, true);
-            },
+            [generateSetterName(FIELD_COMPOSITION)]: function(v) {this.set(FIELD_COMPOSITION, v, true);},
             setComposition: function(v) {this.set(FIELD_COMPOSITION, v);},
             getComposition: function() {return this[FIELD_COMPOSITION];},
             
@@ -210,55 +223,6 @@
                         return true;
                     default:
                         return false;
-                }
-            },
-            
-            // Entities //
-            getEntitiesMap: function() {return this.entities ??= new Map();},
-            addEntity: function(entity) {
-                this.getEntitiesMap().set(entity.getId(), entity);
-            },
-            removeEntity: function(entity) {return this.removeEntityById(entity.getId());},
-            removeEntityById: function(entityId) {
-                const entities = this.getEntitiesMap(),
-                    removedEntity = entities.get(entityId);
-                if (removedEntity) {
-                    entities.delete(entityId);
-                    return removedEntity;
-                }
-            },
-            
-            getSpiritEntityCount: function(atLeast) {
-                return this.getEntityCount(entity => entity.isSpirit(), atLeast);
-            },
-            
-            getAstralProjectedEntityCount: function(atLeast) {
-                return this.getEntityCount(entity => entity.isAstralProjected(), atLeast);
-            },
-            
-            getCorporealEntityCount: function(atLeast) {
-                return this.getEntityCount(entity => !entity.isSpirit() && !entity.isAstralProjected(), atLeast);
-            },
-            
-            getEntityCount: function(filterFunc, atLeast) {
-                const entities = this.entities;
-                if (filterFunc) {
-                    let count = 0;
-                    if (entities) {
-                        for (const entity of entities.values()) {
-                            if (filterFunc(entity)) {
-                                count++;
-                                if (atLeast && count >= atLeast) return true;
-                            }
-                        }
-                    }
-                    return atLeast ? false : count;
-                } else {
-                    if (atLeast) {
-                        return entities ? entities.size >= atLeast : false;
-                    } else {
-                        return entities ? entities.size : 0;
-                    }
                 }
             }
         }),
@@ -324,6 +288,7 @@
         }),
         
         EXPORT = {
+            CommonMapModelMixin:CommonMapModelMixin,
             CommonCellModelMixin:CommonCellModelMixin,
             CommonEntityModelMixin:CommonEntityModelMixin,
             CommonCharacterModelMixin:CommonCharacterModelMixin,
@@ -384,10 +349,46 @@
                 FIELD_LOCK_REACT:FIELD_LOCK_REACT
             },
             
+            map:{
+                FIELD_NAME:FIELD_NAME,
+                FIELD_DESCRIPTION:FIELD_DESCRIPTION,
+                FIELD_ELEMENTS:FIELD_ELEMENTS
+            },
+            
             cell:{
                 FIELD_COMPOSITION:FIELD_COMPOSITION,
                 FIELD_ENTITIES:FIELD_ENTITIES,
             },
+            
+            // Matter, Energy, Light lookup table for missing Cells
+            // FIXME: there are not enough composition types to fill this out correctly
+            MEL_LOOKUP: [
+                [ // Earth
+                    [ // Fire
+                        ['s1'],['f1'],['v1'] // Light, Shadow, Void
+                    ],[ // Water
+                        ['s1'],['w1'],['v2'] // Light, Shadow, Void
+                    ],[ // Void
+                        ['s1'],['s1'],['v1'] // Light, Shadow, Void
+                    ]
+                ],[ // Air
+                    [ // Fire
+                        ['a1'],['f1'],['v1'] // Light, Shadow, Void
+                    ],[ // Water
+                        ['a2'],['w1'],['v2'] // Light, Shadow, Void
+                    ],[ // Void
+                        ['a1'],['a2'],['v1'] // Light, Shadow, Void
+                    ]
+                ],[ // Void
+                    [ // Fire
+                        ['v1'],['f1'],['v1'] // Light, Shadow, Void
+                    ],[ // Water
+                        ['v2'],['w1'],['v2'] // Light, Shadow, Void
+                    ],[ // Void
+                        ['v1'],['v2'],['v1'] // Light, Shadow, Void
+                    ]
+                ],
+            ],
             
             composition:{
                 // Unknown

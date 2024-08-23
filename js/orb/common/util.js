@@ -69,6 +69,7 @@
                 return locArr;
             },
             locArrToId: locArr => locArr.join(),
+            locIdToMapId: locId => locId ? locId.split(',')[0] : null,
             locArrToMapId: locArr => '' + locArr[0],
             isValidLocArr: locArr => {
                 if (locArr.length === 4) {

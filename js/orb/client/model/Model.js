@@ -10,9 +10,7 @@
         } = myt,
         
         {
-            CommonCellModelMixin,
-            CommonEntityModelMixin,
-            CommonCharacterModelMixin,
+            CommonMapModelMixin, CommonCellModelMixin, CommonEntityModelMixin, CommonCharacterModelMixin,
             greek:{TYPE_MOVE},
             entity:{FIELD_ID},
             character:{
@@ -32,8 +30,15 @@
         entityData = {},
         characters = [],
         
+        MapModel = new JSClass('MapModel', Eventable, {
+            include:[CommonMapModelMixin]
+        }),
+        
         CellModel = new JSClass('CellModel', Eventable, {
             include:[CommonCellModelMixin],
+            
+            [generateSetterName(FIELD_ENTITIES)]: function(v) {this.set(FIELD_ENTITIES, v, true);},
+            getEntities: function() {return this[FIELD_ENTITIES];},
             
             setLocId: function(v) {
                 if (this.locId !== v) {
@@ -47,6 +52,8 @@
             getCompositionObject: function() {
                 return composition[this.getComposition()]; // FIXME: CompositionModel object
             },
+            
+            
         }),
         
         EntityModel = new JSClass('EntityModel', Eventable, {
@@ -229,7 +236,7 @@
             getMapDatum: mapId => mapData[mapId],
             storeMapData: data => {
                 const mapData = getMapData();
-                for (const key in data) mapData[key] = data[key];
+                for (const key in data) mapData[key] = new MapModel(data[key]);
                 model.fireEvent('mapsChanged');
             },
             // Map:end
