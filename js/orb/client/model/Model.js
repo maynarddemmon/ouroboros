@@ -1,7 +1,8 @@
 (pkg => {
     let worldClockIntervalId,
         mapData,
-        cellData;
+        cellData,
+        compositionsByCompId = {};
     
     const JSClass = JS.Class,
         {
@@ -10,14 +11,15 @@
         } = myt,
         
         {
-            CommonMapModelMixin, CommonCellModelMixin, CommonEntityModelMixin, CommonCharacterModelMixin,
+            CommonMapModelMixin, CommonCompositionModelMixin, CommonCellModelMixin, 
+            CommonEntityModelMixin, CommonCharacterModelMixin,
             greek:{TYPE_MOVE},
             entity:{FIELD_ID},
             character:{
                 FIELD_LOCK_MOVE, FIELD_LOCK_ACTION, FIELD_LOCK_REACT, FIELD_LOCK_FREE
             },
             cell:{FIELD_COMPOSITION, FIELD_ENTITIES},
-            composition,
+            composition:{compositions},
             permissions:{
                 PERM_CREATOR
             },
@@ -34,11 +36,18 @@
             include:[CommonMapModelMixin]
         }),
         
+        CompositionModel = new JSClass('CompositionModel', Eventable, {
+            include:[CommonCompositionModelMixin]
+        }),
+        
         CellModel = new JSClass('CellModel', Eventable, {
             include:[CommonCellModelMixin],
             
             [generateSetterName(FIELD_ENTITIES)]: function(v) {this.set(FIELD_ENTITIES, v, true);},
             getEntities: function() {return this[FIELD_ENTITIES];},
+            
+            setBeenSeen: function(v) {this.beenSeen = v;},
+            hasBeenSeen: function() {return this.beenSeen;},
             
             setLocId: function(v) {
                 if (this.locId !== v) {
@@ -50,10 +59,8 @@
                 return this.locArr ??= locIdToArr(this.locId);
             },
             getCompositionObject: function() {
-                return composition[this.getComposition()]; // FIXME: CompositionModel object
-            },
-            
-            
+                return compositionsByCompId[this.getComposition()];
+            }
         }),
         
         EntityModel = new JSClass('EntityModel', Eventable, {
@@ -249,6 +256,7 @@
                 const cell = model.getCell(locId);
                 if (cell) return cell.getCompositionObject();
             },
+            getComposition: compId => compositionsByCompId[compId],
             storeCellData: data => {
                 const cellData = getCellData();
                 for (const locId in data) {
@@ -279,4 +287,8 @@
                 model.clearMapAndCellData();
             }
         });
+    
+    for (const compId in compositions) {
+        compositionsByCompId[compId] = new CompositionModel(compositions[compId]);
+    }
 })(orb);

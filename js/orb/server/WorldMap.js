@@ -17,12 +17,11 @@ const orb = require('./orb.js'),
     } = require('../../../lib/tym.js'),
     
     {
-        CommonMapModelMixin, CommonCellModelMixin,
+        CommonMapModelMixin, CommonCompositionModelMixin, CommonCellModelMixin,
         cellOffsetsByDistance,
         map:{FIELD_NAME, FIELD_DESCRIPTION,FIELD_ELEMENTS},
         cell:{FIELD_COMPOSITION, FIELD_ENTITIES},
-        MEL_LOOKUP,
-        composition,
+        composition:{FIELD_SOLIDITY, MEL_LOOKUP, compositions},
         FACINGS:{NORTH, SOUTH, EAST, WEST}
     } = require('../common/common.js'),
     {locIdToArr, locArrToId, locArrToMapId, locIdToMapId} = require('../common/util.js'),
@@ -32,10 +31,8 @@ const orb = require('./orb.js'),
     FILENAME_MAPS = 'maps',
     FILENAME_CELLS = 'cells',
     
-    FIELD_SOLIDITY = 'solidity',
-    
     Composition = new JSClass('Composition', Eventable, {
-        getSolidity: function() {return this[FIELD_SOLIDITY];}
+        include:[CommonCompositionModelMixin]
     }),
     
     MapModel = new JSClass('MapModel', Eventable, {
@@ -323,8 +320,8 @@ const orb = require('./orb.js'),
         console.log('Restoring World Maps...');
         
         console.log('  Making Compositions...');
-        for (const compId in composition) {
-            compositionsByCompId[compId] = new Composition(composition[compId]);
+        for (const compId in compositions) {
+            compositionsByCompId[compId] = new Composition(compositions[compId]);
         }
         console.log('  Constructed ' + objectKeys(compositionsByCompId).length + ' Composition Objects.');
         

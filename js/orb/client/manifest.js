@@ -21,7 +21,7 @@ JS.Packages(file => {
         'orb.Footer',
         'orb.BaseStackablePanel',
         'orb.TextBtn', 'orb.SquareBtn'
-    ).requires('orb');
+    ).requires('orb.model');
     file(COMPONENT_ROOT + 'Form.js').provides(
         'orb.FormInputText', 'orb.FormInputTextArea', 'orb.RevealPasswordBtn'
     ).requires('orb.SquareBtn');

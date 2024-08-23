@@ -28,6 +28,13 @@
         // Map Fields
         FIELD_ELEMENTS = 'elements',
         
+        // Composition Fields
+        FIELD_SOLIDITY = 'solidity',
+        FIELD_OPACITY = 'opacity',
+        FIELD_DAMPING = 'damping',
+        FIELD_MAP_COLOR = 'mapColor',
+        FIELD_TILE_URL = 'tileUrl',
+        
         // Cell Fields
         FIELD_COMPOSITION = 'c',
         FIELD_ENTITIES = 'e',
@@ -209,13 +216,31 @@
             getElements: function() {return this[FIELD_ELEMENTS];}
         }),
         
+        CommonCompositionModelMixin = new JSModule('CommonCompositionModelMixin', {
+            [generateSetterName(FIELD_NAME)]: function(v) {this.set(FIELD_NAME, v, true);},
+            getName: function() {return this[FIELD_NAME];},
+            
+            [generateSetterName(FIELD_MAP_COLOR)]: function(v) {this.set(FIELD_MAP_COLOR, v, true);},
+            getMapColor: function() {return this[FIELD_MAP_COLOR];},
+            [generateSetterName(FIELD_TILE_URL)]: function(v) {this.set(FIELD_TILE_URL, v, true);},
+            getTileUrl: function() {return this[FIELD_TILE_URL];},
+            
+            [generateSetterName(FIELD_SOLIDITY)]: function(v) {this.set(FIELD_SOLIDITY, v, true);},
+            getSolidity: function() {return this[FIELD_SOLIDITY];},
+            [generateSetterName(FIELD_OPACITY)]: function(v) {this.set(FIELD_OPACITY, v, true);},
+            getOpacity: function() {return this[FIELD_OPACITY];},
+            [generateSetterName(FIELD_DAMPING)]: function(v) {this.set(FIELD_DAMPING, v, true);},
+            getDamping: function() {return this[FIELD_DAMPING];}
+        }),
+        
         CommonCellModelMixin = new JSModule('CommonCellModelMixin', {
             // Accessors ///////////////////////////////////////////////////////////
             [generateSetterName(FIELD_COMPOSITION)]: function(v) {this.set(FIELD_COMPOSITION, v, true);},
             setComposition: function(v) {this.set(FIELD_COMPOSITION, v);},
             getComposition: function() {return this[FIELD_COMPOSITION];},
+            getCompositionObject: () => {/* Subclasses must implement. */},
             
-            isCompositionVoid: function() {return this.getCompositionObject().solidity === -1;},
+            isCompositionVoid: function() {return this.getCompositionObject().getSolidity() === -1;},
             isCompositionAether: function() {
                 switch (this.getComposition()) {
                     case 'v3':
@@ -289,6 +314,7 @@
         
         EXPORT = {
             CommonMapModelMixin:CommonMapModelMixin,
+            CommonCompositionModelMixin:CommonCompositionModelMixin,
             CommonCellModelMixin:CommonCellModelMixin,
             CommonEntityModelMixin:CommonEntityModelMixin,
             CommonCharacterModelMixin:CommonCharacterModelMixin,
@@ -360,127 +386,136 @@
                 FIELD_ENTITIES:FIELD_ENTITIES,
             },
             
-            // Matter, Energy, Light lookup table for missing Cells
-            // FIXME: there are not enough composition types to fill this out correctly
-            MEL_LOOKUP: [
-                [ // Earth
-                    [ // Fire
-                        ['s1'],['f1'],['v1'] // Light, Shadow, Void
-                    ],[ // Water
-                        ['s1'],['w1'],['v2'] // Light, Shadow, Void
-                    ],[ // Void
-                        ['s1'],['s1'],['v1'] // Light, Shadow, Void
-                    ]
-                ],[ // Air
-                    [ // Fire
-                        ['a1'],['f1'],['v1'] // Light, Shadow, Void
-                    ],[ // Water
-                        ['a2'],['w1'],['v2'] // Light, Shadow, Void
-                    ],[ // Void
-                        ['a1'],['a2'],['v1'] // Light, Shadow, Void
-                    ]
-                ],[ // Void
-                    [ // Fire
-                        ['v1'],['f1'],['v1'] // Light, Shadow, Void
-                    ],[ // Water
-                        ['v2'],['w1'],['v2'] // Light, Shadow, Void
-                    ],[ // Void
-                        ['v1'],['v2'],['v1'] // Light, Shadow, Void
-                    ]
-                ],
-            ],
-            
             composition:{
-                // Unknown
-                unk:{
-                    name:'Unknown',
-                    mapColor:'transparent',
-                    solidity:0,
-                    opacity:1,
-                    damping:0
-                },
+                FIELD_NAME:FIELD_NAME,
+                FIELD_MAP_COLOR:FIELD_MAP_COLOR,
+                FIELD_TILE_URL:FIELD_TILE_URL,
+                FIELD_SOLIDITY:FIELD_SOLIDITY,
+                FIELD_OPACITY:FIELD_OPACITY,
+                FIELD_DAMPING:FIELD_DAMPING,
                 
-                // Void
-                v1:{
-                    name:'Void',
-                    mapColor:'#0ff9',
-                    tileUrl:'/img/tile/void.png',
-                    solidity:-1,
-                    opacity:0.5,
-                    damping:0.75
-                },
-                v2:{
-                    name:'Null',
-                    mapColor:'#09f9',
-                    tileUrl:'/img/tile/null.png',
-                    solidity:-1,
-                    opacity:0.5,
-                    damping:0.75
-                },
-                v3:{
-                    name:'Æthoid',
-                    mapColor:'#9ff9',
-                    tileUrl:'/img/tile/aethoid.png',
-                    solidity:0,
-                    opacity:0.25,
-                    damping:0.85
-                },
-                v4:{
-                    name:'Æthrull',
-                    mapColor:'#09f9',
-                    tileUrl:'/img/tile/aethrull.png',
-                    solidity:0,
-                    opacity:0.25,
-                    damping:0.85
-                },
+                // Matter, Energy, Light lookup table for missing Cells
+                // FIXME: there are not enough composition types to fill this out correctly
+                MEL_LOOKUP: [
+                    [ // Earth
+                        [ // Fire
+                            ['s1'],['f1'],['v1'] // Light, Shadow, Void
+                        ],[ // Water
+                            ['s1'],['w1'],['v2'] // Light, Shadow, Void
+                        ],[ // Void
+                            ['s1'],['s1'],['v1'] // Light, Shadow, Void
+                        ]
+                    ],[ // Air
+                        [ // Fire
+                            ['a1'],['f1'],['v1'] // Light, Shadow, Void
+                        ],[ // Water
+                            ['a2'],['w1'],['v2'] // Light, Shadow, Void
+                        ],[ // Void
+                            ['a1'],['a2'],['v1'] // Light, Shadow, Void
+                        ]
+                    ],[ // Void
+                        [ // Fire
+                            ['v1'],['f1'],['v1'] // Light, Shadow, Void
+                        ],[ // Water
+                            ['v2'],['w1'],['v2'] // Light, Shadow, Void
+                        ],[ // Void
+                            ['v1'],['v2'],['v1'] // Light, Shadow, Void
+                        ]
+                    ],
+                ],
                 
-                // Earth
-                s1:{
-                    name:'Solid Stone',
-                    mapColor:'#0003',
-                    tileUrl:'/img/tile/stone_solid.png',
-                    solidity:1,
-                    opacity:1,
-                    damping:0.05
-                },
-                
-                // Air
-                a1:{
-                    name:'Stone Floor',
-                    mapColor:'transparent',
-                    tileUrl:'/img/tile/stone_floor.png',
-                    solidity:0,
-                    opacity:0.01,
-                    damping:1
-                },
-                a2:{
-                    name:'Dirt Floor',
-                    mapColor:'transparent',
-                    tileUrl:'/img/tile/dirt_floor.png',
-                    solidity:0,
-                    opacity:0.01,
-                    damping:1
-                },
-                
-                // Fire
-                f1:{
-                    name:'Fire',
-                    mapColor:'#f66',
-                    tileUrl:'/img/tile/fire.png',
-                    solidity:0,
-                    opacity:0.5,
-                    damping:0.9
-                },
-                
-                // Water
-                w1:{
-                    name:'Solid Ice',
-                    mapColor:'#ccf',
-                    tileUrl:'/img/tile/ice_solid.png',
-                    solidity:1,
-                    opacity:0.5,
-                    damping:0.25
-                },
+                compositions:{
+                    // Unknown
+                    unk:{
+                        name:'Unknown',
+                        mapColor:'transparent',
+                        solidity:0,
+                        opacity:1,
+                        damping:0
+                    },
+                    
+                    // Void
+                    v1:{
+                        name:'Void',
+                        mapColor:'#0ff9',
+                        tileUrl:'/img/tile/void.png',
+                        solidity:-1,
+                        opacity:0.5,
+                        damping:0.75
+                    },
+                    v2:{
+                        name:'Null',
+                        mapColor:'#09f9',
+                        tileUrl:'/img/tile/null.png',
+                        solidity:-1,
+                        opacity:0.5,
+                        damping:0.75
+                    },
+                    v3:{
+                        name:'Æthoid',
+                        mapColor:'#9ff9',
+                        tileUrl:'/img/tile/aethoid.png',
+                        solidity:0,
+                        opacity:0.25,
+                        damping:0.85
+                    },
+                    v4:{
+                        name:'Æthrull',
+                        mapColor:'#09f9',
+                        tileUrl:'/img/tile/aethrull.png',
+                        solidity:0,
+                        opacity:0.25,
+                        damping:0.85
+                    },
+                    
+                    // Earth
+                    s1:{
+                        name:'Solid Stone',
+                        mapColor:'#0003',
+                        tileUrl:'/img/tile/stone_solid.png',
+                        solidity:1,
+                        opacity:1,
+                        damping:0.05
+                    },
+                    
+                    // Air
+                    a1:{
+                        name:'Stone Floor',
+                        mapColor:'transparent',
+                        tileUrl:'/img/tile/stone_floor.png',
+                        solidity:0,
+                        opacity:0.01,
+                        damping:1
+                    },
+                    a2:{
+                        name:'Dirt Floor',
+                        mapColor:'transparent',
+                        tileUrl:'/img/tile/dirt_floor.png',
+                        solidity:0,
+                        opacity:0.01,
+                        damping:1
+                    },
+                    
+                    // Fire
+                    f1:{
+                        name:'Fire',
+                        mapColor:'#f66',
+                        tileUrl:'/img/tile/fire.png',
+                        solidity:0,
+                        opacity:0.5,
+                        damping:0.9
+                    },
+                    
+                    // Water
+                    w1:{
+                        name:'Solid Ice',
+                        mapColor:'#ccf',
+                        tileUrl:'/img/tile/ice_solid.png',
+                        solidity:1,
+                        opacity:0.5,
+                        damping:0.25
+                    },
+                }
             }
         };
     

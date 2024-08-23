@@ -13,6 +13,7 @@
         {worldTimeToParts} = common.util,
         
         {
+            model,
             theme:{
                 padding, spacing, headerHeight, footerHeight, inputHeight,
                 fontSizeHuge,
@@ -232,7 +233,7 @@
             this.quickSet(['propTargetName','readyIcon', 'cooldownName'], attrs);
             this.callSuper(parent, attrs);
             
-            this.syncTo(pkg.model, 'characterInPlayChanged', 'characterInPlay');
+            this.syncTo(model, 'characterInPlayChanged', 'characterInPlay');
         },
         
         characterInPlayChanged: function(event) {
@@ -240,7 +241,6 @@
         },
         
         reset: function() {
-            const model = pkg.model;
             if (this.propTarget) {
                 this.detachFrom(model, 'notifyWorldClockTime', 'worldClockTime');
                 this.detachFrom(this.propTarget, 'targetPropChanged', this.propTargetName);
@@ -251,17 +251,15 @@
         },
         
         targetPropChanged: function(event) {
-            const model = pkg.model;
-            this.setMaxValue(event.value - model.worldClockTime);
+            this.setMaxValue(Math.max(1, event.value - model.worldClockTime));
             if (!this.isAttachedTo(model, 'notifyWorldClockTime', 'worldClockTime')) {
                 this.syncTo(model, 'notifyWorldClockTime', 'worldClockTime');
             }
         },
         
         notifyWorldClockTime: function(event) {
-            const model = pkg.model,
-                newValue = this.propTarget[this.propTargetName] - event.value;
-            this.setValue(newValue);
+            const newValue = this.propTarget[this.propTargetName] - event.value;
+            this.setValue(Math.max(0, newValue));
             if (newValue <= 0) this.detachFrom(model, 'notifyWorldClockTime', 'worldClockTime');
         },
         
@@ -288,7 +286,7 @@
                         this.setText(worldTimeToParts(event.value, true) + ' ' + pkg.FA_CLOCK);
                     }
                 }]);
-                worldClockView.syncTo(pkg.model, 'onWorldClockTime', 'worldClockTime');
+                worldClockView.syncTo(model, 'onWorldClockTime', 'worldClockTime');
             }
         },
         

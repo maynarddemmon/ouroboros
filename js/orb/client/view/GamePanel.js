@@ -42,7 +42,7 @@
             },
             cell:{FIELD_COMPOSITION},
             FACINGS,
-            composition,
+            composition:{compositions},
             util:{locIdToArr}
         } = common,
         
@@ -67,7 +67,7 @@
         getLocInfo = cell => {
             const locArr = locIdToArr(cell.locId),
                 mapDatum = model.getMapDatum(locArr[0]);
-            return composition[cell.hasBeenSeen ? cell[FIELD_COMPOSITION] : 'unk'].name + ' / x:' + locArr[1] + ' / y:' + locArr[2];
+            return compositions[cell.hasBeenSeen() ? cell[FIELD_COMPOSITION] : 'unk'].name + ' / x:' + locArr[1] + ' / y:' + locArr[2];
         },
         
         getEntityInfo = entity => {
@@ -561,8 +561,8 @@
                 }
             }]);
             const options = [];
-            for (const key in composition) {
-                const entry = composition[key];
+            for (const key in compositions) {
+                const entry = compositions[key];
                 options.push({label:entry.name, value:key});
             }
             alterCellCompositionSelector = new InputSelect(characterTab, {

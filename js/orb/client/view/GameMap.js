@@ -21,7 +21,6 @@
             cellOffsetsByDistance, visibilityPaths,
             entity:{FIELD_LOC},
             util:{locArrToId,locIdToArr},
-            composition,
             cell:{FIELD_COMPOSITION, FIELD_ENTITIES},
             FACINGS:{NORTH, SOUTH, EAST, WEST},
         } = common,
@@ -270,10 +269,10 @@
             setCell: function(v) {
                 const cell = this.cell = v;
                 if (this.inited) {
-                    const {mapColor, tileUrl} = composition[cell.hasBeenSeen ? cell[FIELD_COMPOSITION] : 'unk'];
+                    const comp = model.getComposition(cell.hasBeenSeen() ? cell[FIELD_COMPOSITION] : 'unk');
                     this.setVisible(true);
-                    this.setBgColor(mapColor);
-                    this.setImageUrl(tileUrl);
+                    this.setBgColor(comp.getMapColor());
+                    this.setImageUrl(comp.getTileUrl());
                     
                     cellViewsByLocId.set(cell.locId, this);
                 }
@@ -394,7 +393,7 @@
             // Succeed Fast
             if (startLocId === endLocId) {
                 const comp = model.getCellComposition(startLocId);
-                return comp ? comp.damping * value : value;
+                return comp ? comp.getDamping() * value : value;
             }
             
             let retval;
@@ -413,7 +412,7 @@
                 const to = new Map();
                 for (const [locId, fromValue] of from) {
                     const comp = model.getCellComposition(locId),
-                        toValue = (comp ? comp.damping * fromValue : fromValue) - 1;
+                        toValue = (comp ? comp.getDamping() * fromValue : fromValue) - 1;
                     if (toValue > 0) {
                         const locArr = locIdToArr(locId);
                         locArr[1] -= 1;
@@ -547,7 +546,7 @@
                             const cellToCheck = model.getCellByLocArr(locArrToCheck);
                             if (cellToCheck) {
                                 // FIXME check cell walls once we have walls implemented.
-                                opacityTotal += cellToCheck.getCompositionObject().opacity;
+                                opacityTotal += cellToCheck.getCompositionObject().getOpacity();
                                 if (opacityTotal < 1) return false;
                             }
                             return true;
@@ -645,7 +644,7 @@
                         cell = model.getCell(locId) ?? model.makeUnknownCell(locId),
                         cellView = cellPool.getInstance();
                     
-                    if (isSeen) cell.hasBeenSeen = true;
+                    if (isSeen) cell.setBeenSeen(true);
                     
                     cellView.callSetters({x:posX, y:posY, cell:cell, isSeen:isSeen});
                     
