@@ -24,7 +24,7 @@ const orb = require('./orb.js'),
             FIELD_PERMISSIONS,
             FIELD_LOCK_MOVE, FIELD_LOCK_ACTION, FIELD_LOCK_REACT, FIELD_LOCK_FREE
         },
-        FACINGS:{NORTH, SOUTH, EAST, WEST},
+        FACINGS:{NORTH, SOUTH, EAST, WEST, UP, DOWN},
         permissions:{PERM_CREATOR}
     } = require('../common/common.js'),
     
@@ -168,6 +168,8 @@ const orb = require('./orb.js'),
                         case SOUTH: locArr[2] += 1; break;
                         case EAST: locArr[1] += 1; break;
                         case WEST: locArr[1] -= 1; break;
+                        case UP: locArr[3] -= 1; break;
+                        case DOWN: locArr[3] -= 1; break;
                         default:
                             // Treat the direction as a locId
                             if (character.hasPermission(PERM_CREATOR)) {
@@ -181,7 +183,7 @@ const orb = require('./orb.js'),
                     
                     // Determine if the new location will allow the character
                     const cell = worldMap.getCell(locArrToId(locArr), true);
-                    if (cell.mayMoveInto(character)) {
+                    if (cell.mayMoveInto(character, direction)) {
                         character.setLoc(locArr);
                         
                         // Send movement change

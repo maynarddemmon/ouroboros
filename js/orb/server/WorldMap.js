@@ -17,10 +17,14 @@ const orb = require('./orb.js'),
     } = require('../../../lib/tym.js'),
     
     {
-        CommonMapModelMixin, CommonCompositionModelMixin, CommonCellModelMixin,
+        CommonMapModelMixin, CommonCompositionModelMixin, CommonFaceModelMixin, CommonCellModelMixin,
         cellOffsetsByDistance,
         map:{FIELD_NAME, FIELD_DESCRIPTION,FIELD_ELEMENTS},
-        cell:{FIELD_COMPOSITION, FIELD_ENTITIES},
+        face:{FIELD_CELL},
+        cell:{
+            FIELD_COMPOSITION, FIELD_ENTITIES,
+            FIELD_NORTH, FIELD_SOUTH, FIELD_EAST, FIELD_WEST, FIELD_TOP, FIELD_BOTTOM
+        },
         composition:{FIELD_SOLIDITY, MEL_LOOKUP, compositions},
         FACINGS:{NORTH, SOUTH, EAST, WEST}
     } = require('../common/common.js'),
@@ -82,6 +86,22 @@ const orb = require('./orb.js'),
         }
     }),
     
+    FaceModel = new JSClass('FaceModel', Eventable, {
+        include:[CommonFaceModelMixin],
+        
+        [generateSetterName(FIELD_COMPOSITION)]: function(v) {
+            this.callSuper(v);
+            this.getCell()?.notifyAllVisualChangeListenersThatCellChanged();
+        },
+        getCompositionObject: function() {return compositionsByCompId[this.getComposition()];},
+        
+        getAsData: function() {
+            return {
+                [FIELD_COMPOSITION]:this[FIELD_COMPOSITION]
+            };
+        },
+    }),
+    
     Cell = new JSClass('Cell', Eventable, {
         include:[CommonCellModelMixin],
         
@@ -91,8 +111,31 @@ const orb = require('./orb.js'),
             this.callSuper(v);
             this.notifyAllVisualChangeListenersThatCellChanged();
         },
-        getCompositionObject: function() {
-            return compositionsByCompId[this.getComposition()];
+        getCompositionObject: function() {return compositionsByCompId[this.getComposition()];},
+        
+        [generateSetterName(FIELD_NORTH)]: function(v) {
+            v.cell = this;
+            this.callSuper(new FaceModel(v));
+        },
+        [generateSetterName(FIELD_SOUTH)]: function(v) {
+            v.cell = this;
+            this.callSuper(new FaceModel(v));
+        },
+        [generateSetterName(FIELD_EAST)]: function(v) {
+            v.cell = this;
+            this.callSuper(new FaceModel(v));
+        },
+        [generateSetterName(FIELD_WEST)]: function(v) {
+            v.cell = this;
+            this.callSuper(new FaceModel(v));
+        },
+        [generateSetterName(FIELD_TOP)]: function(v) {
+            v.cell = this;
+            this.callSuper(new FaceModel(v));
+        },
+        [generateSetterName(FIELD_BOTTOM)]: function(v) {
+            v.cell = this;
+            this.callSuper(new FaceModel(v));
         },
         
         // Entities //
@@ -112,18 +155,9 @@ const orb = require('./orb.js'),
             }
         },
         
-        getSpiritEntityCount: function(atLeast) {
-            return this.getEntityCount(entity => entity.isSpirit(), atLeast);
-        },
-        
-        getAstralProjectedEntityCount: function(atLeast) {
-            return this.getEntityCount(entity => entity.isAstralProjected(), atLeast);
-        },
-        
-        getCorporealEntityCount: function(atLeast) {
-            return this.getEntityCount(entity => !entity.isSpirit() && !entity.isAstralProjected(), atLeast);
-        },
-        
+        getSpiritEntityCount: function(atLeast) {return this.getEntityCount(entity => entity.isSpirit(), atLeast);},
+        getAstralProjectedEntityCount: function(atLeast) {return this.getEntityCount(entity => entity.isAstralProjected(), atLeast);},
+        getCorporealEntityCount: function(atLeast) {return this.getEntityCount(entity => !entity.isSpirit() && !entity.isAstralProjected(), atLeast);},
         getEntityCount: function(filterFunc, atLeast) {
             const entities = this.entities;
             if (filterFunc) {
@@ -149,7 +183,13 @@ const orb = require('./orb.js'),
         // Methods /////////////////////////////////////////////////////////////
         getAsData: function() {
             return {
-                [FIELD_COMPOSITION]:this[FIELD_COMPOSITION]
+                [FIELD_COMPOSITION]:this[FIELD_COMPOSITION],
+                [FIELD_NORTH]:this[FIELD_NORTH]?.getAsData(),
+                [FIELD_SOUTH]:this[FIELD_SOUTH]?.getAsData(),
+                [FIELD_EAST]:this[FIELD_EAST]?.getAsData(),
+                [FIELD_WEST]:this[FIELD_WEST]?.getAsData(),
+                [FIELD_TOP]:this[FIELD_TOP]?.getAsData(),
+                [FIELD_BOTTOM]:this[FIELD_BOTTOM]?.getAsData()
             };
         },
         getAsDataForCharacter: function(character) {
@@ -165,8 +205,9 @@ const orb = require('./orb.js'),
             return retval;
         },
         
-        mayMoveInto: function(character) {
-            return orb.rules.characterMayMoveIntoCell(character, this);
+        mayMoveInto: function(character, compassDirection) {
+            return orb.rules.characterMayMoveOutOfCell(character, compassDirection) && 
+                orb.rules.characterMayMoveIntoCell(character, compassDirection, this);
         },
         
         // Change Listeners //

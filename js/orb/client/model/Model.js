@@ -1,8 +1,7 @@
 (pkg => {
     let worldClockIntervalId,
         mapData,
-        cellData,
-        compositionsByCompId = {};
+        cellData;
     
     const JSClass = JS.Class,
         {
@@ -11,14 +10,18 @@
         } = myt,
         
         {
-            CommonMapModelMixin, CommonCompositionModelMixin, CommonCellModelMixin, 
+            CommonMapModelMixin, CommonCompositionModelMixin, CommonFaceModelMixin, CommonCellModelMixin, 
             CommonEntityModelMixin, CommonCharacterModelMixin,
             greek:{TYPE_MOVE},
             entity:{FIELD_ID},
             character:{
                 FIELD_LOCK_MOVE, FIELD_LOCK_ACTION, FIELD_LOCK_REACT, FIELD_LOCK_FREE
             },
-            cell:{FIELD_COMPOSITION, FIELD_ENTITIES},
+            face:{FIELD_CELL},
+            cell:{
+                FIELD_COMPOSITION, FIELD_ENTITIES,
+                FIELD_NORTH, FIELD_SOUTH, FIELD_EAST, FIELD_WEST, FIELD_TOP, FIELD_BOTTOM
+            },
             composition:{compositions},
             permissions:{
                 PERM_CREATOR
@@ -26,11 +29,12 @@
             util:{locArrToId, locIdToArr},
         } = common
         
-        getMapData = () => mapData ?? (mapData = {}),
-        getCellData = () => cellData ?? (cellData = {}),
+        getMapData = () => mapData ??= {},
+        getCellData = () => cellData ??= {},
         
         entityData = {},
         characters = [],
+        compositionsByCompId = {},
         
         MapModel = new JSClass('MapModel', Eventable, {
             include:[CommonMapModelMixin]
@@ -38,6 +42,12 @@
         
         CompositionModel = new JSClass('CompositionModel', Eventable, {
             include:[CommonCompositionModelMixin]
+        }),
+        
+        FaceModel = new JSClass('FaceModel', Eventable, {
+            include:[CommonFaceModelMixin],
+            
+            getCompositionObject: function() {return compositionsByCompId[this.getComposition()];},
         }),
         
         CellModel = new JSClass('CellModel', Eventable, {
@@ -55,12 +65,33 @@
                     this.locArr = null;
                 }
             },
-            getLocArr: function() {
-                return this.locArr ??= locIdToArr(this.locId);
+            getLocArr: function() {return this.locArr ??= locIdToArr(this.locId);},
+            getCompositionObject: function() {return compositionsByCompId[this.getComposition()];},
+            
+            [generateSetterName(FIELD_NORTH)]: function(v) {
+                v.cell = this;
+                this.callSuper(new FaceModel(v));
             },
-            getCompositionObject: function() {
-                return compositionsByCompId[this.getComposition()];
-            }
+            [generateSetterName(FIELD_SOUTH)]: function(v) {
+                v.cell = this;
+                this.callSuper(new FaceModel(v));
+            },
+            [generateSetterName(FIELD_EAST)]: function(v) {
+                v.cell = this;
+                this.callSuper(new FaceModel(v));
+            },
+            [generateSetterName(FIELD_WEST)]: function(v) {
+                v.cell = this;
+                this.callSuper(new FaceModel(v));
+            },
+            [generateSetterName(FIELD_TOP)]: function(v) {
+                v.cell = this;
+                this.callSuper(new FaceModel(v));
+            },
+            [generateSetterName(FIELD_BOTTOM)]: function(v) {
+                v.cell = this;
+                this.callSuper(new FaceModel(v));
+            },
         }),
         
         EntityModel = new JSClass('EntityModel', Eventable, {

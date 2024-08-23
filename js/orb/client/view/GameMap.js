@@ -21,7 +21,10 @@
             cellOffsetsByDistance, visibilityPaths,
             entity:{FIELD_LOC},
             util:{locArrToId,locIdToArr},
-            cell:{FIELD_COMPOSITION, FIELD_ENTITIES},
+            cell:{
+                FIELD_COMPOSITION, FIELD_ENTITIES,
+                FIELD_NORTH, FIELD_SOUTH, FIELD_EAST, FIELD_WEST, FIELD_TOP, FIELD_BOTTOM
+            },
             FACINGS:{NORTH, SOUTH, EAST, WEST},
         } = common,
         
@@ -229,6 +232,22 @@
             }
         }),
         
+        FaceView = new JSClass('FaceView', View, {
+            include:[ImageSupport],
+            
+            initNode: function(parent, attrs) {
+                attrs.width = attrs.height = cellSize;
+                attrs.pointerEvents = 'none';
+                attrs.imageSize = 'contain';
+                
+                const rotation = attrs.rotation;
+                delete attrs.rotation;
+                
+                this.callSuper(parent, attrs);
+                if (rotation) this.getIDS().transform = 'rotate(' + rotation + 'deg)';
+            }
+        }),
+        
         CellView = new JSClass('CellView', View, {
             include:[Reusable, MouseOverAndDown, ImageSupport],
             
@@ -243,6 +262,11 @@
                 attrs.imageSize = 'contain';
                 
                 this.callSuper(parent, attrs);
+                
+                this._nFace = new FaceView(this, {});
+                this._sFace = new FaceView(this, {rotation:180});
+                this._eFace = new FaceView(this, {rotation:90});
+                this._wFace = new FaceView(this, {rotation:270});
                 
                 this._observedOverlay = new View(this, {width:cellSize, height:cellSize, bgColor:'#0008', pointerEvents:'none'});
             },
@@ -269,10 +293,28 @@
             setCell: function(v) {
                 const cell = this.cell = v;
                 if (this.inited) {
-                    const comp = model.getComposition(cell.hasBeenSeen() ? cell[FIELD_COMPOSITION] : 'unk');
                     this.setVisible(true);
-                    this.setBgColor(comp.getMapColor());
+                    
+                    let compId,
+                        nFaceCompId, sFaceCompId, eFaceCompId, wFaceCompId;
+                    if (cell.hasBeenSeen()) {
+                        compId = cell.getComposition();
+                        nFaceCompId = cell.getNorthFace()?.getComposition();
+                        sFaceCompId = cell.getSouthFace()?.getComposition();
+                        eFaceCompId = cell.getEastFace()?.getComposition();
+                        wFaceCompId = cell.getWestFace()?.getComposition();
+                    } else {
+                        compId = 'unk';
+                    }
+                    
+                    const comp = model.getComposition(compId);
                     this.setImageUrl(comp.getTileUrl());
+                    this.setBgColor(comp.getMapColor() ?? 'transparent');
+                    
+                    this._nFace.setImageUrl(model.getComposition(nFaceCompId)?.getTileUrl() ?? null);
+                    this._sFace.setImageUrl(model.getComposition(sFaceCompId)?.getTileUrl() ?? null);
+                    this._eFace.setImageUrl(model.getComposition(eFaceCompId)?.getTileUrl() ?? null);
+                    this._wFace.setImageUrl(model.getComposition(wFaceCompId)?.getTileUrl() ?? null);
                     
                     cellViewsByLocId.set(cell.locId, this);
                 }
@@ -390,6 +432,7 @@
         },
         
         propogateValue: (startLocId, value, endLocId) => {
+// FIXME check cell walls once we have walls implemented.
             // Succeed Fast
             if (startLocId === endLocId) {
                 const comp = model.getCellComposition(startLocId);

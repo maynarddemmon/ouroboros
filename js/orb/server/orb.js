@@ -173,10 +173,31 @@ const path = require('path'),
                     }
                 }
             },
-            characterMayMoveIntoCell: function(character, cell) {
-                const comp = cell.getCompositionObject(),
-                    solidity = comp.getSolidity(),
-                    entities = cell.getEntitiesMap();
+            
+            isTraversableSolidityForCorporeal: solidity => solidity >= 0 && solidity < 1,
+            
+            characterMayMoveOutOfCell: function(character, compassDirection) {
+                const cell = character.getCell();
+                if (character.isSpirit()) {
+                    return true;
+                } else if (character.isAstralProjected() && cell.isCompositionVoid()) {
+                    return true;
+                }
+                
+                const face = cell.getFaceForDirection(compassDirection);
+                if (face && !orb.rules.isTraversableSolidityForCorporeal(face.getCompositionObject().getSolidity())) {
+                    return false;
+                }
+                
+                if (!orb.rules.isTraversableSolidityForCorporeal(cell.getCompositionObject().getSolidity())) {
+                    return false;
+                }
+                
+                return true;
+            },
+            
+            characterMayMoveIntoCell: function(character, compassDirection, cell) {
+                const entities = cell.getEntitiesMap();
                 if (character.isSpirit()) {
                     // Only 1 spirit at a time in a cell
                     return !cell.getSpiritEntityCount(1);
@@ -187,12 +208,17 @@ const path = require('path'),
                     }
                 }
                 
-                if (solidity >= 0 && solidity < 1) {
-                    // Only 2 Corporeal at a time in a cell
-                    return !cell.getCorporealEntityCount(2);
+                const face = cell.getFaceForOppositeDirection(compassDirection);
+                if (face && !orb.rules.isTraversableSolidityForCorporeal(face.getCompositionObject().getSolidity())) {
+                    return false;
                 }
                 
-                return false;
+                if (!orb.rules.isTraversableSolidityForCorporeal(cell.getCompositionObject().getSolidity())) {
+                    return false;
+                }
+                
+                // Only 2 Corporeal at a time in a cell
+                return !cell.getCorporealEntityCount(2);
             },
             
             generateSoundForEntityAction: function(entity, cell, actionType) {

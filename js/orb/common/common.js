@@ -35,9 +35,19 @@
         FIELD_MAP_COLOR = 'mapColor',
         FIELD_TILE_URL = 'tileUrl',
         
+        // Face Fields
+        FIELD_CELL = 'cell',
+        
         // Cell Fields
         FIELD_COMPOSITION = 'c',
-        FIELD_ENTITIES = 'e',
+        FIELD_ENTITIES = 'ent',
+        
+        FIELD_NORTH = 'n',
+        FIELD_SOUTH = 's',
+        FIELD_EAST = 'e',
+        FIELD_WEST = 'w',
+        FIELD_TOP = 't',
+        FIELD_BOTTOM = 'b',
         
         // Entity Fields
         FIELD_SPIRIT = 'spirit',
@@ -60,6 +70,8 @@
         COMPASS_SOUTH = 2,
         COMPASS_EAST = 3,
         COMPASS_WEST = 4,
+        COMPASS_UP = 5,
+        COMPASS_DOWN = 6,
         
         /* all zags must be the same order within a path
             should walk from origin out to loc. */
@@ -233,8 +245,17 @@
             getDamping: function() {return this[FIELD_DAMPING];}
         }),
         
+        CommonFaceModelMixin = new JSModule('CommonCellModelMixin', {
+            [generateSetterName(FIELD_CELL)]: function(v) {this.set(FIELD_CELL, v, true);},
+            getCell: function() {return this[FIELD_CELL];},
+            
+            [generateSetterName(FIELD_COMPOSITION)]: function(v) {this.set(FIELD_COMPOSITION, v, true);},
+            setComposition: function(v) {this.set(FIELD_COMPOSITION, v);},
+            getComposition: function() {return this[FIELD_COMPOSITION];},
+            getCompositionObject: () => {/* Subclasses must implement. */},
+        }),
+        
         CommonCellModelMixin = new JSModule('CommonCellModelMixin', {
-            // Accessors ///////////////////////////////////////////////////////////
             [generateSetterName(FIELD_COMPOSITION)]: function(v) {this.set(FIELD_COMPOSITION, v, true);},
             setComposition: function(v) {this.set(FIELD_COMPOSITION, v);},
             getComposition: function() {return this[FIELD_COMPOSITION];},
@@ -249,11 +270,45 @@
                     default:
                         return false;
                 }
-            }
+            },
+            
+            [generateSetterName(FIELD_NORTH)]: function(v) {this.set(FIELD_NORTH, v, true);},
+            getNorthFace: function(v) {return this[FIELD_NORTH];},
+            [generateSetterName(FIELD_SOUTH)]: function(v) {this.set(FIELD_SOUTH, v, true);},
+            getSouthFace: function(v) {return this[FIELD_SOUTH];},
+            [generateSetterName(FIELD_EAST)]: function(v) {this.set(FIELD_EAST, v, true);},
+            getEastFace: function(v) {return this[FIELD_EAST];},
+            [generateSetterName(FIELD_WEST)]: function(v) {this.set(FIELD_WEST, v, true);},
+            getWestFace: function(v) {return this[FIELD_WEST];},
+            [generateSetterName(FIELD_TOP)]: function(v) {this.set(FIELD_TOP, v, true);},
+            getTopFace: function(v) {return this[FIELD_TOP];},
+            [generateSetterName(FIELD_BOTTOM)]: function(v) {this.set(FIELD_BOTTOM, v, true);},
+            getBottomFace: function(v) {return this[FIELD_BOTTOM];},
+            
+            getFaceForDirection: function(compassDirection) {
+                switch (compassDirection) {
+                    case COMPASS_NORTH: return this.getNorthFace();
+                    case COMPASS_SOUTH: return this.getSouthFace();
+                    case COMPASS_EAST: return this.getEastFace();
+                    case COMPASS_WEST: return this.getWestFace();
+                    case COMPASS_UP: return this.getTopFace();
+                    case COMPASS_DOWN: return this.getBottomFace();
+                }
+            },
+            
+            getFaceForOppositeDirection: function(compassDirection) {
+                switch (compassDirection) {
+                    case COMPASS_NORTH: return this.getSouthFace();
+                    case COMPASS_SOUTH: return this.getNorthFace();
+                    case COMPASS_EAST: return this.getWestFace();
+                    case COMPASS_WEST: return this.getEastFace();
+                    case COMPASS_UP: return this.getBottomFace();
+                    case COMPASS_DOWN: return this.getTopFace();
+                }
+            },
         }),
         
         CommonEntityModelMixin = new JSModule('CommonEntityModelMixin', {
-            // Accessors ///////////////////////////////////////////////////////
             [generateSetterName(FIELD_ID)]: function(v) {this.set(FIELD_ID, v, true);},
             getId: function() {return this[FIELD_ID];},
             [generateSetterName(FIELD_SPIRIT)]: function(v) {this.set(FIELD_SPIRIT, v, true);},
@@ -272,7 +327,6 @@
         }),
         
         CommonCharacterModelMixin = new JSModule('CommonCharacterModelMixin', {
-            // Accessors ///////////////////////////////////////////////////////
             [generateSetterName(FIELD_USER_ID)]: function(v) {this.set(FIELD_USER_ID, v, true);},
             getUserId: function() {return this[FIELD_USER_ID];},
             [generateSetterName(FIELD_NAME)]: function(v) {this.set(FIELD_NAME, v, true);},
@@ -315,6 +369,7 @@
         EXPORT = {
             CommonMapModelMixin:CommonMapModelMixin,
             CommonCompositionModelMixin:CommonCompositionModelMixin,
+            CommonFaceModelMixin:CommonFaceModelMixin,
             CommonCellModelMixin:CommonCellModelMixin,
             CommonEntityModelMixin:CommonEntityModelMixin,
             CommonCharacterModelMixin:CommonCharacterModelMixin,
@@ -326,7 +381,9 @@
                 NORTH:COMPASS_NORTH,
                 SOUTH:COMPASS_SOUTH,
                 EAST:COMPASS_EAST,
-                WEST:COMPASS_WEST
+                WEST:COMPASS_WEST,
+                UP:COMPASS_UP,
+                DOWN:COMPASS_DOWN
             },
             
             isValidFacing: v => {
@@ -335,6 +392,8 @@
                     case COMPASS_SOUTH:
                     case COMPASS_EAST:
                     case COMPASS_WEST:
+                    case COMPASS_UP:
+                    case COMPASS_DOWN:
                         return true;
                 }
                 return false;
@@ -381,9 +440,20 @@
                 FIELD_ELEMENTS:FIELD_ELEMENTS
             },
             
+            face:{
+                FIELD_CELL:FIELD_CELL,
+                FIELD_COMPOSITION:FIELD_COMPOSITION,
+            },
+            
             cell:{
                 FIELD_COMPOSITION:FIELD_COMPOSITION,
                 FIELD_ENTITIES:FIELD_ENTITIES,
+                FIELD_NORTH:FIELD_NORTH,
+                FIELD_SOUTH:FIELD_SOUTH,
+                FIELD_EAST:FIELD_EAST,
+                FIELD_WEST:FIELD_WEST,
+                FIELD_TOP:FIELD_TOP,
+                FIELD_BOTTOM:FIELD_BOTTOM,
             },
             
             composition:{
@@ -428,7 +498,6 @@
                     // Unknown
                     unk:{
                         name:'Unknown',
-                        mapColor:'transparent',
                         solidity:0,
                         opacity:1,
                         damping:0
@@ -481,7 +550,6 @@
                     // Air
                     a1:{
                         name:'Stone Floor',
-                        mapColor:'transparent',
                         tileUrl:'/img/tile/stone_floor.png',
                         solidity:0,
                         opacity:0.01,
@@ -489,7 +557,6 @@
                     },
                     a2:{
                         name:'Dirt Floor',
-                        mapColor:'transparent',
                         tileUrl:'/img/tile/dirt_floor.png',
                         solidity:0,
                         opacity:0.01,
@@ -515,6 +582,28 @@
                         opacity:0.5,
                         damping:0.25
                     },
+                    
+                    // Faces
+                    W1:{
+                        name:'Stone Wall',
+                        tileUrl:'/img/tile/stone_wall.png',
+                        solidity:1,
+                        opacity:1,
+                        damping:0.05
+                    },
+                    C1:{
+                        name:'Vaulted Stone Ceiling',
+                        solidity:1,
+                        opacity:1,
+                        damping:0.05
+                    },
+                    F1:{
+                        name:'Stone Floor',
+                        tileUrl:'/img/tile/stone_floor.png',
+                        solidity:1,
+                        opacity:1,
+                        damping:0.05
+                    }
                 }
             }
         };
