@@ -42,7 +42,7 @@
                 TYPE_EXIT_WORLD, TYPE_ALTER_CELL, TYPE_CHANGE_FACING, TYPE_VOCALIZE
             },
             cell:{FIELD_COMPOSITION},
-            FACINGS:{NORTH, SOUTH, EAST, WEST, TOP, BOTTOM},
+            FACINGS:{NORTH, SOUTH, EAST, WEST, UP, DOWN},
             composition:{compositions},
             util:{locIdToArr}
         } = common,
@@ -564,8 +564,8 @@
                     {label:'south', value:SOUTH + '.c'},
                     {label:'east', value:EAST + '.c'},
                     {label:'west', value:WEST + '.c'},
-                    {label:'top', value:TOP + '.c'},
-                    {label:'bottom', value:BOTTOM + '.c'}
+                    {label:'top', value:UP + '.c'},
+                    {label:'bottom', value:DOWN + '.c'}
                 ]
             });
             const options = [];

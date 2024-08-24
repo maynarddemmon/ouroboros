@@ -213,12 +213,12 @@ const orb = require('./orb.js'),
                             {prop, value, direction} = event.msg;
                         
                         const cell = worldMap.getCell(locArrToId(locArr), true),
-                            updateFaceFunc = (face, field, prop) => {
+                            updateFaceFunc = (face, field) => {
                                 if (value === 'unk') {
                                     cell.set(field, null);
                                 } else {
                                     if (face) {
-                                        face.set(prop, value);
+                                        face.set(FIELD_COMPOSITION, value);
                                     } else {
                                         cell.set(field, {[FIELD_COMPOSITION]:value});
                                     }
@@ -241,10 +241,10 @@ const orb = require('./orb.js'),
                             case WEST + '.' + FIELD_COMPOSITION:
                                 updateFaceFunc(cell.getWestFace(), FIELD_WEST);
                                 break;
-                            case TOP + '.' + FIELD_COMPOSITION:
+                            case UP + '.' + FIELD_COMPOSITION:
                                 updateFaceFunc(cell.getTopFace(), FIELD_TOP);
                                 break;
-                            case BOTTOM + '.' + FIELD_COMPOSITION:
+                            case DOWN + '.' + FIELD_COMPOSITION:
                                 updateFaceFunc(cell.getBottomFace(), FIELD_BOTTOM);
                                 break;
                         }

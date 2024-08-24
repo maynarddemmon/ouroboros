@@ -58,7 +58,7 @@
             initNode: function(parent, attrs) {
                 attrs.pointerEvents = 'none';
                 
-                attrs.zIndex = 2;
+                attrs.zIndex = 4;
                 attrs.boxShadow ??= [0,0,8,'#000'];
                 attrs.roundedCorners ??= 6;
                 attrs.padding ??= 6;
@@ -118,7 +118,7 @@
             initNode: function(parent, attrs) {
                 this.mouseOver = this.mouseDown = false;
                 
-                attrs.zIndex = 1;
+                attrs.zIndex = 3;
                 attrs.bgColor ??= '#000';
                 attrs.outline ??= [1, 'solid', '#000'];
                 attrs.border ??= [1, 'solid', '#fff'];
@@ -246,9 +246,11 @@
             include:[ImageSupport],
             
             initNode: function(parent, attrs) {
-                attrs.width = attrs.height = cellSize;
+                attrs.x = attrs.y = -1;
+                attrs.width = attrs.height = cellSize + 2;
                 attrs.pointerEvents = 'none';
                 attrs.imageSize = 'contain';
+                attrs.zIndex ??= 2;
                 
                 const rotation = attrs.rotation;
                 delete attrs.rotation;
@@ -273,7 +275,7 @@
                 
                 this.callSuper(parent, attrs);
                 
-                this._bFace = new FaceView(this, {});
+                this._bFace = new FaceView(this, {zIndex:1});
                 this._nFace = new FaceView(this, {});
                 this._sFace = new FaceView(this, {rotation:180});
                 this._eFace = new FaceView(this, {rotation:90});
@@ -568,6 +570,7 @@
             // Make a lookup table of observed cell IDs. These are Cells that are within your
             // sight distance. This produces a "set" of Cells in a circular shape.
             const originArr = character[FIELD_LOC],
+                originCell = model.getCellByLocArr(originArr),
                 baseX = originArr[1],
                 baseY = originArr[2],
                 offsets = cellOffsetsByDistance[character.getSightDistance()];
@@ -610,35 +613,66 @@
                             xIdx = isNotFlipped ? 1 : 2,
                             yIdx = isNotFlipped ? 2 : 1,
                             xAdj = isNotFlipped ? (isPosX ? 1 : -1) : (isPosY ? 1 : -1),
-                            yAdj = isNotFlipped ? (isPosY ? 1 : -1) : (isPosX ? 1 : -1);
+                            yAdj = isNotFlipped ? (isPosY ? 1 : -1) : (isPosX ? 1 : -1),
+                            
+                            /*DIR_UP = isNotFlipped ? 
+                                (isPosX ? (isPosY ? SOUTH : NORTH) : (isPosY ? SOUTH : NORTH)) : 
+                                (isPosX ? (isPosY ? EAST : EAST) : (isPosY ? WEST : WEST)),
+                            
+                            DIR_OVER = isNotFlipped ?
+                                (isPosX ? (isPosY ? EAST : EAST) : (isPosY ? WEST : WEST)) : 
+                                (isPosX ? (isPosY ? SOUTH : NORTH) : (isPosY ? SOUTH : NORTH));
+                            */
+                            
+                            DIR_UP = isNotFlipped ? (isPosY ? SOUTH : NORTH) : (isPosX ? EAST : WEST),
+                            DIR_OVER = isNotFlipped ? (isPosX ? EAST : WEST) : (isPosY ? SOUTH : NORTH);
                         
                         let opacityTotal = 0,
-                            endedOnObserved = false;
-                        const isCellObscured = locArrToCheck => {
+                            endedOnObserved = false,
+                            prevCell = originCell;
+                        const isCellObscured = (locArrToCheck, isUp) => {
                             const cellToCheck = model.getCellByLocArr(locArrToCheck);
                             if (cellToCheck) {
+                                // Check face in the cell we just left
+                                if (prevCell) {
+                                    face = prevCell.getFaceForDirection(isUp ? DIR_UP : DIR_OVER);
+                                    if (face) {
+                                        opacityTotal += face.getCompositionObject().getOpacity();
+                                        if (opacityTotal >= 1) return true;
+                                    }
+                                }
+                                prevCell = cellToCheck;
                                 
-                                // FIXME check cell walls once we have walls implemented.
+                                // Check face within the current cell we are checking
+                                face = cellToCheck.getFaceForOppositeDirection(isUp ? DIR_UP : DIR_OVER);
+                                if (face) {
+                                    opacityTotal += face.getCompositionObject().getOpacity();
+                                    if (opacityTotal >= 1) return true;
+                                }
+                                
+                                // Check cell itself
                                 opacityTotal += cellToCheck.getCompositionObject().getOpacity();
-                                if (opacityTotal < 1) return false;
+                                return opacityTotal >= 1;
                             }
                             return true;
                         };
+                        
                         const isObscured = (depth, firstZZ, zzOptA) => {
                             let retval = false;
                             switch (path[depth]) {
                                 case 'up':
                                     // Up only
                                     locArrToCheck[yIdx] += yAdj;
-                                    retval = isCellObscured(locArrToCheck);
+                                    retval = isCellObscured(locArrToCheck, true);
                                     break;
                                 case 'uo':
-                                    // Up and Over
+                                    // Up...
                                     locArrToCheck[yIdx] += yAdj;
-                                    retval = isCellObscured(locArrToCheck);
+                                    retval = isCellObscured(locArrToCheck, true);
                                     if (!retval) {
+                                        // ...and Over
                                         locArrToCheck[xIdx] += xAdj;
-                                        retval = isCellObscured(locArrToCheck);
+                                        retval = isCellObscured(locArrToCheck, false);
                                     }
                                     break;
                                 case 'zz':
@@ -647,31 +681,38 @@
                                     if (firstZZ) {
                                         const optBX = locArrToCheck[1],
                                             optBY = locArrToCheck[2],
-                                            optBOpacityTotal = opacityTotal;
+                                            optBOpacityTotal = opacityTotal,
+                                            optBPrevCell = prevCell;
                                         retval = isObscured(depth, false, true);
                                         const optAEndedOnObserved = endedOnObserved;
+                                        // If option A was obscured try option B.
                                         if (retval) {
                                             locArrToCheck[1] = optBX;
                                             locArrToCheck[2] = optBY;
                                             opacityTotal = optBOpacityTotal;
+                                            prevCell = optBPrevCell;
                                             retval = isObscured(depth, false, false);
                                             if (retval && optAEndedOnObserved) endedOnObserved = true;
                                         }
                                         return retval;
                                     } else {
                                         if (zzOptA) {
+                                            // Up...
                                             locArrToCheck[yIdx] += yAdj;
-                                            retval = isCellObscured(locArrToCheck);
+                                            retval = isCellObscured(locArrToCheck, true);
                                             if (!retval) {
+                                                // ...and Over
                                                 locArrToCheck[xIdx] += xAdj;
-                                                retval = isCellObscured(locArrToCheck);
+                                                retval = isCellObscured(locArrToCheck, false);
                                             }
                                         } else {
+                                            // Over...
                                             locArrToCheck[xIdx] += xAdj;
-                                            retval = isCellObscured(locArrToCheck);
+                                            retval = isCellObscured(locArrToCheck, false);
                                             if (!retval) {
+                                                // ... and Up
                                                 locArrToCheck[yIdx] += yAdj;
-                                                retval = isCellObscured(locArrToCheck);
+                                                retval = isCellObscured(locArrToCheck, true);
                                             }
                                         }
                                     }
@@ -691,7 +732,7 @@
                         };
                         
                         if (isObscured(0, true, true)) {
-                            if (!endedOnObserved) obscuredLocIds.add(locId);
+                            /*if (!endedOnObserved)*/ obscuredLocIds.add(locId);
                         }
                     }
                 } else {
