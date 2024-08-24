@@ -35,6 +35,7 @@
         
         COMPASS_DIRECTION_SELF = 0,
         AUDIBLE_THRESHOLD = 0.5,
+        FACE_OVERAGE = 4,
         
         QUIET_ADVERBS = ['quiet','faint','muted','muffled','soft','low'],
         QUIET_VOCALIZATION_ADVERBS = [...QUIET_ADVERBS, 'hushed'],
@@ -247,8 +248,8 @@
             include:[ImageSupport],
             
             initNode: function(parent, attrs) {
-                attrs.x = attrs.y = -1;
-                attrs.width = attrs.height = cellSize + 2;
+                attrs.x = attrs.y = -FACE_OVERAGE/2;
+                attrs.width = attrs.height = cellSize + FACE_OVERAGE;
                 attrs.pointerEvents = 'none';
                 attrs.imageSize = 'contain';
                 attrs.zIndex ??= 2;
