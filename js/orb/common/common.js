@@ -383,7 +383,18 @@
                 EAST:COMPASS_EAST,
                 WEST:COMPASS_WEST,
                 UP:COMPASS_UP,
-                DOWN:COMPASS_DOWN
+                DOWN:COMPASS_DOWN,
+                
+                getOppositeDirection: compassDirection => {
+                    switch (compassDirection) {
+                        case COMPASS_NORTH: return COMPASS_SOUTH;
+                        case COMPASS_SOUTH: return COMPASS_NORTH;
+                        case COMPASS_EAST: return COMPASS_WEST;
+                        case COMPASS_WEST: return COMPASS_EAST;
+                        case COMPASS_UP: return COMPASS_DOWN;
+                        case COMPASS_DOWN: return COMPASS_UP;
+                    }
+                }
             },
             
             isValidFacing: v => {

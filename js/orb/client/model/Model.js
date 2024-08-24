@@ -55,6 +55,12 @@
         CellModel = new JSClass('CellModel', Eventable, {
             include:[CommonCellModelMixin],
             
+            init: function(attrs) {
+                this.partsSeen = new Set();
+                this.callSuper(attrs);
+            },
+            
+            
             [generateSetterName(FIELD_ENTITIES)]: function(v) {this.set(FIELD_ENTITIES, v, true);},
             getEntities: function() {return this[FIELD_ENTITIES];},
             

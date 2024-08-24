@@ -25,7 +25,7 @@
                 FIELD_COMPOSITION, FIELD_ENTITIES,
                 FIELD_NORTH, FIELD_SOUTH, FIELD_EAST, FIELD_WEST, FIELD_TOP, FIELD_BOTTOM
             },
-            FACINGS:{NORTH, SOUTH, EAST, WEST},
+            FACINGS:{NORTH, SOUTH, EAST, WEST, getOppositeDirection},
         } = common,
         
         {
@@ -33,6 +33,7 @@
             cfg:{mapRangeOffset, cellSize, entitySizeM}
         } = pkg,
         
+        COMPASS_DIRECTION_SELF = 0,
         AUDIBLE_THRESHOLD = 0.5,
         
         QUIET_ADVERBS = ['quiet','faint','muted','muffled','soft','low'],
@@ -308,8 +309,7 @@
                 if (this.inited) {
                     this.setVisible(true);
                     
-                    let compId,
-                        bFaceCompId, nFaceCompId, sFaceCompId, eFaceCompId, wFaceCompId;
+                    let compId, bFaceCompId, nFaceCompId, sFaceCompId, eFaceCompId, wFaceCompId;
                     if (cell.hasBeenSeen()) {
                         compId = cell.getComposition();
                         bFaceCompId = cell.getBottomFace()?.getComposition();
@@ -319,6 +319,28 @@
                         wFaceCompId = cell.getWestFace()?.getComposition();
                     } else {
                         compId = 'unk';
+                        const partsSeen = cell.partsSeen;
+                        if (partsSeen.size > 0) {
+                            for (const part of partsSeen) {
+                                switch (part) {
+                                    case NORTH:
+                                        nFaceCompId = cell.getNorthFace()?.getComposition();
+                                        break;
+                                    case SOUTH:
+                                        sFaceCompId = cell.getSouthFace()?.getComposition();
+                                        break;
+                                    case EAST:
+                                        eFaceCompId = cell.getEastFace()?.getComposition();
+                                        break;
+                                    case WEST:
+                                        wFaceCompId = cell.getWestFace()?.getComposition();
+                                        break;
+                                    case COMPASS_DIRECTION_SELF: // Cell composition
+                                        compId = cell.getComposition();
+                                        break;
+                                }
+                            }
+                        }
                     }
                     
                     const comp = model.getComposition(compId);
@@ -615,15 +637,6 @@
                             xAdj = isNotFlipped ? (isPosX ? 1 : -1) : (isPosY ? 1 : -1),
                             yAdj = isNotFlipped ? (isPosY ? 1 : -1) : (isPosX ? 1 : -1),
                             
-                            /*DIR_UP = isNotFlipped ? 
-                                (isPosX ? (isPosY ? SOUTH : NORTH) : (isPosY ? SOUTH : NORTH)) : 
-                                (isPosX ? (isPosY ? EAST : EAST) : (isPosY ? WEST : WEST)),
-                            
-                            DIR_OVER = isNotFlipped ?
-                                (isPosX ? (isPosY ? EAST : EAST) : (isPosY ? WEST : WEST)) : 
-                                (isPosX ? (isPosY ? SOUTH : NORTH) : (isPosY ? SOUTH : NORTH));
-                            */
-                            
                             DIR_UP = isNotFlipped ? (isPosY ? SOUTH : NORTH) : (isPosX ? EAST : WEST),
                             DIR_OVER = isNotFlipped ? (isPosX ? EAST : WEST) : (isPosY ? SOUTH : NORTH);
                         
@@ -633,9 +646,10 @@
                         const isCellObscured = (locArrToCheck, isUp) => {
                             const cellToCheck = model.getCellByLocArr(locArrToCheck);
                             if (cellToCheck) {
+                                const direction = isUp ? DIR_UP : DIR_OVER;
                                 // Check face in the cell we just left
                                 if (prevCell) {
-                                    face = prevCell.getFaceForDirection(isUp ? DIR_UP : DIR_OVER);
+                                    face = prevCell.getFaceForDirection(direction);
                                     if (face) {
                                         opacityTotal += face.getCompositionObject().getOpacity();
                                         if (opacityTotal >= 1) return true;
@@ -644,15 +658,23 @@
                                 prevCell = cellToCheck;
                                 
                                 // Check face within the current cell we are checking
-                                face = cellToCheck.getFaceForOppositeDirection(isUp ? DIR_UP : DIR_OVER);
+                                face = cellToCheck.getFaceForOppositeDirection(direction);
                                 if (face) {
                                     opacityTotal += face.getCompositionObject().getOpacity();
-                                    if (opacityTotal >= 1) return true;
+                                    if (opacityTotal >= 1) {
+                                        cellToCheck.partsSeen.add(getOppositeDirection(direction));
+                                        return true;
+                                    }
                                 }
                                 
                                 // Check cell itself
                                 opacityTotal += cellToCheck.getCompositionObject().getOpacity();
-                                return opacityTotal >= 1;
+                                if (opacityTotal >= 1) {
+                                    cellToCheck.partsSeen.add(COMPASS_DIRECTION_SELF); // Indicates we should show the Cell composition
+                                    return true;
+                                } else {
+                                    return false;
+                                }
                             }
                             return true;
                         };
@@ -676,8 +698,8 @@
                                     }
                                     break;
                                 case 'zz':
-                                    // Zig: up and over OR over and up. Keep the same pattern
-                                    // once chosen.
+                                    // Zig: up and over (option A) OR over and up (option B). 
+                                    // Keep the same option once chosen.
                                     if (firstZZ) {
                                         const optBX = locArrToCheck[1],
                                             optBY = locArrToCheck[2],
@@ -685,6 +707,7 @@
                                             optBPrevCell = prevCell;
                                         retval = isObscured(depth, false, true);
                                         const optAEndedOnObserved = endedOnObserved;
+                                        
                                         // If option A was obscured try option B.
                                         if (retval) {
                                             locArrToCheck[1] = optBX;
@@ -695,25 +718,23 @@
                                             if (retval && optAEndedOnObserved) endedOnObserved = true;
                                         }
                                         return retval;
-                                    } else {
-                                        if (zzOptA) {
-                                            // Up...
-                                            locArrToCheck[yIdx] += yAdj;
-                                            retval = isCellObscured(locArrToCheck, true);
-                                            if (!retval) {
-                                                // ...and Over
-                                                locArrToCheck[xIdx] += xAdj;
-                                                retval = isCellObscured(locArrToCheck, false);
-                                            }
-                                        } else {
-                                            // Over...
+                                    } else if (zzOptA) {
+                                        // Up...
+                                        locArrToCheck[yIdx] += yAdj;
+                                        retval = isCellObscured(locArrToCheck, true);
+                                        if (!retval) {
+                                            // ...and Over
                                             locArrToCheck[xIdx] += xAdj;
                                             retval = isCellObscured(locArrToCheck, false);
-                                            if (!retval) {
-                                                // ... and Up
-                                                locArrToCheck[yIdx] += yAdj;
-                                                retval = isCellObscured(locArrToCheck, true);
-                                            }
+                                        }
+                                    } else {
+                                        // Over...
+                                        locArrToCheck[xIdx] += xAdj;
+                                        retval = isCellObscured(locArrToCheck, false);
+                                        if (!retval) {
+                                            // ... and Up
+                                            locArrToCheck[yIdx] += yAdj;
+                                            retval = isCellObscured(locArrToCheck, true);
                                         }
                                     }
                                     break;
