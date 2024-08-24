@@ -544,7 +544,7 @@
                         tileUrl:'/img/tile/stone_solid.png',
                         solidity:1,
                         opacity:1,
-                        damping:0.05
+                        damping:0.01
                     },
                     
                     // Air
@@ -589,20 +589,20 @@
                         tileUrl:'/img/tile/stone_wall.png',
                         solidity:1,
                         opacity:1,
-                        damping:0.05
+                        damping:0.15
                     },
                     C1:{
                         name:'Vaulted Stone Ceiling',
                         solidity:1,
                         opacity:1,
-                        damping:0.05
+                        damping:0.15
                     },
                     F1:{
                         name:'Stone Floor',
                         tileUrl:'/img/tile/stone_floor.png',
                         solidity:1,
                         opacity:1,
-                        damping:0.05
+                        damping:0.15
                     }
                 }
             }

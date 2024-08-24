@@ -14,7 +14,7 @@
         {
             View, PaddedText, ImageSupport, Reusable, MouseOverAndDown, TrackActivesPool, 
             Animator, TransformSupport,
-            debounce
+            debounce, getRandomInt
         } = myt,
         
         {
@@ -32,6 +32,16 @@
             model,
             cfg:{mapRangeOffset, cellSize, entitySizeM}
         } = pkg,
+        
+        AUDIBLE_THRESHOLD = 0.25,
+        
+        QUIET_ADVERBS = ['quiet','faint','muted','muffled','soft','low'],
+        QUIET_VOCALIZATION_ADVERBS = [...QUIET_ADVERBS, 'hushed'],
+        
+        MOVEMENT_SOUND_VERBS = ['tapping','scraping','shuffling','creaking','ticking','scuffing'],
+        VOCALIZATION_SOUND_VERBS = ['murmuring','mumbling','muttering','wailing','moaning','whispering','whimpering','breathing'],
+        
+        getRandomArrayValue = array => array[getRandomInt(0, array.length - 1)],
         
         /* A Map of EntityView instances by entity ID.  */
         entityViewsByEntityId = new Map(),
@@ -432,48 +442,54 @@
         },
         
         propogateValue: (startLocId, value, endLocId) => {
-// FIXME check cell walls once we have walls implemented.
-            // Succeed Fast
+            // Succeed Fast when the sound originates in the same Cell.
             if (startLocId === endLocId) {
-                const comp = model.getCellComposition(startLocId);
-                return comp ? comp.getDamping() * value : value;
+                return value * model.getCellComposition(startLocId).getDamping();
             }
+            
+            const startCell = model.getCell(startLocId),
+                endCell = model.getCell(endLocId);
             
             let retval;
             
-            const storeToValue = (to, locArr, value) => {
-                const locId = locArrToId(locArr),
-                    existingToEntry = to.get(locId);
-                if (existingToEntry == null || existingToEntry < value) {
-                    to.set(locId, value);
-                    if (locId === endLocId && (retval == null || value > retval)) {
-                        retval = value;
+            const storeToValue = (to, cell, compassDirection, locArr, value) => {
+                value *= cell.getFaceForDirection(compassDirection)?.getCompositionObject().getDamping() ?? 1;
+                if (value >= AUDIBLE_THRESHOLD) {
+                    const nextCell = model.getCellByLocArr(locArr);
+                    value *= nextCell.getFaceForOppositeDirection(compassDirection)?.getCompositionObject().getDamping() ?? 1;
+                    if (value >= AUDIBLE_THRESHOLD) {
+                        const existingToEntry = to.get(nextCell);
+                        if (existingToEntry == null || existingToEntry < value) {
+                            to.set(nextCell, value);
+                            if (nextCell === endCell && (retval == null || value > retval)) {
+                                retval = value;
+                            }
+                        }
                     }
                 }
             };
             const propogate = from => {
                 const to = new Map();
-                for (const [locId, fromValue] of from) {
-                    const comp = model.getCellComposition(locId),
-                        toValue = (comp ? comp.getDamping() * fromValue : fromValue) - 1;
-                    if (toValue > 0) {
-                        const locArr = locIdToArr(locId);
+                for (const [cell, fromValue] of from) {
+                    const toValue = (fromValue - 1) * cell.getCompositionObject().getDamping();
+                    if (toValue >= AUDIBLE_THRESHOLD) {
+                        const locArr = locIdToArr(cell.locId);
                         locArr[1] -= 1;
-                        storeToValue(to, locArr, toValue);
+                        storeToValue(to, cell, WEST, locArr, toValue);
                         locArr[1] += 2;
-                        storeToValue(to, locArr, toValue);
+                        storeToValue(to, cell, EAST, locArr, toValue);
                         locArr[1] -= 1;
                         locArr[2] -= 1;
-                        storeToValue(to, locArr, toValue);
+                        storeToValue(to, cell, NORTH, locArr, toValue);
                         locArr[2] += 2;
-                        storeToValue(to, locArr, toValue);
+                        storeToValue(to, cell, SOUTH, locArr, toValue);
                     }
                 }
                 if (to.size > 0) propogate(to);
             };
             
             const from = new Map();
-            from.set(startLocId, value);
+            from.set(startCell, value);
             propogate(from);
             
             return retval ?? 0;
@@ -481,43 +497,53 @@
         
         handleSoundMessage: socketMsg => {
             const {locId, from, type, volume, message} = socketMsg,
-                entity = model.getEntityById(from),
                 effectiveVolume = gameMap.propogateValue(locId, volume, locArrToId(character.getLocArr()));
             
-            if (effectiveVolume <= 0) {
+            if (effectiveVolume <= AUDIBLE_THRESHOLD) {
                 // Sound to low to hear.
                 return;
             }
             
-            let entityName = '<i>unknown</i>',
-                isCharacter = false;
+            const isGarbled = effectiveVolume < 1,
+                isFaint = (effectiveVolume / volume) <= 0.25,
+                entity = model.getEntityById(from);
+            let entityName = '',
+                isMyCharacter = false;
             if (entity) {
                 if (entity === character) {
-                    isCharacter = true;
+                    isMyCharacter = true;
                     entityName = 'You';
                 } else {
-                    entityName = entity.name ?? '<i>Entity ' + from + '</i>';
+                    if (!isGarbled && !isFaint) entityName = entity.name ?? '<i>Entity ' + from + '</i>';
                 }
             }
             
-            let actionLabel = '';
+            let actionLabel = '',
+                msgHeard = message;
             switch (type) {
                 case 'move':
+                    if (isFaint || isGarbled) {
+                        msgHeard = '*' + getRandomArrayValue(QUIET_ADVERBS) + ' ' + getRandomArrayValue(MOVEMENT_SOUND_VERBS) + '*';
+                    }
                     break;
                 case 'vocalize':
-                    if (volume >= 7) {
-                        actionLabel = isCharacter ? 'yell' : 'yells';
-                    } else if (volume >= 3) {
-                        actionLabel = isCharacter ? 'say' : 'says';
+                    if (isFaint || isGarbled) {
+                        msgHeard = '*' + getRandomArrayValue(QUIET_VOCALIZATION_ADVERBS) + ' ' + getRandomArrayValue(VOCALIZATION_SOUND_VERBS) + '*';
                     } else {
-                        actionLabel = isCharacter ? 'whisper' : 'whispers';
+                        if (volume >= 7) {
+                            actionLabel = isMyCharacter ? 'yell' : 'yells';
+                        } else if (volume >= 3) {
+                            actionLabel = isMyCharacter ? 'say' : 'says';
+                        } else {
+                            actionLabel = isMyCharacter ? 'whisper' : 'whispers';
+                        }
+                        actionLabel = ' ' + actionLabel;
                     }
-                    actionLabel = ' ' + actionLabel;
                     break;
             }
             
             let chatMsg = entityName + actionLabel;
-            chatMsg += (chatMsg ? ': ' : '') + message;
+            chatMsg += (chatMsg ? ': ' : '') + msgHeard;
             
             pkg.gamePanel.appendToChatLog(chatMsg);
             if (entity) {
