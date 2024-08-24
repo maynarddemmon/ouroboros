@@ -33,7 +33,7 @@
             cfg:{mapRangeOffset, cellSize, entitySizeM}
         } = pkg,
         
-        AUDIBLE_THRESHOLD = 0.25,
+        AUDIBLE_THRESHOLD = 0.5,
         
         QUIET_ADVERBS = ['quiet','faint','muted','muffled','soft','low'],
         QUIET_VOCALIZATION_ADVERBS = [...QUIET_ADVERBS, 'hushed'],
@@ -273,6 +273,7 @@
                 
                 this.callSuper(parent, attrs);
                 
+                this._bFace = new FaceView(this, {});
                 this._nFace = new FaceView(this, {});
                 this._sFace = new FaceView(this, {rotation:180});
                 this._eFace = new FaceView(this, {rotation:90});
@@ -306,9 +307,10 @@
                     this.setVisible(true);
                     
                     let compId,
-                        nFaceCompId, sFaceCompId, eFaceCompId, wFaceCompId;
+                        bFaceCompId, nFaceCompId, sFaceCompId, eFaceCompId, wFaceCompId;
                     if (cell.hasBeenSeen()) {
                         compId = cell.getComposition();
+                        bFaceCompId = cell.getBottomFace()?.getComposition();
                         nFaceCompId = cell.getNorthFace()?.getComposition();
                         sFaceCompId = cell.getSouthFace()?.getComposition();
                         eFaceCompId = cell.getEastFace()?.getComposition();
@@ -321,6 +323,7 @@
                     this.setImageUrl(comp.getTileUrl());
                     this.setBgColor(comp.getMapColor() ?? 'transparent');
                     
+                    this._bFace.setImageUrl(model.getComposition(bFaceCompId)?.getTileUrl() ?? null);
                     this._nFace.setImageUrl(model.getComposition(nFaceCompId)?.getTileUrl() ?? null);
                     this._sFace.setImageUrl(model.getComposition(sFaceCompId)?.getTileUrl() ?? null);
                     this._eFace.setImageUrl(model.getComposition(eFaceCompId)?.getTileUrl() ?? null);
@@ -454,10 +457,11 @@
             
             const storeToValue = (to, cell, compassDirection, locArr, value) => {
                 value *= cell.getFaceForDirection(compassDirection)?.getCompositionObject().getDamping() ?? 1;
-                if (value >= AUDIBLE_THRESHOLD) {
+                if (value > AUDIBLE_THRESHOLD) {
                     const nextCell = model.getCellByLocArr(locArr);
+                    if (!nextCell) return;
                     value *= nextCell.getFaceForOppositeDirection(compassDirection)?.getCompositionObject().getDamping() ?? 1;
-                    if (value >= AUDIBLE_THRESHOLD) {
+                    if (value > AUDIBLE_THRESHOLD) {
                         const existingToEntry = to.get(nextCell);
                         if (existingToEntry == null || existingToEntry < value) {
                             to.set(nextCell, value);
@@ -471,8 +475,8 @@
             const propogate = from => {
                 const to = new Map();
                 for (const [cell, fromValue] of from) {
-                    const toValue = (fromValue - 1) * cell.getCompositionObject().getDamping();
-                    if (toValue >= AUDIBLE_THRESHOLD) {
+                    const toValue = fromValue * cell.getCompositionObject().getDamping();
+                    if (toValue > AUDIBLE_THRESHOLD) {
                         const locArr = locIdToArr(cell.locId);
                         locArr[1] -= 1;
                         storeToValue(to, cell, WEST, locArr, toValue);
@@ -504,8 +508,7 @@
                 return;
             }
             
-            const isGarbled = effectiveVolume < 1,
-                isFaint = (effectiveVolume / volume) <= 0.25,
+            const isGarbled = effectiveVolume <= 1,
                 entity = model.getEntityById(from);
             let entityName = '',
                 isMyCharacter = false;
@@ -514,7 +517,7 @@
                     isMyCharacter = true;
                     entityName = 'You';
                 } else {
-                    if (!isGarbled && !isFaint) entityName = entity.name ?? '<i>Entity ' + from + '</i>';
+                    if (!isGarbled) entityName = entity.name ?? '<i>Entity ' + from + '</i>';
                 }
             }
             
@@ -522,17 +525,17 @@
                 msgHeard = message;
             switch (type) {
                 case 'move':
-                    if (isFaint || isGarbled) {
+                    if (isGarbled) {
                         msgHeard = '*' + getRandomArrayValue(QUIET_ADVERBS) + ' ' + getRandomArrayValue(MOVEMENT_SOUND_VERBS) + '*';
                     }
                     break;
                 case 'vocalize':
-                    if (isFaint || isGarbled) {
+                    if (isGarbled) {
                         msgHeard = '*' + getRandomArrayValue(QUIET_VOCALIZATION_ADVERBS) + ' ' + getRandomArrayValue(VOCALIZATION_SOUND_VERBS) + '*';
                     } else {
-                        if (volume >= 7) {
+                        if (volume >= 1<<7) {
                             actionLabel = isMyCharacter ? 'yell' : 'yells';
-                        } else if (volume >= 3) {
+                        } else if (volume >= 1<<3) {
                             actionLabel = isMyCharacter ? 'say' : 'says';
                         } else {
                             actionLabel = isMyCharacter ? 'whisper' : 'whispers';

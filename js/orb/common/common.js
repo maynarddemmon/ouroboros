@@ -510,7 +510,7 @@
                         tileUrl:'/img/tile/void.png',
                         solidity:-1,
                         opacity:0.5,
-                        damping:0.75
+                        damping:0.4
                     },
                     v2:{
                         name:'Null',
@@ -518,7 +518,7 @@
                         tileUrl:'/img/tile/null.png',
                         solidity:-1,
                         opacity:0.5,
-                        damping:0.75
+                        damping:0.4
                     },
                     v3:{
                         name:'Æthoid',
@@ -526,7 +526,7 @@
                         tileUrl:'/img/tile/aethoid.png',
                         solidity:0,
                         opacity:0.25,
-                        damping:0.85
+                        damping:0.45
                     },
                     v4:{
                         name:'Æthrull',
@@ -534,7 +534,7 @@
                         tileUrl:'/img/tile/aethrull.png',
                         solidity:0,
                         opacity:0.25,
-                        damping:0.85
+                        damping:0.45
                     },
                     
                     // Earth
@@ -544,23 +544,22 @@
                         tileUrl:'/img/tile/stone_solid.png',
                         solidity:1,
                         opacity:1,
-                        damping:0.01
+                        damping:0
                     },
                     
                     // Air
                     a1:{
-                        name:'Stone Floor',
-                        tileUrl:'/img/tile/stone_floor.png',
+                        name:'Open Air',
                         solidity:0,
                         opacity:0.01,
-                        damping:1
+                        damping:0.5
                     },
                     a2:{
-                        name:'Dirt Floor',
-                        tileUrl:'/img/tile/dirt_floor.png',
+                        name:'Dusty Air',
+                        mapColor:'#fea2',
                         solidity:0,
-                        opacity:0.01,
-                        damping:1
+                        opacity:0.05,
+                        damping:0.49
                     },
                     
                     // Fire
@@ -570,7 +569,7 @@
                         tileUrl:'/img/tile/fire.png',
                         solidity:0,
                         opacity:0.5,
-                        damping:0.9
+                        damping:0.45
                     },
                     
                     // Water
@@ -589,20 +588,27 @@
                         tileUrl:'/img/tile/stone_wall.png',
                         solidity:1,
                         opacity:1,
-                        damping:0.15
+                        damping:0.13
                     },
                     C1:{
                         name:'Vaulted Stone Ceiling',
                         solidity:1,
                         opacity:1,
-                        damping:0.15
+                        damping:0.13
                     },
                     F1:{
                         name:'Stone Floor',
                         tileUrl:'/img/tile/stone_floor.png',
                         solidity:1,
                         opacity:1,
-                        damping:0.15
+                        damping:0.13
+                    },
+                    F2:{
+                        name:'Dirt Floor',
+                        tileUrl:'/img/tile/dirt_floor.png',
+                        solidity:1,
+                        opacity:1,
+                        damping:0.13
                     }
                 }
             }

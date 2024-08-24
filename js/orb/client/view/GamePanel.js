@@ -433,16 +433,16 @@
                             let volume;
                             switch (command) {
                                 case 'w': case 'whisper':
-                                    volume = 2;
+                                    volume = 1<<2;
                                     break;
                                 case 'y': case 'yell':
-                                    volume = 10;
+                                    volume = 1<<9;
                                     break;
                                 case 's': case 'speak':
-                                    volume = 6;
+                                    volume = 1<<6;
                                     break;
                                 default:
-                                    volume = 6;
+                                    volume = 1<<6;
                                     msg = rawMsg;
                             }
                             

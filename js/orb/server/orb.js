@@ -223,11 +223,11 @@ const path = require('path'),
             
             generateSoundForEntityAction: function(entity, cell, actionType) {
                 let soundEffect = 'sound',
-                    volume = 1;
+                    volume = 1<<1;
                 switch (actionType) {
                     case 'move':
                         soundEffect = 'footsteps';
-                        volume = 5;
+                        volume = 1<<5;
                         break;
                 }
                 
