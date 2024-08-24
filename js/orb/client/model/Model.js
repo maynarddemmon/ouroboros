@@ -27,7 +27,9 @@
                 PERM_CREATOR
             },
             util:{locArrToId, locIdToArr},
-        } = common
+        } = common,
+        
+        COMPASS_FIELDS = [FIELD_NORTH, FIELD_SOUTH, FIELD_EAST, FIELD_WEST, FIELD_TOP, FIELD_BOTTOM],
         
         getMapData = () => mapData ??= {},
         getCellData = () => cellData ??= {},
@@ -69,28 +71,52 @@
             getCompositionObject: function() {return compositionsByCompId[this.getComposition()];},
             
             [generateSetterName(FIELD_NORTH)]: function(v) {
-                v.cell = this;
-                this.callSuper(new FaceModel(v));
+                if (v) {
+                    v.cell = this;
+                    this.callSuper(new FaceModel(v));
+                } else {
+                    this.callSuper(v);
+                }
             },
             [generateSetterName(FIELD_SOUTH)]: function(v) {
-                v.cell = this;
-                this.callSuper(new FaceModel(v));
+                if (v) {
+                    v.cell = this;
+                    this.callSuper(new FaceModel(v));
+                } else {
+                    this.callSuper(v);
+                }
             },
             [generateSetterName(FIELD_EAST)]: function(v) {
-                v.cell = this;
-                this.callSuper(new FaceModel(v));
+                if (v) {
+                    v.cell = this;
+                    this.callSuper(new FaceModel(v));
+                } else {
+                    this.callSuper(v);
+                }
             },
             [generateSetterName(FIELD_WEST)]: function(v) {
-                v.cell = this;
-                this.callSuper(new FaceModel(v));
+                if (v) {
+                    v.cell = this;
+                    this.callSuper(new FaceModel(v));
+                } else {
+                    this.callSuper(v);
+                }
             },
             [generateSetterName(FIELD_TOP)]: function(v) {
-                v.cell = this;
-                this.callSuper(new FaceModel(v));
+                if (v) {
+                    v.cell = this;
+                    this.callSuper(new FaceModel(v));
+                } else {
+                    this.callSuper(v);
+                }
             },
             [generateSetterName(FIELD_BOTTOM)]: function(v) {
-                v.cell = this;
-                this.callSuper(new FaceModel(v));
+                if (v) {
+                    v.cell = this;
+                    this.callSuper(new FaceModel(v));
+                } else {
+                    this.callSuper(v);
+                }
             },
         }),
         
@@ -302,6 +328,7 @@
                         cellDatum[FIELD_ENTITIES] = null;
                     }
                     cellDatum.locId = locId;
+                    for (const attrName of COMPASS_FIELDS) cellDatum[attrName] ??= null;
                     
                     // Create/Update the CellModel
                     const cell = model.getCell(locId) ?? (cellData[locId] = new CellModel());

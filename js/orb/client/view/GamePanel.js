@@ -14,6 +14,7 @@
         myLocInfo,
         
         alterCellBtn,
+        alterCellTargetSelector,
         alterCellCompositionSelector,
         teleportBtn,
         teleportLocField,
@@ -41,7 +42,7 @@
                 TYPE_EXIT_WORLD, TYPE_ALTER_CELL, TYPE_CHANGE_FACING, TYPE_VOCALIZE
             },
             cell:{FIELD_COMPOSITION},
-            FACINGS,
+            FACINGS:{NORTH, SOUTH, EAST, WEST, TOP, BOTTOM},
             composition:{compositions},
             util:{locIdToArr}
         } = common,
@@ -302,7 +303,7 @@
                 updateHeight();
                 
                 const hasCreatorPerm = character.hasPermission('creator');
-                for (const view of [alterCellBtn, alterCellCompositionSelector, teleportBtn, teleportLocField]) {
+                for (const view of [alterCellBtn, alterCellTargetSelector, alterCellCompositionSelector, teleportBtn, teleportLocField]) {
                     view.setVisible(hasCreatorPerm);
                 }
                 
@@ -342,15 +343,15 @@
                 !srcView || !(srcView.isA(M.BaseInputText) || srcView.isA(InputSelect))
             ) {
                 switch (M.KeyObservable.getCodeFromEvent(event)) {
-                    case GlobalKeys.CODE_ARROW_LEFT:  return doArrowKey(domEvent, FACINGS.WEST);
-                    case GlobalKeys.CODE_ARROW_UP:    return doArrowKey(domEvent, FACINGS.NORTH);
-                    case GlobalKeys.CODE_ARROW_RIGHT: return doArrowKey(domEvent, FACINGS.EAST);
-                    case GlobalKeys.CODE_ARROW_DOWN:  return doArrowKey(domEvent, FACINGS.SOUTH);
+                    case GlobalKeys.CODE_ARROW_LEFT:  return doArrowKey(domEvent, WEST);
+                    case GlobalKeys.CODE_ARROW_UP:    return doArrowKey(domEvent, NORTH);
+                    case GlobalKeys.CODE_ARROW_RIGHT: return doArrowKey(domEvent, EAST);
+                    case GlobalKeys.CODE_ARROW_DOWN:  return doArrowKey(domEvent, SOUTH);
                     
-                    case GlobalKeys.CODE_W: return doFacingKey(domEvent, FACINGS.NORTH);
-                    case GlobalKeys.CODE_A: return doFacingKey(domEvent, FACINGS.WEST);
-                    case GlobalKeys.CODE_S: return doFacingKey(domEvent, FACINGS.SOUTH);
-                    case GlobalKeys.CODE_D: return doFacingKey(domEvent, FACINGS.EAST);
+                    case GlobalKeys.CODE_W: return doFacingKey(domEvent, NORTH);
+                    case GlobalKeys.CODE_A: return doFacingKey(domEvent, WEST);
+                    case GlobalKeys.CODE_S: return doFacingKey(domEvent, SOUTH);
+                    case GlobalKeys.CODE_D: return doFacingKey(domEvent, EAST);
                 }
             }
             return true;
@@ -432,15 +433,9 @@
                             
                             let volume;
                             switch (command) {
-                                case 'w': case 'whisper':
-                                    volume = 1<<2;
-                                    break;
-                                case 'y': case 'yell':
-                                    volume = 1<<9;
-                                    break;
-                                case 's': case 'speak':
-                                    volume = 1<<6;
-                                    break;
+                                case 'w': case 'whisper': volume = 1<<2; break;
+                                case 'y': case 'yell':    volume = 1<<9; break;
+                                case 's': case 'speak':   volume = 1<<6; break;
                                 default:
                                     volume = 1<<6;
                                     msg = rawMsg;
@@ -553,13 +548,26 @@
             
             // Character Tab
             // Alter Cell
-            alterCellBtn = new TextBtn(characterTab, {text:'Alter Cell', visible:false, layoutHint:'break'}, [{
+            alterCellBtn = new TextBtn(characterTab, {text:'Alter', visible:false, layoutHint:'break'}, [{
                 doActivated: () => {
-                    if (!character.doFree(TYPE_ALTER_CELL, {direction:'here', prop:'c', value:alterCellCompositionSelector.value})) {
+                    if (!character.doFree(TYPE_ALTER_CELL, {
+                        direction:'here', prop:alterCellTargetSelector.value, value:alterCellCompositionSelector.value
+                    })) {
                         notifyCanNotAct(character);
                     }
                 }
             }]);
+            alterCellTargetSelector = new InputSelect(characterTab, {
+                visible:false, height:28, options:[
+                    {label:'cell', value:'c'},
+                    {label:'north', value:NORTH + '.c'},
+                    {label:'south', value:SOUTH + '.c'},
+                    {label:'east', value:EAST + '.c'},
+                    {label:'west', value:WEST + '.c'},
+                    {label:'top', value:TOP + '.c'},
+                    {label:'bottom', value:BOTTOM + '.c'}
+                ]
+            });
             const options = [];
             for (const key in compositions) {
                 const entry = compositions[key];

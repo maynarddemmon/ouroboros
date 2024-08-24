@@ -617,6 +617,7 @@
                         const isCellObscured = locArrToCheck => {
                             const cellToCheck = model.getCellByLocArr(locArrToCheck);
                             if (cellToCheck) {
+                                
                                 // FIXME check cell walls once we have walls implemented.
                                 opacityTotal += cellToCheck.getCompositionObject().getOpacity();
                                 if (opacityTotal < 1) return false;

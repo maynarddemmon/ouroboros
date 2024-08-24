@@ -24,6 +24,10 @@ const orb = require('./orb.js'),
             FIELD_PERMISSIONS,
             FIELD_LOCK_MOVE, FIELD_LOCK_ACTION, FIELD_LOCK_REACT, FIELD_LOCK_FREE
         },
+        cell:{
+            FIELD_COMPOSITION,
+            FIELD_NORTH, FIELD_SOUTH, FIELD_EAST, FIELD_WEST, FIELD_TOP, FIELD_BOTTOM
+        },
         FACINGS:{NORTH, SOUTH, EAST, WEST, UP, DOWN},
         permissions:{PERM_CREATOR}
     } = require('../common/common.js'),
@@ -207,7 +211,43 @@ const orb = require('./orb.js'),
                     if (character.hasPermission(PERM_CREATOR)) {
                         const locArr = character.getLocArr(true),
                             {prop, value, direction} = event.msg;
-                        worldMap.getCell(locArrToId(locArr), true).set(prop, value);
+                        
+                        const cell = worldMap.getCell(locArrToId(locArr), true),
+                            updateFaceFunc = (face, field, prop) => {
+                                if (value === 'unk') {
+                                    cell.set(field, null);
+                                } else {
+                                    if (face) {
+                                        face.set(prop, value);
+                                    } else {
+                                        cell.set(field, {[FIELD_COMPOSITION]:value});
+                                    }
+                                }
+                            };
+                        
+                        switch (prop) {
+                            case FIELD_COMPOSITION:
+                                cell.set(prop, value);
+                                break;
+                            case NORTH + '.' + FIELD_COMPOSITION:
+                                updateFaceFunc(cell.getNorthFace(), FIELD_NORTH);
+                                break;
+                            case SOUTH + '.' + FIELD_COMPOSITION:
+                                updateFaceFunc(cell.getSouthFace(), FIELD_SOUTH);
+                                break;
+                            case EAST + '.' + FIELD_COMPOSITION:
+                                updateFaceFunc(cell.getEastFace(), FIELD_EAST);
+                                break;
+                            case WEST + '.' + FIELD_COMPOSITION:
+                                updateFaceFunc(cell.getWestFace(), FIELD_WEST);
+                                break;
+                            case TOP + '.' + FIELD_COMPOSITION:
+                                updateFaceFunc(cell.getTopFace(), FIELD_TOP);
+                                break;
+                            case BOTTOM + '.' + FIELD_COMPOSITION:
+                                updateFaceFunc(cell.getBottomFace(), FIELD_BOTTOM);
+                                break;
+                        }
                     } else {
                         accountService.addMessageToUser(username, {type:TYPE_FREE_FAILED, code:FREE_ERROR_CODES.FREE_NOT_ALLOWED});
                     }

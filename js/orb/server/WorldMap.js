@@ -89,9 +89,18 @@ const orb = require('./orb.js'),
     FaceModel = new JSClass('FaceModel', Eventable, {
         include:[CommonFaceModelMixin],
         
+        init: function(attrs) {
+            const cell = attrs[FIELD_CELL];
+            if (cell) {
+                this.set(FIELD_CELL, cell);
+                delete attrs[FIELD_CELL];
+            }
+            this.callSuper(attrs);
+        },
+        
         [generateSetterName(FIELD_COMPOSITION)]: function(v) {
             this.callSuper(v);
-            this.getCell()?.notifyAllVisualChangeListenersThatCellChanged();
+            if (this.inited) this.getCell()?.notifyAllVisualChangeListenersThatCellChanged();
         },
         getCompositionObject: function() {return compositionsByCompId[this.getComposition()];},
         
@@ -109,40 +118,82 @@ const orb = require('./orb.js'),
         // Accessors ///////////////////////////////////////////////////////////
         [generateSetterName(FIELD_COMPOSITION)]: function(v) {
             this.callSuper(v);
-            this.notifyAllVisualChangeListenersThatCellChanged();
+            if (this.inited) this.notifyAllVisualChangeListenersThatCellChanged();
         },
         getCompositionObject: function() {return compositionsByCompId[this.getComposition()];},
         
         [generateSetterName(FIELD_NORTH)]: function(v) {
-            v.cell = this;
-            this.callSuper(new FaceModel(v));
+            if (v) {
+                v.cell = this;
+                this.callSuper(new FaceModel(v));
+            } else {
+                const existingFace = this.getNorthFace();
+                if (existingFace) existingFace.destroy();
+                this.callSuper(v);
+            }
+            if (this.inited) this.notifyAllVisualChangeListenersThatCellChanged();
         },
         [generateSetterName(FIELD_SOUTH)]: function(v) {
-            v.cell = this;
-            this.callSuper(new FaceModel(v));
+            if (v) {
+                v.cell = this;
+                this.callSuper(new FaceModel(v));
+            } else {
+                const existingFace = this.getSouthFace();
+                if (existingFace) existingFace.destroy();
+                this.callSuper(v);
+            }
+            if (this.inited) this.notifyAllVisualChangeListenersThatCellChanged();
         },
         [generateSetterName(FIELD_EAST)]: function(v) {
-            v.cell = this;
-            this.callSuper(new FaceModel(v));
+            if (v) {
+                v.cell = this;
+                this.callSuper(new FaceModel(v));
+            } else {
+                const existingFace = this.getEastFace();
+                if (existingFace) existingFace.destroy();
+                this.callSuper(v);
+            }
+            if (this.inited) this.notifyAllVisualChangeListenersThatCellChanged();
         },
         [generateSetterName(FIELD_WEST)]: function(v) {
-            v.cell = this;
-            this.callSuper(new FaceModel(v));
+            if (v) {
+                v.cell = this;
+                this.callSuper(new FaceModel(v));
+            } else {
+                const existingFace = this.getWestFace();
+                if (existingFace) existingFace.destroy();
+                this.callSuper(v);
+            }
+            if (this.inited) this.notifyAllVisualChangeListenersThatCellChanged();
         },
         [generateSetterName(FIELD_TOP)]: function(v) {
-            v.cell = this;
-            this.callSuper(new FaceModel(v));
+            if (v) {
+                v.cell = this;
+                this.callSuper(new FaceModel(v));
+            } else {
+                const existingFace = this.getTopFace();
+                if (existingFace) existingFace.destroy();
+                this.callSuper(v);
+            }
+            if (this.inited) this.notifyAllVisualChangeListenersThatCellChanged();
         },
         [generateSetterName(FIELD_BOTTOM)]: function(v) {
-            v.cell = this;
-            this.callSuper(new FaceModel(v));
+            if (v) {
+                v.cell = this;
+                this.callSuper(new FaceModel(v));
+            } else {
+                const existingFace = this.getBottomFace();
+                if (existingFace) existingFace.destroy();
+                this.callSuper(v);
+            }
+            if (this.inited) this.notifyAllVisualChangeListenersThatCellChanged();
         },
         
         // Entities //
         getEntitiesMap: function() {return this.entities ??= new Map();},
         addEntity: function(entity) {
             this.getEntitiesMap().set(entity.getId(), entity);
-            this.notifyAllVisualChangeListenersThatCellChanged();
+            if (this.inited) this.notifyAllVisualChangeListenersThatCellChanged();
         },
         removeEntity: function(entity) {return this.removeEntityById(entity.getId());},
         removeEntityById: function(entityId) {
@@ -150,7 +201,7 @@ const orb = require('./orb.js'),
                 removedEntity = entities.get(entityId);
             if (removedEntity) {
                 entities.delete(entityId);
-                this.notifyAllVisualChangeListenersThatCellChanged();
+                if (this.inited) this.notifyAllVisualChangeListenersThatCellChanged();
                 return removedEntity;
             }
         },
