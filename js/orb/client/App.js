@@ -26,7 +26,9 @@
                 },
                 false, 
                 responseData => {callback?.(true, responseData);},
-                errorObj => {callback?.(false, errorObj);}, 
+                errorObj => {
+                    console.error(errorObj);
+                    callback?.(false, errorObj);}, 
                 () => {appView.unlockUI();}
             );
         };

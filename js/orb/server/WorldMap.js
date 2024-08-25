@@ -1,6 +1,7 @@
 let isReady = false,
     maps = {},
     cells = {},
+    fixtureTemplatesById = {},
     compositionsByCompId = {};
 
 const orb = require('./orb.js'),
@@ -18,14 +19,10 @@ const orb = require('./orb.js'),
     
     {
         CommonMapModelMixin, CommonCompositionModelMixin, CommonFaceModelMixin, CommonCellModelMixin,
+        CommonFixtureTemplateModelMixin, CommonFixtureModelMixin,
         cellOffsetsByDistance,
-        map:{FIELD_NAME, FIELD_DESCRIPTION,FIELD_ELEMENTS},
-        face:{FIELD_CELL},
-        cell:{
-            FIELD_COMPOSITION, FIELD_ENTITIES,
-            FIELD_NORTH, FIELD_SOUTH, FIELD_EAST, FIELD_WEST, FIELD_TOP, FIELD_BOTTOM
-        },
-        composition:{FIELD_SOLIDITY, MEL_LOOKUP, compositions},
+        composition:{MEL_LOOKUP, compositions},
+        fixture:{templates:fixtureTemplates},
         FACINGS:{NORTH, SOUTH, EAST, WEST}
     } = require('../common/common.js'),
     {locIdToArr, locArrToId, locArrToMapId, locIdToMapId} = require('../common/util.js'),
@@ -39,15 +36,19 @@ const orb = require('./orb.js'),
         include:[CommonCompositionModelMixin]
     }),
     
+    FixtureTemplate = new JSClass('FixtureTemplate', Eventable, {
+        include:[CommonFixtureTemplateModelMixin]
+    }),
+    
     MapModel = new JSClass('MapModel', Eventable, {
         include:[CommonMapModelMixin],
         
         // Methods /////////////////////////////////////////////////////////////
         getAsData: function() {
             return {
-                [FIELD_NAME]:this[FIELD_NAME],
-                [FIELD_DESCRIPTION]:this[FIELD_DESCRIPTION],
-                [FIELD_ELEMENTS]:this[FIELD_ELEMENTS]
+                name:this.name,
+                description:this.description,
+                elements:this.elements
             };
         },
         
@@ -86,28 +87,58 @@ const orb = require('./orb.js'),
         }
     }),
     
-    FaceModel = new JSClass('FaceModel', Eventable, {
-        include:[CommonFaceModelMixin],
+    FixtureModel = new JSClass('FixtureModel', Eventable, {
+        include:[CommonFixtureModelMixin],
         
         init: function(attrs) {
-            const cell = attrs[FIELD_CELL];
+            attrs.id ??= orb.getGuidString('f');
+            
+            const cell = attrs.cell;
             if (cell) {
-                this.set(FIELD_CELL, cell);
-                delete attrs[FIELD_CELL];
+                this.setCell(cell);
+                delete attrs.cell;
             }
             this.callSuper(attrs);
         },
         
-        [generateSetterName(FIELD_COMPOSITION)]: function(v) {
+        getTemplateObject: () => {return fixtureTemplatesById[this.getTemplate()];},
+        
+        getAsData: function() {
+            return {
+                template:this.template,
+                state:this.state
+            };
+        },
+    }),
+    
+    FaceModel = new JSClass('FaceModel', Eventable, {
+        include:[CommonFaceModelMixin],
+        
+        init: function(attrs) {
+            const cell = attrs.cell;
+            if (cell) {
+                this.setCell(cell);
+                delete attrs.cell;
+            }
+            this.callSuper(attrs);
+        },
+        
+        setC: function(v) {
             this.callSuper(v);
             if (this.inited) this.getCell()?.notifyAllVisualChangeListenersThatCellChanged();
         },
         getCompositionObject: function() {return compositionsByCompId[this.getComposition()];},
         
+        // Fixtures //
+        makeFixtureFromDatum: datum => new FixtureModel(datum),
+        
         getAsData: function() {
-            return {
-                [FIELD_COMPOSITION]:this[FIELD_COMPOSITION]
-            };
+            const retval = {
+                    c:this.c
+                },
+                fixturesData = this.getFixturesAsData();
+            if (fixturesData) retval.fix = fixturesData;
+            return retval;
         },
     }),
     
@@ -116,13 +147,13 @@ const orb = require('./orb.js'),
         
         
         // Accessors ///////////////////////////////////////////////////////////
-        [generateSetterName(FIELD_COMPOSITION)]: function(v) {
+        setC: function(v) {
             this.callSuper(v);
             if (this.inited) this.notifyAllVisualChangeListenersThatCellChanged();
         },
         getCompositionObject: function() {return compositionsByCompId[this.getComposition()];},
         
-        [generateSetterName(FIELD_NORTH)]: function(v) {
+        setN: function(v) {
             if (v) {
                 v.cell = this;
                 this.callSuper(new FaceModel(v));
@@ -133,7 +164,7 @@ const orb = require('./orb.js'),
             }
             if (this.inited) this.notifyAllVisualChangeListenersThatCellChanged();
         },
-        [generateSetterName(FIELD_SOUTH)]: function(v) {
+        setS: function(v) {
             if (v) {
                 v.cell = this;
                 this.callSuper(new FaceModel(v));
@@ -144,7 +175,7 @@ const orb = require('./orb.js'),
             }
             if (this.inited) this.notifyAllVisualChangeListenersThatCellChanged();
         },
-        [generateSetterName(FIELD_EAST)]: function(v) {
+        setE: function(v) {
             if (v) {
                 v.cell = this;
                 this.callSuper(new FaceModel(v));
@@ -155,7 +186,7 @@ const orb = require('./orb.js'),
             }
             if (this.inited) this.notifyAllVisualChangeListenersThatCellChanged();
         },
-        [generateSetterName(FIELD_WEST)]: function(v) {
+        setW: function(v) {
             if (v) {
                 v.cell = this;
                 this.callSuper(new FaceModel(v));
@@ -166,7 +197,7 @@ const orb = require('./orb.js'),
             }
             if (this.inited) this.notifyAllVisualChangeListenersThatCellChanged();
         },
-        [generateSetterName(FIELD_TOP)]: function(v) {
+        setT: function(v) {
             if (v) {
                 v.cell = this;
                 this.callSuper(new FaceModel(v));
@@ -177,7 +208,7 @@ const orb = require('./orb.js'),
             }
             if (this.inited) this.notifyAllVisualChangeListenersThatCellChanged();
         },
-        [generateSetterName(FIELD_BOTTOM)]: function(v) {
+        setB: function(v) {
             if (v) {
                 v.cell = this;
                 this.callSuper(new FaceModel(v));
@@ -188,6 +219,9 @@ const orb = require('./orb.js'),
             }
             if (this.inited) this.notifyAllVisualChangeListenersThatCellChanged();
         },
+        
+        // Fixtures //
+        makeFixtureFromDatum: datum => new FixtureModel(datum),
         
         // Entities //
         getEntitiesMap: function() {return this.entities ??= new Map();},
@@ -233,15 +267,18 @@ const orb = require('./orb.js'),
         
         // Methods /////////////////////////////////////////////////////////////
         getAsData: function() {
-            return {
-                [FIELD_COMPOSITION]:this[FIELD_COMPOSITION],
-                [FIELD_NORTH]:this[FIELD_NORTH]?.getAsData(),
-                [FIELD_SOUTH]:this[FIELD_SOUTH]?.getAsData(),
-                [FIELD_EAST]:this[FIELD_EAST]?.getAsData(),
-                [FIELD_WEST]:this[FIELD_WEST]?.getAsData(),
-                [FIELD_TOP]:this[FIELD_TOP]?.getAsData(),
-                [FIELD_BOTTOM]:this[FIELD_BOTTOM]?.getAsData()
-            };
+            const retval = {
+                    c:this.c,
+                    n:this.n?.getAsData(),
+                    s:this.s?.getAsData(),
+                    e:this.e?.getAsData(),
+                    w:this.w?.getAsData(),
+                    t:this.t?.getAsData(),
+                    b:this.b?.getAsData()
+                },
+                fixturesData = this.getFixturesAsData();
+            if (fixturesData) retval.fix = fixturesData;
+            return retval;
         },
         getAsDataForCharacter: function(character) {
             const retval = this.getAsData(),
@@ -251,7 +288,7 @@ const orb = require('./orb.js'),
                 for (const entity of entities.values()) {
                     accum.push(entity.getAsDataForCharacter(character));
                 }
-                if (accum.length > 0) retval[FIELD_ENTITIES] = accum;
+                if (accum.length > 0) retval.ent = accum;
             }
             return retval;
         },
@@ -336,7 +373,7 @@ const orb = require('./orb.js'),
                 case 1: comp = 'v2'; break;
             }
         }
-        return makeAndSetCell(locId, {[FIELD_COMPOSITION]:comp});
+        return makeAndSetCell(locId, {c:comp});
     },
     
     getCell = (locId, makeIfMissing) => cells[locId] ?? (makeIfMissing ? makeAndSetMissingCell(locId) : null),
@@ -411,9 +448,15 @@ const orb = require('./orb.js'),
     live = (resolve, reject) => {
         console.log('Restoring World Maps...');
         
+        console.log('  Making Fixture Templates...');
+        for (const id in fixtureTemplates) {
+            fixtureTemplatesById[id] = new FixtureTemplate(fixtureTemplates[id]);
+        }
+        console.log('  Constructed ' + objectKeys(fixtureTemplatesById).length + ' FixtureTemplate Objects.');
+        
         console.log('  Making Compositions...');
-        for (const compId in compositions) {
-            compositionsByCompId[compId] = new Composition(compositions[compId]);
+        for (const id in compositions) {
+            compositionsByCompId[id] = new Composition(compositions[id]);
         }
         console.log('  Constructed ' + objectKeys(compositionsByCompId).length + ' Composition Objects.');
         

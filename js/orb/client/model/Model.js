@@ -12,30 +12,25 @@
         {
             CommonMapModelMixin, CommonCompositionModelMixin, CommonFaceModelMixin, CommonCellModelMixin, 
             CommonEntityModelMixin, CommonCharacterModelMixin,
+            CommonFixtureTemplateModelMixin, CommonFixtureModelMixin,
             greek:{TYPE_MOVE},
-            entity:{FIELD_ID},
-            character:{
-                FIELD_LOCK_MOVE, FIELD_LOCK_ACTION, FIELD_LOCK_REACT, FIELD_LOCK_FREE
-            },
-            face:{FIELD_CELL},
-            cell:{
-                FIELD_COMPOSITION, FIELD_ENTITIES,
-                FIELD_NORTH, FIELD_SOUTH, FIELD_EAST, FIELD_WEST, FIELD_TOP, FIELD_BOTTOM
-            },
             composition:{compositions},
+            fixture:{templates:fixtureTemplates},
             permissions:{
                 PERM_CREATOR
             },
             util:{locArrToId, locIdToArr},
         } = common,
         
-        COMPASS_FIELDS = [FIELD_NORTH, FIELD_SOUTH, FIELD_EAST, FIELD_WEST, FIELD_TOP, FIELD_BOTTOM],
+        COMPASS_FIELDS = ['n', 's', 'e', 'w', 't', 'b'],
         
         getMapData = () => mapData ??= {},
         getCellData = () => cellData ??= {},
         
         entityData = {},
         characters = [],
+        
+        fixtureTemplatesById = {},
         compositionsByCompId = {},
         
         MapModel = new JSClass('MapModel', Eventable, {
@@ -46,10 +41,23 @@
             include:[CommonCompositionModelMixin]
         }),
         
+        FixtureTemplate = new JSClass('FixtureTemplate', Eventable, {
+            include:[CommonFixtureTemplateModelMixin]
+        }),
+        
+        FixtureModel = new JSClass('FixtureModel', Eventable, {
+            include:[CommonFixtureModelMixin],
+            
+            getTemplateObject: () => {return fixtureTemplatesById[this.getTemplate()];},
+        }),
+        
         FaceModel = new JSClass('FaceModel', Eventable, {
             include:[CommonFaceModelMixin],
             
             getCompositionObject: function() {return compositionsByCompId[this.getComposition()];},
+            
+            // Fixtures //
+            makeFixtureFromDatum: datum => new FixtureModel(datum),
         }),
         
         CellModel = new JSClass('CellModel', Eventable, {
@@ -60,9 +68,8 @@
                 this.callSuper(attrs);
             },
             
-            
-            [generateSetterName(FIELD_ENTITIES)]: function(v) {this.set(FIELD_ENTITIES, v, true);},
-            getEntities: function() {return this[FIELD_ENTITIES];},
+            setEnt: function(v) {this.set('ent', v, true);},
+            getEntities: function() {return this.ent;},
             
             setBeenSeen: function(v) {this.beenSeen = v;},
             hasBeenSeen: function() {return this.beenSeen;},
@@ -76,7 +83,7 @@
             getLocArr: function() {return this.locArr ??= locIdToArr(this.locId);},
             getCompositionObject: function() {return compositionsByCompId[this.getComposition()];},
             
-            [generateSetterName(FIELD_NORTH)]: function(v) {
+            setN: function(v) {
                 if (v) {
                     v.cell = this;
                     this.callSuper(new FaceModel(v));
@@ -84,7 +91,7 @@
                     this.callSuper(v);
                 }
             },
-            [generateSetterName(FIELD_SOUTH)]: function(v) {
+            setS: function(v) {
                 if (v) {
                     v.cell = this;
                     this.callSuper(new FaceModel(v));
@@ -92,7 +99,7 @@
                     this.callSuper(v);
                 }
             },
-            [generateSetterName(FIELD_EAST)]: function(v) {
+            setE: function(v) {
                 if (v) {
                     v.cell = this;
                     this.callSuper(new FaceModel(v));
@@ -100,7 +107,7 @@
                     this.callSuper(v);
                 }
             },
-            [generateSetterName(FIELD_WEST)]: function(v) {
+            setW: function(v) {
                 if (v) {
                     v.cell = this;
                     this.callSuper(new FaceModel(v));
@@ -108,7 +115,7 @@
                     this.callSuper(v);
                 }
             },
-            [generateSetterName(FIELD_TOP)]: function(v) {
+            setT: function(v) {
                 if (v) {
                     v.cell = this;
                     this.callSuper(new FaceModel(v));
@@ -116,7 +123,7 @@
                     this.callSuper(v);
                 }
             },
-            [generateSetterName(FIELD_BOTTOM)]: function(v) {
+            setB: function(v) {
                 if (v) {
                     v.cell = this;
                     this.callSuper(new FaceModel(v));
@@ -124,6 +131,9 @@
                     this.callSuper(v);
                 }
             },
+            
+            // Fixtures //
+            makeFixtureFromDatum: datum => new FixtureModel(datum),
         }),
         
         EntityModel = new JSClass('EntityModel', Eventable, {
@@ -146,14 +156,14 @@
             
             // Methods /////////////////////////////////////////////////////////
             canMove: function() {
-                return this[FIELD_LOCK_MOVE] == null || this[FIELD_LOCK_MOVE] <= model.worldClockTime;
+                return this.lockMove == null || this.lockMove <= model.worldClockTime;
             },
             
             doMove: function(direction) {
                 if (this.canMove()) {
                     // Pre-emptive indefinite lock. Will be updated once the
                     // server handles the character's movement.
-                    this[FIELD_LOCK_MOVE] = Number.MAX_SAFE_INTEGER;
+                    this.lockMove = Number.MAX_SAFE_INTEGER;
                     
                     pkg.websocket.sendTypedMessage(TYPE_MOVE, {id:this.id, direction:direction});
                     return true;
@@ -162,14 +172,14 @@
             },
             
             canAct: function() {
-                return this[FIELD_LOCK_ACTION] == null || this[FIELD_LOCK_ACTION] <= model.worldClockTime;
+                return this.lockAct == null || this.lockAct <= model.worldClockTime;
             },
             
             doAction: function(type, params) {
                 if (this.canAct()) {
                     // Pre-emptive indefinite lock. Will be updated once the
                     // server handles the character's action.
-                    this[FIELD_LOCK_ACTION] = Number.MAX_SAFE_INTEGER;
+                    this.lockAct = Number.MAX_SAFE_INTEGER;
                     
                     pkg.websocket.sendTypedMessage(type, {id:this.id, ...params});
                     return true;
@@ -178,14 +188,14 @@
             },
             
             canFree: function() {
-                return this[FIELD_LOCK_FREE] == null || this[FIELD_LOCK_FREE] <= model.worldClockTime;
+                return this.lockFree == null || this.lockFree <= model.worldClockTime;
             },
             
             doFree: function(type, params) {
                 if (this.canFree()) {
                     // Pre-emptive indefinite lock. Will be updated once the
                     // server handles the character's action.
-                    this[FIELD_LOCK_FREE] = Number.MAX_SAFE_INTEGER;
+                    this.lockFree = Number.MAX_SAFE_INTEGER;
                     
                     pkg.websocket.sendTypedMessage(type, {id:this.id, ...params});
                     return true;
@@ -200,7 +210,7 @@
             setEntity: (entityId, entity) => entityData[entityId] = entity,
             removeEntity: entityId => delete entityData[entityId],
             makeEntityFromData: entityDatum => {
-                const entityId = entityDatum[FIELD_ID];
+                const entityId = entityDatum.id;
                 let entity = model.getEntityById(entityId);
                 if (entity) {
                     // Update
@@ -230,7 +240,7 @@
             setCharactersFromData: data => {
                 if (Array.isArray(data)) {
                     for (const datum of data) {
-                        const existingCharacter = model.getCharacterById(datum[FIELD_ID]);
+                        const existingCharacter = model.getCharacterById(datum.id);
                         if (existingCharacter) {
                             existingCharacter.callSetters(datum);
                         } else {
@@ -254,7 +264,7 @@
             },
             
             updateCharacterFromData: datum => {
-                const existingCharacter = model.getCharacterById(datum[FIELD_ID]);
+                const existingCharacter = model.getCharacterById(datum.id);
                 if (existingCharacter) {
                     existingCharacter.callSetters(datum);
                     return existingCharacter;
@@ -311,8 +321,12 @@
             },
             // Map:end
             
+            // Fixtures:start
+            getFixtureTemplate: id => fixtureTemplatesById[id],
+            // Fixtures:end
+            
             // Cell:start
-            makeUnknownCell: locId => new CellModel({locId:locId, [FIELD_COMPOSITION]:'unk'}),
+            makeUnknownCell: locId => new CellModel({locId:locId, c:'unk'}),
             getCell: locId => cellData[locId],
             getCellByLocArr: locArr => cellData[locArrToId(locArr)],
             getCellComposition: locId => {
@@ -326,13 +340,14 @@
                     // Fixup cellDatum into an Object ready to be used as attrs to a new or existing
                     // Cell. A big part of this is converting all entityDatum to EntityModels.
                     const cellDatum = data[locId],
-                        entities = cellDatum[FIELD_ENTITIES];
+                        entities = cellDatum.ent;
                     if (entities) {
                         let i = entities.length;
                         while (i--) entities[i] = model.makeEntityFromData(entities[i]);
                     } else {
-                        cellDatum[FIELD_ENTITIES] = null;
+                        cellDatum.ent = null;
                     }
+                    
                     cellDatum.locId = locId;
                     for (const attrName of COMPASS_FIELDS) cellDatum[attrName] ??= null;
                     
@@ -347,12 +362,15 @@
             // Methods /////////////////////////////////////////////////////////
             wipeClean: () => {
                 model.maxCharacters = 0;
-                characters = [];
+                characters.length = 0;
                 model.clearMapAndCellData();
             }
         });
     
     for (const compId in compositions) {
         compositionsByCompId[compId] = new CompositionModel(compositions[compId]);
+    }
+    for (const id in fixtureTemplates) {
+        fixtureTemplatesById[id] = new FixtureTemplate(fixtureTemplates[id]);
     }
 })(orb);

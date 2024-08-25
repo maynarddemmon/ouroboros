@@ -11,9 +11,6 @@
         } = M,
         
         {
-            character:{
-                FIELD_NAME, FIELD_IN_WORLD
-            },
             greek:{
                 TYPE_ENTER_WORLD, TYPE_CREATE_CHARACTER, TYPE_DELETE_CHARACTER
             }
@@ -46,7 +43,7 @@
                 let inWorldCharacter;
                 for (let i = 0; i < maxCharacters; i++) {
                     const character = characters[i];
-                    if (character && character[FIELD_IN_WORLD]) inWorldCharacter = character;
+                    if (character && character.isInWorld()) inWorldCharacter = character;
                     new CharacterRow(characterContainer, {character:character});
                 }
                 
@@ -100,11 +97,11 @@
                             console.log('FIXME', self.character);
                         }
                     }]);
-                    new Text(self, {valign:'middle', text:(character[FIELD_IN_WORLD] ? pkg.FA_GLOBE + ' ' : '') + character[FIELD_NAME], layoutHint:1});
+                    new Text(self, {valign:'middle', text:(character.isInWorld() ? pkg.FA_GLOBE + ' ' : '') + character.getName(), layoutHint:1});
                     self.deleteBtn = new TextBtn(self, {valign:'middle', text:'Delete Character', width:150}, [{
                         doActivated:() => {
                             pkg.showDeleteDialog(
-                                'Are you sure you want to delete the character named "' + self.character[FIELD_NAME] + '"',
+                                'Are you sure you want to delete the character named "' + self.character.getName() + '"',
                                 'Delete Character',
                                 () => {
                                     pkg.app.lockUI('Deleting Character...', true);
@@ -138,7 +135,7 @@
                 self.stopActiveAnimators();
                 self.newBtn.setVisible(false);
                 self.buildFormContainer();
-                const value = {[FIELD_NAME]:''};
+                const value = {name:''};
                 self.formContainer.setup(value, value, value);
                 self.animate({attribute:'height', to:300, duration:350}).next(success => {
                     newCharNameField.focus();
@@ -171,7 +168,7 @@
                     
                     new Text(formContainer, {text:'New Character Name'});
                     newCharNameField = new FormInputText(formContainer, {
-                        id:FIELD_NAME, form:formContainer, width:FIELD_WIDTH,
+                        id:'name', form:formContainer, width:FIELD_WIDTH,
                         maxLength:256, validators:['required'], placeholder:'Enter name',
                         errorTxtHeight:20
                     }, [FieldErrorTextMixin]);

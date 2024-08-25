@@ -19,15 +19,6 @@ const orb = require('./orb.js'),
         TYPE_ALTER_CHARACTER
     } = require('../common/SocketProtocol.js'),
     {
-        entity:{FIELD_LOC},
-        character:{
-            FIELD_PERMISSIONS,
-            FIELD_LOCK_MOVE, FIELD_LOCK_ACTION, FIELD_LOCK_REACT, FIELD_LOCK_FREE
-        },
-        cell:{
-            FIELD_COMPOSITION,
-            FIELD_NORTH, FIELD_SOUTH, FIELD_EAST, FIELD_WEST, FIELD_TOP, FIELD_BOTTOM
-        },
         FACINGS:{NORTH, SOUTH, EAST, WEST, UP, DOWN},
         permissions:{PERM_CREATOR}
     } = require('../common/common.js'),
@@ -164,7 +155,7 @@ const orb = require('./orb.js'),
         [TYPE_MOVE]:event => {
             const direction = event.msg.direction;
             performAction(
-                event, FIELD_LOCK_MOVE, 'getMoveSpeed', {direction:direction}, 
+                event, 'lockMove', 'getMoveSpeed', {direction:direction}, 
                 (username, character, now) => {
                     let locArr = character.getLocArr(true);
                     switch (direction) {
@@ -192,7 +183,7 @@ const orb = require('./orb.js'),
                         
                         // Send movement change
                         accountService.addMessageToUser(username, {type:TYPE_ALTER_CHARACTER, msg:{
-                            id:character.id, p:FIELD_LOC, v:locArr
+                            id:character.id, p:'loc', v:locArr
                         }});
                         
                         // Generate movement sound
@@ -206,7 +197,7 @@ const orb = require('./orb.js'),
         
         [TYPE_ALTER_CELL]:event => {
             performAction(
-                event, FIELD_LOCK_FREE, 'getFreeActionSpeed', null, 
+                event, 'lockFree', 'getFreeActionSpeed', null, 
                 (username, character, now) => {
                     if (character.hasPermission(PERM_CREATOR)) {
                         const locArr = character.getLocArr(true),
@@ -218,34 +209,34 @@ const orb = require('./orb.js'),
                                     cell.set(field, null);
                                 } else {
                                     if (face) {
-                                        face.set(FIELD_COMPOSITION, value);
+                                        face.setC(value);
                                     } else {
-                                        cell.set(field, {[FIELD_COMPOSITION]:value});
+                                        cell.set(field, {c:value});
                                     }
                                 }
                             };
                         
                         switch (prop) {
-                            case FIELD_COMPOSITION:
-                                cell.set(prop, value);
+                            case 'c':
+                                cell.setC(value);
                                 break;
-                            case NORTH + '.' + FIELD_COMPOSITION:
-                                updateFaceFunc(cell.getNorthFace(), FIELD_NORTH);
+                            case NORTH + '.c':
+                                updateFaceFunc(cell.getNorthFace(), 'n');
                                 break;
-                            case SOUTH + '.' + FIELD_COMPOSITION:
-                                updateFaceFunc(cell.getSouthFace(), FIELD_SOUTH);
+                            case SOUTH + '.c':
+                                updateFaceFunc(cell.getSouthFace(), 's');
                                 break;
-                            case EAST + '.' + FIELD_COMPOSITION:
-                                updateFaceFunc(cell.getEastFace(), FIELD_EAST);
+                            case EAST + '.c':
+                                updateFaceFunc(cell.getEastFace(), 'e');
                                 break;
-                            case WEST + '.' + FIELD_COMPOSITION:
-                                updateFaceFunc(cell.getWestFace(), FIELD_WEST);
+                            case WEST + '.c':
+                                updateFaceFunc(cell.getWestFace(), 'w');
                                 break;
-                            case UP + '.' + FIELD_COMPOSITION:
-                                updateFaceFunc(cell.getTopFace(), FIELD_TOP);
+                            case UP + '.c':
+                                updateFaceFunc(cell.getTopFace(), 't');
                                 break;
-                            case DOWN + '.' + FIELD_COMPOSITION:
-                                updateFaceFunc(cell.getBottomFace(), FIELD_BOTTOM);
+                            case DOWN + '.c':
+                                updateFaceFunc(cell.getBottomFace(), 'b');
                                 break;
                         }
                     } else {
@@ -257,7 +248,7 @@ const orb = require('./orb.js'),
         
         [TYPE_CHANGE_FACING]:event => {
             performAction(
-                event, FIELD_LOCK_FREE, 'getFreeActionSpeed', null, 
+                event, 'lockFree', 'getFreeActionSpeed', null, 
                 (username, character, now) => {
                     const compassDirection = event.msg[ATTR_DIRECTION];
                     if (compassDirection) {
@@ -271,7 +262,7 @@ const orb = require('./orb.js'),
         
         [TYPE_VOCALIZE]:event => {
             performAction(
-                event, FIELD_LOCK_FREE, 'getFreeActionSpeed', null, 
+                event, 'lockFree', 'getFreeActionSpeed', null, 
                 (username, character, now) => {
                     const {volume, message} = event.msg;
                     if (volume && message) {

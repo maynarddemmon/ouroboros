@@ -12,26 +12,15 @@ const orb = require('./orb.js'),
     {
         CommonEntityModelMixin,
         CommonCharacterModelMixin,
-        entity:{FIELD_ID, FIELD_SPIRIT, FIELD_ZOMBIE, FIELD_ASTRAL_PROJECTED, FIELD_LOC, FIELD_FACING},
-        character:{
-            FIELD_NAME, FIELD_USER_ID, FIELD_IN_WORLD,
-            FIELD_MOVE_SPEED, FIELD_PERMISSIONS,
-            FIELD_LOCK_MOVE, FIELD_LOCK_ACTION, FIELD_LOCK_FREE, FIELD_LOCK_REACT
-        },
         FACINGS,
-        isValidFacing,
-        permissions:{PERM_CREATOR},
-        cell:{FIELD_COMPOSITION}
+        permissions:{PERM_CREATOR}
     } = require('../common/common.js'),
     {isValidLocArr} = require('../common/util.js'),
     {TYPE_ALTER_ENTITY, TYPE_SOUND} = require('../common/SocketProtocol.js'),
     
     FILENAME_CHARACTERS = 'characters',
     
-    ATTRS_TO_NOTIFY_FOR = [
-        FIELD_FACING, FIELD_SPIRIT, FIELD_ZOMBIE, FIELD_ASTRAL_PROJECTED,
-        FIELD_IN_WORLD
-    ],
+    ATTRS_TO_NOTIFY_FOR = ['facing','spirit','zombie','astral','inWorld'],
     
     EntityModel = new JS.Class('EntityModel', Eventable, {
         include:[CommonEntityModelMixin],
@@ -39,12 +28,12 @@ const orb = require('./orb.js'),
         
         // Life Cycle //////////////////////////////////////////////////////////
         init: function(attrs) {
-            attrs[FIELD_ID] ??= null;
-            attrs[FIELD_SPIRIT] ??= false;
-            attrs[FIELD_ZOMBIE] ??= false;
-            attrs[FIELD_ASTRAL_PROJECTED] ??= false;
-            attrs[FIELD_LOC] ??= [0,0,0,0];
-            attrs[FIELD_FACING] ??= FACINGS.NORTH;
+            attrs.id ??= null;
+            attrs.spirit ??= false;
+            attrs.zombie ??= false;
+            attrs.astral ??= false;
+            attrs.loc ??= [0,0,0,0];
+            attrs.facing ??= FACINGS.NORTH;
             
             this.callSuper(attrs);
         },
@@ -65,18 +54,18 @@ const orb = require('./orb.js'),
         },
         
         getCell: function() {
-            const curLocArr = this[FIELD_LOC];
+            const curLocArr = this.loc;
             return curLocArr ? worldMap.getCellByLocArr(curLocArr) : null;
         },
         
         /** Gets data that the provided character can see/hear/sense about this entity. */
         getAsDataForCharacter: function(character) {
             const retval = {};
-            retval[FIELD_ID] = this.getId();
-            retval[FIELD_SPIRIT] = this.isSpirit();
-            retval[FIELD_ZOMBIE] = this.isZombie();
-            retval[FIELD_ASTRAL_PROJECTED] = this.isAstralProjected();
-            retval[FIELD_FACING] = this.getFacing();
+            retval.id = this.getId();
+            retval.spirit = this.isSpirit();
+            retval.zombie = this.isZombie();
+            retval.astral = this.isAstralProjected();
+            retval.facing = this.getFacing();
             return retval;
         },
         
@@ -97,37 +86,37 @@ const orb = require('./orb.js'),
             this._visualObservedCells = [];
             this._auditoryObservedCells = [];
             
-            attrs[FIELD_USER_ID] ??= null;
-            attrs[FIELD_PERMISSIONS] ??= null;
-            attrs[FIELD_NAME] ??= '';
-            attrs[FIELD_IN_WORLD] ??= false;
-            attrs[FIELD_MOVE_SPEED] ??= 3;
-            attrs[FIELD_LOCK_MOVE] ??= 0;
-            attrs[FIELD_LOCK_ACTION] ??= 0;
-            attrs[FIELD_LOCK_REACT] ??= 0;
-            attrs[FIELD_LOCK_FREE] ??= 0;
+            attrs.uid ??= null;
+            attrs.perms ??= null;
+            attrs.name ??= '';
+            attrs.inWorld ??= false;
+            attrs.moveSpeed ??= 3;
+            attrs.lockMove ??= 0;
+            attrs.lockAct ??= 0;
+            attrs.lockReact ??= 0;
+            attrs.lockFree ??= 0;
             
             this.callSuper(attrs);
         },
         
         
         // Accessors ///////////////////////////////////////////////////////////
-        [generateSetterName(FIELD_SPIRIT)]: function(v) {
+        setSpirit: function(v) {
             this.callSuper(v);
             orb.rules.doOnSpiritualChangeForCharacter(this);
         },
         
-        [generateSetterName(FIELD_ASTRAL_PROJECTED)]: function(v) {
+        setAstral: function(v) {
             this.callSuper(v);
             orb.rules.doOnSpiritualChangeForCharacter(this);
         },
         
-        [generateSetterName(FIELD_FACING)]: function(v) {
+        setFacing: function(v) {
             this.callSuper(v);
             if (characterService.isReady) worldMap.updateVisualListenersForCharacter(this, this.getCell());
         },
         
-        [generateSetterName(FIELD_LOC)]: function(v) {
+        setLoc: function(v) {
             if (isValidLocArr(v)) {
                 const curCell = this.getCell(),
                     newCell = worldMap.getCellByLocArr(v, true);
@@ -187,7 +176,7 @@ const orb = require('./orb.js'),
             character. */
         getAsDataForCharacter: function(character) {
             const retval = this.callSuper(character);
-            for (const propName of [FIELD_NAME, FIELD_IN_WORLD]) {
+            for (const propName of ['name', 'inWorld']) {
                 retval[propName] = this.get(propName);
             }
             return retval;
@@ -277,7 +266,7 @@ const orb = require('./orb.js'),
         if (jsonData) {
             let count = 0;
             for (const datum of jsonData) {
-                if (datum[FIELD_ID] && datum[FIELD_USER_ID] && datum[FIELD_NAME]) {
+                if (datum.id && datum.uid && datum.name) {
                     const character = new Character(datum);
                     if (storeCharacterInRepo(character)) count++;
                 } else {
@@ -327,7 +316,7 @@ const orb = require('./orb.js'),
         doCharacterExitWorld:doCharacterExitWorld,
         
         createCharacter: (userId, data) => {
-            const name = data[FIELD_NAME],
+            const name = data.name,
                 retval = {success:false};
             if (!userId) {
                 retval.message = 'No userId provided.';
@@ -335,10 +324,10 @@ const orb = require('./orb.js'),
                 retval.message = 'Character name already exists.';
             } else {
                 const character = new Character({
-                    [FIELD_ID]:orb.getGuidString('c'),
-                    [FIELD_USER_ID]:userId,
-                    [FIELD_NAME]:name,
-                    [FIELD_LOC]:[0,2,2,0]
+                    id:orb.getGuidString('c'),
+                    uid:userId,
+                    name:name,
+                    loc:[0,2,2,0]
                 });
                 
                 if (storeCharacterInRepo(character)) {
@@ -364,7 +353,7 @@ const orb = require('./orb.js'),
                     if (character.getUserId() === userId) {
                         if (removeCharacterFromRepo(character)) {
                             retval.message = 'Character removed successfully.';
-                            retval[FIELD_ID] = id;
+                            retval.id = id;
                             retval.success = true;
                         } else {
                             retval.message = 'Character deletion failed.';

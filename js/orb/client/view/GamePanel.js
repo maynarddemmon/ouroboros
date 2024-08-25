@@ -33,15 +33,10 @@
         } = M,
         
         {
-            character:{
-                FIELD_NAME, 
-                FIELD_LOCK_MOVE, FIELD_LOCK_ACTION, FIELD_LOCK_FREE, FIELD_LOCK_REACT
-            },
             greek:{
                 ATTR_DIRECTION,
                 TYPE_EXIT_WORLD, TYPE_ALTER_CELL, TYPE_CHANGE_FACING, TYPE_VOCALIZE
             },
-            cell:{FIELD_COMPOSITION},
             FACINGS:{NORTH, SOUTH, EAST, WEST, UP, DOWN},
             composition:{compositions},
             util:{locIdToArr}
@@ -68,7 +63,7 @@
         getLocInfo = cell => {
             const locArr = locIdToArr(cell.locId),
                 mapDatum = model.getMapDatum(locArr[0]);
-            return compositions[cell.hasBeenSeen() ? cell[FIELD_COMPOSITION] : 'unk'].name + ' / x:' + locArr[1] + ' / y:' + locArr[2];
+            return compositions[cell.hasBeenSeen() ? cell.getComposition() : 'unk'].name + ' / x:' + locArr[1] + ' / y:' + locArr[2];
         },
         
         getEntityInfo = entity => {
@@ -307,7 +302,7 @@
                     view.setVisible(hasCreatorPerm);
                 }
                 
-                characterTab.setText(pkg.FA_CHARACTER + ' ' + character[FIELD_NAME]);
+                characterTab.setText(pkg.FA_CHARACTER + ' ' + character.getName());
                 
                 gamePanel.attachToDom(GlobalKeys, '_keyDown', 'keydown', true);
             } else {
@@ -526,10 +521,10 @@
                     pointerEvents:'auto', readyIcon:readyIcon
                 });
             };
-            makeCooldown(FIELD_LOCK_MOVE, pkg.FA_MOVE);
-            makeCooldown(FIELD_LOCK_ACTION, pkg.FA_ACTION);
-            makeCooldown(FIELD_LOCK_REACT, pkg.FA_REACT);
-            makeCooldown(FIELD_LOCK_FREE, pkg.FA_FREE_ACTION);
+            makeCooldown('lockMove', pkg.FA_MOVE);
+            makeCooldown('lockAct', pkg.FA_ACTION);
+            makeCooldown('lockReact', pkg.FA_REACT);
+            makeCooldown('lockFree', pkg.FA_FREE_ACTION);
             
             // Right Overlay
             rightOverlay = new VerticalOverlay(gamePanel);

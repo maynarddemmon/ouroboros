@@ -20,52 +20,6 @@
         
         PERM_CREATOR = 'creator',
         
-        // Common Fields
-        FIELD_ID ='id',
-        FIELD_NAME = 'name',
-        FIELD_DESCRIPTION = 'description',
-        
-        // Map Fields
-        FIELD_ELEMENTS = 'elements',
-        
-        // Composition Fields
-        FIELD_SOLIDITY = 'solidity',
-        FIELD_OPACITY = 'opacity',
-        FIELD_DAMPING = 'damping',
-        FIELD_MAP_COLOR = 'mapColor',
-        FIELD_TILE_URL = 'tileUrl',
-        
-        // Face Fields
-        FIELD_CELL = 'cell',
-        
-        // Cell Fields
-        FIELD_COMPOSITION = 'c',
-        FIELD_ENTITIES = 'ent',
-        
-        FIELD_NORTH = 'n',
-        FIELD_SOUTH = 's',
-        FIELD_EAST = 'e',
-        FIELD_WEST = 'w',
-        FIELD_TOP = 't',
-        FIELD_BOTTOM = 'b',
-        
-        // Entity Fields
-        FIELD_SPIRIT = 'spirit',
-        FIELD_ZOMBIE = 'zombie',
-        FIELD_ASTRAL_PROJECTED = 'astral',
-        FIELD_LOC = 'loc',
-        FIELD_FACING = 'facing',
-        
-        // Character Fields
-        FIELD_USER_ID = 'uid',
-        FIELD_PERMISSIONS = 'perms',
-        FIELD_IN_WORLD = 'inWorld',
-        FIELD_MOVE_SPEED = 'moveSpeed',
-        FIELD_LOCK_MOVE = 'lockMove',
-        FIELD_LOCK_ACTION = 'lockAct',
-        FIELD_LOCK_FREE = 'lockFree',
-        FIELD_LOCK_REACT = 'lockReact',
-        
         COMPASS_NORTH = 1,
         COMPASS_SOUTH = 2,
         COMPASS_EAST = 3,
@@ -220,45 +174,125 @@
         CIRCLE_9 = [...CIRCLE_8, ...RING_9],
         
         CommonMapModelMixin = new JSModule('CommonMapModelMixin', {
-            [generateSetterName(FIELD_NAME)]: function(v) {this.set(FIELD_NAME, v, true);},
-            getName: function() {return this[FIELD_NAME];},
-            [generateSetterName(FIELD_DESCRIPTION)]: function(v) {this.set(FIELD_DESCRIPTION, v, true);},
-            getDescription: function() {return this[FIELD_DESCRIPTION];},
-            [generateSetterName(FIELD_ELEMENTS)]: function(v) {this.set(FIELD_ELEMENTS, v, true);},
-            getElements: function() {return this[FIELD_ELEMENTS];}
+            setName: function(v) {this.set('name', v, true);},
+            getName: function() {return this.name;},
+            setDescription: function(v) {this.set('description', v, true);},
+            getDescription: function() {return this.description;},
+            setElements: function(v) {this.set('elements', v, true);},
+            getElements: function() {return this.elements;}
         }),
         
         CommonCompositionModelMixin = new JSModule('CommonCompositionModelMixin', {
-            [generateSetterName(FIELD_NAME)]: function(v) {this.set(FIELD_NAME, v, true);},
-            getName: function() {return this[FIELD_NAME];},
+            setName: function(v) {this.set('name', v, true);},
+            getName: function() {return this.name;},
             
-            [generateSetterName(FIELD_MAP_COLOR)]: function(v) {this.set(FIELD_MAP_COLOR, v, true);},
-            getMapColor: function() {return this[FIELD_MAP_COLOR];},
-            [generateSetterName(FIELD_TILE_URL)]: function(v) {this.set(FIELD_TILE_URL, v, true);},
-            getTileUrl: function() {return this[FIELD_TILE_URL];},
+            setMapColor: function(v) {this.set('mapColor', v, true);},
+            getMapColor: function() {return this.mapColor;},
+            setTileUrl: function(v) {this.set('tileUrl', v, true);},
+            getTileUrl: function() {return this.tileUrl;},
             
-            [generateSetterName(FIELD_SOLIDITY)]: function(v) {this.set(FIELD_SOLIDITY, v, true);},
-            getSolidity: function() {return this[FIELD_SOLIDITY];},
-            [generateSetterName(FIELD_OPACITY)]: function(v) {this.set(FIELD_OPACITY, v, true);},
-            getOpacity: function() {return this[FIELD_OPACITY];},
-            [generateSetterName(FIELD_DAMPING)]: function(v) {this.set(FIELD_DAMPING, v, true);},
-            getDamping: function() {return this[FIELD_DAMPING];}
+            setSolidity: function(v) {this.set('solidity', v, true);},
+            getSolidity: function() {return this.solidity;},
+            setOpacity: function(v) {this.set('opacity', v, true);},
+            getOpacity: function() {return this.opacity;},
+            setDamping: function(v) {this.set('damping', v, true);},
+            getDamping: function() {return this.damping;}
+        }),
+        
+        CommonFixtureTemplateModelMixin = new JSModule('CommonFixtureTemplateModelMixin', {
+            setName: function(v) {this.set('name', v, true);},
+            getName: function() {return this.name;},
+            
+            setStates: function(v) {this.set('states', v, true);},
+            getStates: function() {return this.states;},
+            
+            setUrlsByState: function(v) {this.set('urlsByState', v, true);},
+            getUrlsByState: function() {return this.urlsByState;},
+            getUrlByStateKey: function(stateKey) {
+                return this.urlsByState[stateKey] ?? this.urlsByState.DEFAULT;
+            }
+        }),
+        
+        CommonFixtureModelMixin = new JSModule('CommonEntityModelMixin', {
+            setId: function(v) {this.set('id', v, true);},
+            getId: function() {return this.id;},
+            
+            setCell: function(v) {this.set('cell', v, true);},
+            getCell: function() {return this.cell;},
+            
+            setTemplate: function(v) {this.set('template', v, true);},
+            getTemplate: function() {return this.template;},
+            getTemplateObject: () => {/* Subclasses must implement. */},
+            
+            getStateObject: function() {return this.state ??= {};},
+            setStateByAttr: function(attrName, value) {this.getStateObject()[attrName] = value;},
+            getStateByAttr: function(attrName) {return this.getStateObject()[attrName];},
+            
+            getStateKey: function() {
+                const parts = [],
+                    stateObj = this.getStateObject();
+                for (const stateName in stateObj) {
+                    parts.push(stateName + '-' + stateObj[stateName]);
+                }
+                return parts.sort().join('_');
+            }
+        }),
+        
+        FixtureContainerMixin = new JSModule('FixtureContainerMixin', {
+            setFix: function(fixturesData) {
+                if (fixturesData) {
+                    for (const fixtureId in fixturesData) {
+                        const datum = fixturesData[fixtureId];
+                        datum.id = fixtureId;
+                        this.addFixture(this.makeFixtureFromDatum(datum));
+                    }
+                }
+            },
+            makeFixtureFromDatum: datum => {/* Subclasses must implement. */},
+            getFixturesMap: function() {return this.fixtures ??= new Map();},
+            addFixture: function(fixture) {
+                this.getFixturesMap().set(fixture.getId(), fixture);
+            },
+            removeFixture: function(fixture) {return this.removeFixtureById(fixture.getId());},
+            removeFixtureById: function(fixtureId) {
+                const fixtures = this.getFixturesMap(),
+                    removedFixture = fixtures.get(fixtureId);
+                if (removedFixture) {
+                    fixtures.delete(fixtureId);
+                    return removedFixture;
+                }
+            },
+            getFixturesAsData: function() {
+                let retval = null;
+                const fixtures = this.fixtures;
+                if (fixtures?.size > 0) {
+                    retval = {};
+                    for (const [fixtureId, fixture] of fixtures) {
+                        retval[fixtureId] = fixture.getAsData();
+                    }
+                }
+                return retval;
+            }
         }),
         
         CommonFaceModelMixin = new JSModule('CommonCellModelMixin', {
-            [generateSetterName(FIELD_CELL)]: function(v) {this.set(FIELD_CELL, v, true);},
-            getCell: function() {return this[FIELD_CELL];},
+            include:[FixtureContainerMixin],
             
-            [generateSetterName(FIELD_COMPOSITION)]: function(v) {this.set(FIELD_COMPOSITION, v, true);},
-            setComposition: function(v) {this.set(FIELD_COMPOSITION, v);},
-            getComposition: function() {return this[FIELD_COMPOSITION];},
+            setCell: function(v) {this.set('cell', v, true);},
+            getCell: function() {return this.cell;},
+            
+            setC: function(v) {this.set('c', v, true);},
+            setComposition: function(v) {this.setC(v);},
+            getComposition: function() {return this.c;},
             getCompositionObject: () => {/* Subclasses must implement. */},
         }),
         
         CommonCellModelMixin = new JSModule('CommonCellModelMixin', {
-            [generateSetterName(FIELD_COMPOSITION)]: function(v) {this.set(FIELD_COMPOSITION, v, true);},
-            setComposition: function(v) {this.set(FIELD_COMPOSITION, v);},
-            getComposition: function() {return this[FIELD_COMPOSITION];},
+            include:[FixtureContainerMixin],
+            
+            setC: function(v) {this.set('c', v, true);},
+            setComposition: function(v) {this.setC(v);},
+            getComposition: function() {return this.c;},
             getCompositionObject: () => {/* Subclasses must implement. */},
             
             isCompositionVoid: function() {return this.getCompositionObject().getSolidity() === -1;},
@@ -272,18 +306,18 @@
                 }
             },
             
-            [generateSetterName(FIELD_NORTH)]: function(v) {this.set(FIELD_NORTH, v, true);},
-            getNorthFace: function(v) {return this[FIELD_NORTH];},
-            [generateSetterName(FIELD_SOUTH)]: function(v) {this.set(FIELD_SOUTH, v, true);},
-            getSouthFace: function(v) {return this[FIELD_SOUTH];},
-            [generateSetterName(FIELD_EAST)]: function(v) {this.set(FIELD_EAST, v, true);},
-            getEastFace: function(v) {return this[FIELD_EAST];},
-            [generateSetterName(FIELD_WEST)]: function(v) {this.set(FIELD_WEST, v, true);},
-            getWestFace: function(v) {return this[FIELD_WEST];},
-            [generateSetterName(FIELD_TOP)]: function(v) {this.set(FIELD_TOP, v, true);},
-            getTopFace: function(v) {return this[FIELD_TOP];},
-            [generateSetterName(FIELD_BOTTOM)]: function(v) {this.set(FIELD_BOTTOM, v, true);},
-            getBottomFace: function(v) {return this[FIELD_BOTTOM];},
+            setN: function(v) {this.set('n', v, true);},
+            getNorthFace: function(v) {return this.n;},
+            setS: function(v) {this.set('s', v, true);},
+            getSouthFace: function(v) {return this.s;},
+            setE: function(v) {this.set('e', v, true);},
+            getEastFace: function(v) {return this.e;},
+            setW: function(v) {this.set('w', v, true);},
+            getWestFace: function(v) {return this.w;},
+            setT: function(v) {this.set('t', v, true);},
+            getTopFace: function(v) {return this.t;},
+            setB: function(v) {this.set('b', v, true);},
+            getBottomFace: function(v) {return this.b;},
             
             getFaceForDirection: function(compassDirection) {
                 switch (compassDirection) {
@@ -309,51 +343,51 @@
         }),
         
         CommonEntityModelMixin = new JSModule('CommonEntityModelMixin', {
-            [generateSetterName(FIELD_ID)]: function(v) {this.set(FIELD_ID, v, true);},
-            getId: function() {return this[FIELD_ID];},
-            [generateSetterName(FIELD_SPIRIT)]: function(v) {this.set(FIELD_SPIRIT, v, true);},
-            isSpirit: function() {return this[FIELD_SPIRIT];},
-            [generateSetterName(FIELD_ZOMBIE)]: function(v) {this.set(FIELD_ZOMBIE, v, true);},
-            isZombie: function() {return this[FIELD_ZOMBIE];},
-            [generateSetterName(FIELD_ASTRAL_PROJECTED)]: function(v) {this.set(FIELD_ASTRAL_PROJECTED, v, true);},
-            isAstralProjected: function() {return this[FIELD_ASTRAL_PROJECTED];},
-            [generateSetterName(FIELD_LOC)]: function(v) {this.set(FIELD_LOC, v, true);},
+            setId: function(v) {this.set('id', v, true);},
+            getId: function() {return this.id;},
+            setSpirit: function(v) {this.set('spirit', v, true);},
+            isSpirit: function() {return this.spirit;},
+            setZombie: function(v) {this.set('zombie', v, true);},
+            isZombie: function() {return this.zombie;},
+            setAstral: function(v) {this.set('astral', v, true);},
+            isAstralProjected: function() {return this.astral;},
+            setLoc: function(v) {this.set('loc', v, true);},
             getLocArr: function(asCopy) {
-                const locArr = this[FIELD_LOC];
+                const locArr = this.loc;
                 return asCopy ? locArr.slice() : locArr;
             },
-            [generateSetterName(FIELD_FACING)]: function(v) {this.set(FIELD_FACING, v, true);},
-            getFacing: function() {return this[FIELD_FACING];},
+            setFacing: function(v) {this.set('facing', v, true);},
+            getFacing: function() {return this.facing;},
         }),
         
         CommonCharacterModelMixin = new JSModule('CommonCharacterModelMixin', {
-            [generateSetterName(FIELD_USER_ID)]: function(v) {this.set(FIELD_USER_ID, v, true);},
-            getUserId: function() {return this[FIELD_USER_ID];},
-            [generateSetterName(FIELD_NAME)]: function(v) {this.set(FIELD_NAME, v, true);},
-            getName: function() {return this[FIELD_NAME];},
+            setUid: function(v) {this.set('uid', v, true);},
+            getUserId: function() {return this.uid;},
+            setName: function(v) {this.set('name', v, true);},
+            getName: function() {return this.name;},
             isSpirit: function() {
                 // Creators are treated like spirits.
                 return this.callSuper() || this.hasPermission(PERM_CREATOR);
             },
-            [generateSetterName(FIELD_IN_WORLD)]: function(v) {this.set(FIELD_IN_WORLD, v, true);},
-            isInWorld: function() {return this[FIELD_IN_WORLD];},
+            setInWorld: function(v) {this.set('inWorld', v, true);},
+            isInWorld: function() {return this.inWorld;},
             
             // Action Speeds
-            [generateSetterName(FIELD_MOVE_SPEED)]: function(v) {this.set(FIELD_MOVE_SPEED, v, true);},
-            getMoveSpeed: function(contextObj) {return this[FIELD_MOVE_SPEED];},
+            setMoveSpeed: function(v) {this.set('moveSpeed', v, true);},
+            getMoveSpeed: function(contextObj) {return this.moveSpeed;},
             getFreeActionSpeed: function(contextObj) {return 1;},
             
             // Lock Times
-            [generateSetterName(FIELD_LOCK_MOVE)]: function(v) {this.set(FIELD_LOCK_MOVE, v, true);},
-            getLockMove: function() {return this[FIELD_LOCK_MOVE];},
-            [generateSetterName(FIELD_LOCK_ACTION)]: function(v) {this.set(FIELD_LOCK_ACTION, v, true);},
-            getLockAction: function() {return this[FIELD_LOCK_ACTION];},
-            [generateSetterName(FIELD_LOCK_FREE)]: function(v) {this.set(FIELD_LOCK_FREE, v, true);},
-            getLockFree: function() {return this[FIELD_LOCK_FREE];},
-            [generateSetterName(FIELD_LOCK_REACT)]: function(v) {this.set(FIELD_LOCK_REACT, v, true);},
-            getLockReact: function() {return this[FIELD_LOCK_REACT];},
+            setLockMove: function(v) {this.set('lockMove', v, true);},
+            getLockMove: function() {return this.lockMove;},
+            setLockAct: function(v) {this.set('lockAct', v, true);},
+            getLockAction: function() {return this.lockAct;},
+            setLockFree: function(v) {this.set('lockFree', v, true);},
+            getLockFree: function() {return this.lockFree;},
+            setLockReact: function(v) {this.set('lockReact', v, true);},
+            getLockReact: function() {return this.lockReact;},
             
-            [generateSetterName(FIELD_PERMISSIONS)]: function(v) {this.set(FIELD_PERMISSIONS, v, true);},
+            setPerms: function(v) {this.set('perms', v, true);},
             
             getSightDistance: () => 3,
             getHearDistance: () => 9, // Maximum so sound propogation can handle things.
@@ -361,7 +395,7 @@
             
             // Methods /////////////////////////////////////////////////////////,
             hasPermission: function(permId) {
-                const permissions = this[FIELD_PERMISSIONS];
+                const permissions = this.perms;
                 return permissions ? permissions.includes(permId) : false;
             }
         }),
@@ -373,6 +407,8 @@
             CommonCellModelMixin:CommonCellModelMixin,
             CommonEntityModelMixin:CommonEntityModelMixin,
             CommonCharacterModelMixin:CommonCharacterModelMixin,
+            CommonFixtureTemplateModelMixin:CommonFixtureTemplateModelMixin,
+            CommonFixtureModelMixin:CommonFixtureModelMixin,
             
             cellOffsetsByDistance:[CIRCLE_0,CIRCLE_1,CIRCLE_2,CIRCLE_3,CIRCLE_4,CIRCLE_5,CIRCLE_6,CIRCLE_7,CIRCLE_8,CIRCLE_9],
             visibilityPaths:VISIBILITY_PATHS,
@@ -424,57 +460,7 @@
                 FIELD_SOCKET_TOKEN:'socketToken'
             },
             
-            entity:{
-                FIELD_ID:FIELD_ID,
-                FIELD_SPIRIT:FIELD_SPIRIT,
-                FIELD_ZOMBIE:FIELD_ZOMBIE,
-                FIELD_ASTRAL_PROJECTED:FIELD_ASTRAL_PROJECTED,
-                FIELD_LOC:FIELD_LOC,
-                FIELD_FACING:FIELD_FACING
-            },
-            
-            character:{
-                FIELD_USER_ID:FIELD_USER_ID,
-                FIELD_NAME:FIELD_NAME,
-                FIELD_PERMISSIONS:FIELD_PERMISSIONS,
-                FIELD_IN_WORLD:FIELD_IN_WORLD,
-                FIELD_MOVE_SPEED:FIELD_MOVE_SPEED,
-                FIELD_LOCK_MOVE:FIELD_LOCK_MOVE,
-                FIELD_LOCK_ACTION:FIELD_LOCK_ACTION,
-                FIELD_LOCK_FREE:FIELD_LOCK_FREE,
-                FIELD_LOCK_REACT:FIELD_LOCK_REACT
-            },
-            
-            map:{
-                FIELD_NAME:FIELD_NAME,
-                FIELD_DESCRIPTION:FIELD_DESCRIPTION,
-                FIELD_ELEMENTS:FIELD_ELEMENTS
-            },
-            
-            face:{
-                FIELD_CELL:FIELD_CELL,
-                FIELD_COMPOSITION:FIELD_COMPOSITION,
-            },
-            
-            cell:{
-                FIELD_COMPOSITION:FIELD_COMPOSITION,
-                FIELD_ENTITIES:FIELD_ENTITIES,
-                FIELD_NORTH:FIELD_NORTH,
-                FIELD_SOUTH:FIELD_SOUTH,
-                FIELD_EAST:FIELD_EAST,
-                FIELD_WEST:FIELD_WEST,
-                FIELD_TOP:FIELD_TOP,
-                FIELD_BOTTOM:FIELD_BOTTOM,
-            },
-            
             composition:{
-                FIELD_NAME:FIELD_NAME,
-                FIELD_MAP_COLOR:FIELD_MAP_COLOR,
-                FIELD_TILE_URL:FIELD_TILE_URL,
-                FIELD_SOLIDITY:FIELD_SOLIDITY,
-                FIELD_OPACITY:FIELD_OPACITY,
-                FIELD_DAMPING:FIELD_DAMPING,
-                
                 // Matter, Energy, Light lookup table for missing Cells
                 // FIXME: there are not enough composition types to fill this out correctly
                 MEL_LOOKUP: [
@@ -595,18 +581,34 @@
                     
                     // Faces
                     W1:{
-                        name:'Stone Wall',
+                        name:'Smooth Stone Wall',
                         tileUrl:'/img/tile/stone_wall.png',
                         solidity:1,
                         opacity:1,
                         damping:0.13
                     },
+                    W2:{
+                        name:'Rough Stone Wall',
+                        tileUrl:'/img/tile/rough_stone_wall.png',
+                        solidity:1,
+                        opacity:1,
+                        damping:0.13
+                    },
+                    W3:{
+                        name:'Smooth Stone Wall with Door Frame',
+                        tileUrl:'/img/tile/stone_wall_door_frame.png',
+                        solidity:1,
+                        opacity:0.25,
+                        damping:0.13
+                    },
+                    
                     C1:{
                         name:'Vaulted Stone Ceiling',
                         solidity:1,
                         opacity:1,
                         damping:0.13
                     },
+                    
                     F1:{
                         name:'Stone Floor',
                         tileUrl:'/img/tile/stone_floor.png',
@@ -620,6 +622,43 @@
                         solidity:1,
                         opacity:1,
                         damping:0.13
+                    }
+                }
+            },
+            
+            fixture:{
+                templates:{
+                    d1:{
+                        name:'Wooden Door',
+                        states:{
+                            open:'boolean'
+                        },
+                        urlsByState:{
+                            "open-true":"/img/fixture/wooden_door_open.png",
+                            "open-false":"/img/fixture/wooden_door_closed.png"
+                        }
+                    },
+                    d2:{
+                        name:'Lockable Wooden Door',
+                        states:{
+                            open:'boolean',
+                            locked:'boolean'
+                        },
+                        urlsByState:{
+                            "locked-true_open-true":"/img/fixture/wooden_door_open.png",
+                            "locked-true_open-false":"/img/fixture/wooden_door_closed.png",
+                            "locked-false_open-true":"/img/fixture/wooden_door_open.png",
+                            "locked-false_open-false":"/img/fixture/wooden_door_closed.png"
+                        }
+                    },
+                    s1:{
+                        name:'Stone Statue',
+                        states:{
+                            facing:'number'
+                        },
+                        urlsByState:{
+                            "DEFAULT":"/img/fixture/statue.png"
+                        }
                     }
                 }
             }

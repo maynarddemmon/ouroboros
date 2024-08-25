@@ -19,12 +19,7 @@
         
         {
             cellOffsetsByDistance, visibilityPaths,
-            entity:{FIELD_LOC},
             util:{locArrToId,locIdToArr},
-            cell:{
-                FIELD_COMPOSITION, FIELD_ENTITIES,
-                FIELD_NORTH, FIELD_SOUTH, FIELD_EAST, FIELD_WEST, FIELD_TOP, FIELD_BOTTOM
-            },
             FACINGS:{NORTH, SOUTH, EAST, WEST, getOppositeDirection},
         } = common,
         
@@ -60,7 +55,7 @@
             initNode: function(parent, attrs) {
                 attrs.pointerEvents = 'none';
                 
-                attrs.zIndex = 4;
+                attrs.zIndex = 21;
                 attrs.boxShadow ??= [0,0,8,'#000'];
                 attrs.roundedCorners ??= 6;
                 attrs.padding ??= 6;
@@ -120,7 +115,7 @@
             initNode: function(parent, attrs) {
                 this.mouseOver = this.mouseDown = false;
                 
-                attrs.zIndex = 3;
+                attrs.zIndex = 20;
                 attrs.bgColor ??= '#000';
                 attrs.outline ??= [1, 'solid', '#000'];
                 attrs.border ??= [1, 'solid', '#fff'];
@@ -244,6 +239,45 @@
             }
         }),
         
+        FixtureView = new JSClass('FixtureView', View, {
+            include:[ImageSupport],
+            
+            initNode: function(parent, attrs) {
+                attrs.width = attrs.height = cellSize;
+                attrs.pointerEvents = 'none';
+                attrs.imageSize = 'contain';
+                
+                this.callSuper(parent, attrs);
+            },
+            
+            update: function(fixture) {
+                if (fixture) {
+                    this.setImageUrl(model.getFixtureTemplate(fixture.template)?.getUrlByStateKey(fixture.getStateKey()) ?? null);
+                } else {
+                    this.setImageUrl(null);
+                }
+            }
+        }),
+        
+        FixturesView = new JSClass('FixturesView', View, {
+            initNode: function(parent, attrs) {
+                attrs.width = attrs.height = cellSize;
+                attrs.pointerEvents = 'none';
+                attrs.zIndex ??= 3;
+                this.callSuper(parent, attrs);
+            },
+            
+            update: function(fixturesContainerModel) {
+                this.destroyAllSubviews();
+                if (fixturesContainerModel) {
+                    for (const [fixtureId, fixture] of fixturesContainerModel) {
+                        const fixtureView = new FixtureView(this);
+                        fixtureView.update(fixture);
+                    }
+                }
+            }
+        }),
+        
         FaceView = new JSClass('FaceView', View, {
             include:[ImageSupport],
             
@@ -259,6 +293,15 @@
                 
                 this.callSuper(parent, attrs);
                 if (rotation) this.getIDS().transform = 'rotate(' + rotation + 'deg)';
+                
+                this._fixtures = new FixturesView(this, {x:-this.x, y:-cellSize/2 -this.y});
+            },
+            
+            update: function(face) {
+                const compId = face?.getComposition();
+                this.setImageUrl(model.getComposition(compId)?.getTileUrl() ?? null);
+                
+                this._fixtures.update(face?.getFixturesMap());
             }
         }),
         
@@ -283,7 +326,9 @@
                 this._eFace = new FaceView(this, {rotation:90});
                 this._wFace = new FaceView(this, {rotation:270});
                 
-                this._observedOverlay = new View(this, {width:cellSize, height:cellSize, bgColor:'#0008', pointerEvents:'none'});
+                this._fixtures = new FixturesView(this);
+                
+                this._observedOverlay = new View(this, {width:cellSize, height:cellSize, bgColor:'#0008', pointerEvents:'none', zIndex:10});
             },
             
             clean: function() {
@@ -310,14 +355,16 @@
                 if (this.inited) {
                     this.setVisible(true);
                     
-                    let compId, bFaceCompId, nFaceCompId, sFaceCompId, eFaceCompId, wFaceCompId;
+                    let compId, fixtures, bFace, nFace, sFace, eFace, wFace;
                     if (cell.hasBeenSeen()) {
                         compId = cell.getComposition();
-                        bFaceCompId = cell.getBottomFace()?.getComposition();
-                        nFaceCompId = cell.getNorthFace()?.getComposition();
-                        sFaceCompId = cell.getSouthFace()?.getComposition();
-                        eFaceCompId = cell.getEastFace()?.getComposition();
-                        wFaceCompId = cell.getWestFace()?.getComposition();
+                        fixtures = cell.getFixturesMap();
+                        
+                        bFace = cell.getBottomFace();
+                        nFace = cell.getNorthFace();
+                        sFace = cell.getSouthFace();
+                        eFace = cell.getEastFace();
+                        wFace = cell.getWestFace();
                     } else {
                         compId = 'unk';
                         const partsSeen = cell.partsSeen;
@@ -325,19 +372,20 @@
                             for (const part of partsSeen) {
                                 switch (part) {
                                     case NORTH:
-                                        nFaceCompId = cell.getNorthFace()?.getComposition();
+                                        nFace = cell.getNorthFace();
                                         break;
                                     case SOUTH:
-                                        sFaceCompId = cell.getSouthFace()?.getComposition();
+                                        sFace = cell.getSouthFace();
                                         break;
                                     case EAST:
-                                        eFaceCompId = cell.getEastFace()?.getComposition();
+                                        eFace = cell.getEastFace();
                                         break;
                                     case WEST:
-                                        wFaceCompId = cell.getWestFace()?.getComposition();
+                                        wFace = cell.getWestFace();
                                         break;
                                     case COMPASS_DIRECTION_SELF: // Cell composition
                                         compId = cell.getComposition();
+                                        fixtures = cell.getFixturesMap();
                                         break;
                                 }
                             }
@@ -348,11 +396,13 @@
                     this.setImageUrl(comp.getTileUrl());
                     this.setBgColor(comp.getMapColor() ?? 'transparent');
                     
-                    this._bFace.setImageUrl(model.getComposition(bFaceCompId)?.getTileUrl() ?? null);
-                    this._nFace.setImageUrl(model.getComposition(nFaceCompId)?.getTileUrl() ?? null);
-                    this._sFace.setImageUrl(model.getComposition(sFaceCompId)?.getTileUrl() ?? null);
-                    this._eFace.setImageUrl(model.getComposition(eFaceCompId)?.getTileUrl() ?? null);
-                    this._wFace.setImageUrl(model.getComposition(wFaceCompId)?.getTileUrl() ?? null);
+                    this._bFace.update(bFace);
+                    this._nFace.update(nFace);
+                    this._sFace.update(sFace);
+                    this._eFace.update(eFace);
+                    this._wFace.update(wFace);
+                    
+                    this._fixtures.update(fixtures);
                     
                     cellViewsByLocId.set(cell.locId, this);
                 }
@@ -592,7 +642,7 @@
             
             // Make a lookup table of observed cell IDs. These are Cells that are within your
             // sight distance. This produces a "set" of Cells in a circular shape.
-            const originArr = character[FIELD_LOC],
+            const originArr = character.getLocArr(),
                 originCell = model.getCellByLocArr(originArr),
                 baseX = originArr[1],
                 baseY = originArr[2],
