@@ -457,6 +457,7 @@
                         attrs.roundedCorners = cornerRadius + 2;
                         attrs.textColor = colorBgF;
                         attrs.pointerEvents = 'none';
+                        attrs.zIndex ??= 100;
                         this.callSuper();
                     }
                 }),

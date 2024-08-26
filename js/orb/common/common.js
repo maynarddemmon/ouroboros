@@ -339,7 +339,7 @@
                     case COMPASS_UP: return this.getBottomFace();
                     case COMPASS_DOWN: return this.getTopFace();
                 }
-            },
+            }
         }),
         
         CommonEntityModelMixin = new JSModule('CommonEntityModelMixin', {
@@ -597,7 +597,7 @@
                     W3:{
                         name:'Smooth Stone Wall with Door Frame',
                         tileUrl:'/img/tile/stone_wall_door_frame.png',
-                        solidity:1,
+                        solidity:0.5,
                         opacity:0.25,
                         damping:0.13
                     },

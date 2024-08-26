@@ -205,7 +205,7 @@
         },
         
         notifyUserOfFailure = function(msg) {
-            pkg.gameMap.animateEntity(model.getCharacterInPlay().getId());
+            pkg.gameMap.animateEntity(pkg.model.getCharacterInPlay().getId());
             pkg.gamePanel.appendToChatLog(msg);
         };
     
