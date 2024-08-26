@@ -39,7 +39,7 @@
         
         getRandomArrayValue = array => array[getRandomInt(0, array.length - 1)],
         
-        /* A Map of EntityView instances by entity ID.  */
+        /* A Map of EntityView instances by entity ID. */
         entityViewsByEntityId = new Map(),
         
         /* A Map of CellViews by location ID. */
@@ -47,6 +47,17 @@
         
         observedLocIds = new Set(), // Reused inside the render function.
         obscuredLocIds = new Set(), // Reused inside the render function.
+        
+        /* z-index reference
+             1: FaceView (bottom)
+             2: FaceViews (others)
+             3: FixturesViews
+            10: _observedOverlay (shadow for obscured and not observed cells)
+            20: EntityViews
+            21: ChatBubbleViews
+            ---
+            100: overlays in GamePanel.js
+        */
         
         ChatBubbleView = new JSClass('ChatBubbleView', PaddedText, {
             include:[Reusable],
@@ -248,8 +259,13 @@
                 this.callSuper(parent, attrs);
             },
             
+            clean: function() {
+                this.setVisible(false);
+            },
+            
             update: function(fixture) {
                 if (fixture) {
+                    this.setVisible(true);
                     this.setImageUrl(getFixtureTemplate(fixture.template)?.getUrlByStateKey(fixture.getStateKey()) ?? null);
                 } else {
                     this.setImageUrl(null);
@@ -263,16 +279,16 @@
                 attrs.pointerEvents = 'none';
                 attrs.zIndex ??= 3;
                 this.callSuper(parent, attrs);
+                this.fixturesPool = new TrackActivesPool(FixtureView, this);
             },
             
             update: function(fixturesContainerModel) {
-                this.destroyAllSubviews();
-                // FIXME: use a pool?
+                const fixturesPool = this.fixturesPool;
+                fixturesPool.putActives();
                 
-                if (fixturesContainerModel) {
-                    for (const [fixtureId, fixture] of fixturesContainerModel) {
-                        const fixtureView = new FixtureView(this);
-                        fixtureView.update(fixture);
+                if (fixturesContainerModel?.size > 0) {
+                    for (const [,fixture] of fixturesContainerModel) {
+                        fixturesPool.getInstance().update(fixture);
                     }
                 }
             }
