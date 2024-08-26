@@ -157,15 +157,27 @@ const path = require('path'),
         
         // Game Rules
         rules: {
+            isCompositionAether: cell => {
+                switch (cell.getComposition()) {
+                    case 'v3':
+                    case 'v4':
+                        return true;
+                    default:
+                        return false;
+                }
+            },
+            
+            isCompositionVoid: cell => cell.getCompositionObject().getSolidity() === -1,
+            
             doOnSpiritualChangeForCharacter: (character, cell) => {
                 if (!cell) cell = character.getCell();
-                if (cell.isCompositionVoid()) {
+                if (orb.rules.isCompositionVoid(cell)) {
                     if (character.isSpirit()) {
                         cell.setComposition('v3');
                     } else if (character.isAstralProjected()) {
                         cell.setComposition('v4');
                     }
-                } else if (cell.isCompositionAether()) {
+                } else if (orb.rules.isCompositionAether(cell)) {
                     // Corporeal characters can change to astral cord but not
                     // Vice versa.
                     if (character.isAstralProjected()) {
@@ -180,7 +192,7 @@ const path = require('path'),
                 const cell = character.getCell();
                 if (character.isSpirit()) {
                     return true;
-                } else if (character.isAstralProjected() && cell.isCompositionVoid()) {
+                } else if (character.isAstralProjected() && orb.rules.isCompositionVoid(cell)) {
                     return true;
                 }
                 
@@ -202,7 +214,7 @@ const path = require('path'),
                     // Only 1 spirit at a time in a cell
                     return !cell.getSpiritEntityCount(1);
                 } else if (character.isAstralProjected()) {
-                    if (cell.isCompositionVoid()) {
+                    if (orb.rules.isCompositionVoid(cell)) {
                         // Only 1 AstralProjected at a time in a cell
                         return !cell.getAstralProjectedEntityCount(1);
                     }

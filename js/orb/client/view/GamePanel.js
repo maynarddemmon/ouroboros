@@ -38,7 +38,7 @@
                 TYPE_EXIT_WORLD, TYPE_ALTER_CELL, TYPE_CHANGE_FACING, TYPE_VOCALIZE
             },
             facings:{NORTH, SOUTH, EAST, WEST, UP, DOWN},
-            composition:{compositions},
+            composition:{templates},
             locIdToArr
         } = common,
         
@@ -63,7 +63,7 @@
         getLocInfo = cell => {
             const locArr = cell.getLocArr(),
                 mapDatum = model.getMapDatum(locArr[0]);
-            return compositions[cell.hasBeenSeen() ? cell.getComposition() : 'unk'].name + ' / x:' + locArr[1] + ' / y:' + locArr[2];
+            return templates[cell.hasBeenSeen() ? cell.getComposition() : 'unk'].name + ' / x:' + locArr[1] + ' / y:' + locArr[2];
         },
         
         getEntityInfo = entity => {
@@ -565,9 +565,8 @@
                 ]
             });
             const options = [];
-            for (const key in compositions) {
-                const entry = compositions[key];
-                options.push({label:entry.name, value:key});
+            for (const key in templates) {
+                options.push({label:templates[key].name, value:key});
             }
             alterCellCompositionSelector = new InputSelect(characterTab, {
                 visible:false, height:28, options:options

@@ -2,16 +2,12 @@ const orb = require('./orb.js'),
     
     {
         JS, 
-        tym:{
-            Eventable,
-            AccessorSupport:{generateSetterName}
-        }
+        tym:{Eventable}
     } = require('../../../lib/tym.js'),
     
     worldMap = require('./WorldMap.js'),
     {
-        CommonEntityModelMixin,
-        CommonCharacterModelMixin,
+        CommonEntityModelMixin, CommonCharacterModelMixin,
         facings:{NORTH},
         permissions:{PERM_CREATOR},
         isValidLocArr
@@ -60,13 +56,13 @@ const orb = require('./orb.js'),
         
         /** Gets data that the provided character can see/hear/sense about this entity. */
         getAsDataForCharacter: function(character) {
-            const retval = {};
-            retval.id = this.getId();
-            retval.spirit = this.isSpirit();
-            retval.zombie = this.isZombie();
-            retval.astral = this.isAstralProjected();
-            retval.facing = this.getFacing();
-            return retval;
+            return {
+                id: this.getId(),
+                spirit: this.isSpirit(),
+                zombie: this.isZombie(),
+                astral: this.isAstralProjected(),
+                facing: this.getFacing()
+            };
         },
         
         doVocalize: function(volume, message) {
@@ -149,20 +145,6 @@ const orb = require('./orb.js'),
         
         getAuditoryObservedCells: function() {return this._auditoryObservedCells;},
         setAuditoryObservedCells: function(v) {this._auditoryObservedCells = v;},
-        
-        /*observeCell: function(cell) {
-            if (cell) this._observedCells.push(cell);
-        },
-        unobserveCell: function(cellToForget) {
-            const cells = this._observedCells,
-                len = cells.length;
-            while (i) {
-                if (cells[--i] === cellToForget) {
-                    splice(i, 1);
-                    break;
-                }
-            }
-        },*/
         
         getAsData: function() {
             const retval = {...this};

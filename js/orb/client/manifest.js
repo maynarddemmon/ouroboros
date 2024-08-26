@@ -7,7 +7,9 @@ JS.Packages(file => {
     file(ORB_ROOT + '../../../lib/myt.js').provides('myt.all');
     
     // Common
-    file(ORB_ROOT + '../common/common.js').provides('common').requires('myt.all');
+    file(ORB_ROOT + '../common/composition.js').provides('composition').requires('myt.all');
+    file(ORB_ROOT + '../common/fixture.js').provides('fixture').requires('myt.all');
+    file(ORB_ROOT + '../common/common.js').provides('common').requires('fixture','composition');
     file(ORB_ROOT + '../common/SocketProtocol.js').provides('common.greek').requires('common');
     file(ORB_ROOT + '../common/util.js').provides('common.util').requires('common');
     file(ORB_ROOT + '../common/cellOffsets.js').provides('common.cellOffsetsByDistance').requires('common');

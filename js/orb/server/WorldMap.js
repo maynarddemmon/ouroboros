@@ -12,7 +12,7 @@ const orb = require('./orb.js'),
     } = require('../../../lib/tym.js'),
     
     {
-        CommonMapModelMixin, CommonFaceModelMixin, CommonCellModelMixin, CommonFixtureModelMixin,
+        CommonMapModel, CommonFaceModel, CommonCellModel, CommonFixtureModel,
         composition:{MEL_LOOKUP},
         facings:{NORTH, SOUTH, EAST, WEST},
         locIdToArr, locArrToId, locArrToMapId, locIdToMapId
@@ -24,9 +24,7 @@ const orb = require('./orb.js'),
     FILENAME_MAPS = 'maps',
     FILENAME_CELLS = 'cells',
     
-    MapModel = new JSClass('MapModel', Eventable, {
-        include:[CommonMapModelMixin],
-        
+    MapModel = new JSClass('MapModel', CommonMapModel, {
         // Methods /////////////////////////////////////////////////////////////
         getAsData: function() {
             return {
@@ -71,9 +69,7 @@ const orb = require('./orb.js'),
         }
     }),
     
-    FixtureModel = new JSClass('FixtureModel', Eventable, {
-        include:[CommonFixtureModelMixin],
-        
+    FixtureModel = new JSClass('FixtureModel', CommonFixtureModel, {
         init: function(attrs) {
             attrs.id ??= orb.getGuidString('f');
             
@@ -93,9 +89,7 @@ const orb = require('./orb.js'),
         },
     }),
     
-    FaceModel = new JSClass('FaceModel', Eventable, {
-        include:[CommonFaceModelMixin],
-        
+    FaceModel = new JSClass('FaceModel', CommonFaceModel, {
         init: function(attrs) {
             const cell = attrs.cell;
             if (cell) {
@@ -110,7 +104,6 @@ const orb = require('./orb.js'),
             if (this.inited) this.getCell()?.notifyAllVisualChangeListenersThatCellChanged();
         },
         
-        // Fixtures //
         makeFixtureFromDatum: datum => new FixtureModel(datum),
         
         getAsData: function() {
@@ -123,10 +116,7 @@ const orb = require('./orb.js'),
         },
     }),
     
-    Cell = new JSClass('Cell', Eventable, {
-        include:[CommonCellModelMixin],
-        
-        
+    CellModel = new JSClass('CellModel', CommonCellModel, {
         // Accessors ///////////////////////////////////////////////////////////
         setC: function(v) {
             this.callSuper(v);
@@ -340,7 +330,7 @@ const orb = require('./orb.js'),
     cellExistsForArr = locArr => getCellByLocArr(locArr) != null,
     cellExists = locArrOrId => cellExistsForId(locArrToId(locArr)),
     
-    makeCell = params => new Cell(params),
+    makeCell = params => new CellModel(params),
     makeAndSetCell = (locArrOrId, params) => setCell(coerceToLocId(locArrOrId), makeCell(params)),
     makeAndSetMissingCell = locId => {
         let comp;

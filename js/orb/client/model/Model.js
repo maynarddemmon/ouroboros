@@ -10,9 +10,9 @@
         } = myt,
         
         {
-            CommonMapModelMixin, CommonFaceModelMixin, CommonCellModelMixin, 
+            CommonMapModel, CommonFaceModel, CommonCellModel, 
             CommonEntityModelMixin, CommonCharacterModelMixin,
-            CommonFixtureTemplateModelMixin, CommonFixtureModelMixin,
+            CommonFixtureTemplateModelMixin, CommonFixtureModel,
             greek:{TYPE_MOVE},
             fixture:{templates:fixtureTemplates},
             permissions:{
@@ -29,24 +29,11 @@
         entityData = {},
         characters = [],
         
-        MapModel = new JSClass('MapModel', Eventable, {
-            include:[CommonMapModelMixin]
+        FaceModel = new JSClass('FaceModel', CommonFaceModel, {
+            makeFixtureFromDatum: datum => new CommonFixtureModel(datum),
         }),
         
-        FixtureModel = new JSClass('FixtureModel', Eventable, {
-            include:[CommonFixtureModelMixin],
-        }),
-        
-        FaceModel = new JSClass('FaceModel', Eventable, {
-            include:[CommonFaceModelMixin],
-            
-            // Fixtures //
-            makeFixtureFromDatum: datum => new FixtureModel(datum),
-        }),
-        
-        CellModel = new JSClass('CellModel', Eventable, {
-            include:[CommonCellModelMixin],
-            
+        CellModel = new JSClass('CellModel', CommonCellModel, {
             init: function(attrs) {
                 this.partsSeen = new Set();
                 this.callSuper(attrs);
@@ -108,7 +95,7 @@
             },
             
             // Fixtures //
-            makeFixtureFromDatum: datum => new FixtureModel(datum),
+            makeFixtureFromDatum: datum => new CommonFixtureModel(datum),
         }),
         
         EntityModel = new JSClass('EntityModel', Eventable, {
@@ -291,7 +278,7 @@
             getMapDatum: mapId => mapData[mapId],
             storeMapData: data => {
                 const mapData = getMapData();
-                for (const key in data) mapData[key] = new MapModel(data[key]);
+                for (const key in data) mapData[key] = new CommonMapModel(data[key]);
                 model.fireEvent('mapsChanged');
             },
             // Map:end
