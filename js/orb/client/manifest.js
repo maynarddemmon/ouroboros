@@ -10,9 +10,12 @@ JS.Packages(file => {
     file(ORB_ROOT + '../common/common.js').provides('common').requires('myt.all');
     file(ORB_ROOT + '../common/SocketProtocol.js').provides('common.greek').requires('common');
     file(ORB_ROOT + '../common/util.js').provides('common.util').requires('common');
+    file(ORB_ROOT + '../common/cellOffsets.js').provides('common.cellOffsetsByDistance').requires('common');
     
     // Package:orb
-    file(ORB_ROOT + 'orb.js').provides('orb').requires('common.greek','common.util');
+    file(ORB_ROOT + 'orb.js').provides('orb').requires(
+        'common.greek','common.util','common.cellOffsetsByDistance'
+    );
     
     file(COMPONENT_ROOT + 'WebSocket.js').provides('orb.MessageTypeWebSocket').requires('orb');
     file(COMPONENT_ROOT + 'Basic.js').provides(

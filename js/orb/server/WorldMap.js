@@ -1,8 +1,6 @@
 let isReady = false,
     maps = {},
-    cells = {},
-    fixtureTemplatesById = {},
-    compositionsByCompId = {};
+    cells = {};
 
 const orb = require('./orb.js'),
     
@@ -10,35 +8,21 @@ const orb = require('./orb.js'),
     
     {
         JS:{Class:JSClass}, 
-        tym:{
-            Eventable,
-            getRandomInt,
-            AccessorSupport:{generateSetterName}
-        }
+        tym:{Eventable, getRandomInt}
     } = require('../../../lib/tym.js'),
     
     {
-        CommonMapModelMixin, CommonCompositionModelMixin, CommonFaceModelMixin, CommonCellModelMixin,
-        CommonFixtureTemplateModelMixin, CommonFixtureModelMixin,
-        cellOffsetsByDistance,
-        composition:{MEL_LOOKUP, compositions},
-        fixture:{templates:fixtureTemplates},
-        FACINGS:{NORTH, SOUTH, EAST, WEST}
+        CommonMapModelMixin, CommonFaceModelMixin, CommonCellModelMixin, CommonFixtureModelMixin,
+        composition:{MEL_LOOKUP},
+        facings:{NORTH, SOUTH, EAST, WEST},
+        locIdToArr, locArrToId, locArrToMapId, locIdToMapId
     } = require('../common/common.js'),
-    {locIdToArr, locArrToId, locArrToMapId, locIdToMapId} = require('../common/util.js'),
+    {cellOffsetsByDistance} = require('../common/cellOffsets.js'),
     {TYPE_CELL_DATA} = require('../common/SocketProtocol.js'),
     accountService = require('./AccountService.js'),
     
     FILENAME_MAPS = 'maps',
     FILENAME_CELLS = 'cells',
-    
-    Composition = new JSClass('Composition', Eventable, {
-        include:[CommonCompositionModelMixin]
-    }),
-    
-    FixtureTemplate = new JSClass('FixtureTemplate', Eventable, {
-        include:[CommonFixtureTemplateModelMixin]
-    }),
     
     MapModel = new JSClass('MapModel', Eventable, {
         include:[CommonMapModelMixin],
@@ -101,8 +85,6 @@ const orb = require('./orb.js'),
             this.callSuper(attrs);
         },
         
-        getTemplateObject: () => {return fixtureTemplatesById[this.getTemplate()];},
-        
         getAsData: function() {
             return {
                 template:this.template,
@@ -127,7 +109,6 @@ const orb = require('./orb.js'),
             this.callSuper(v);
             if (this.inited) this.getCell()?.notifyAllVisualChangeListenersThatCellChanged();
         },
-        getCompositionObject: function() {return compositionsByCompId[this.getComposition()];},
         
         // Fixtures //
         makeFixtureFromDatum: datum => new FixtureModel(datum),
@@ -151,7 +132,6 @@ const orb = require('./orb.js'),
             this.callSuper(v);
             if (this.inited) this.notifyAllVisualChangeListenersThatCellChanged();
         },
-        getCompositionObject: function() {return compositionsByCompId[this.getComposition()];},
         
         setN: function(v) {
             if (v) {
@@ -380,7 +360,7 @@ const orb = require('./orb.js'),
     getCellByLocArr = (locArr, makeIfMissing) => getCell(locArrToId(locArr), makeIfMissing),
     setCell = (locId, cell) => {
         cells[locId] = cell;
-        cell.locId = locId;
+        cell.setLocId(locId);
         return cell;
     },
     
@@ -399,7 +379,7 @@ const orb = require('./orb.js'),
                 }
                 
                 const offsets = cellOffsetsByDistance[distance],
-                    locArr = locIdToArr(newCell.locId),
+                    locArr = newCell.getLocArr(true),
                     baseX = locArr[1],
                     baseY = locArr[2];
                 for (const [offsetX, offsetY] of offsets) {
@@ -447,18 +427,6 @@ const orb = require('./orb.js'),
     
     live = (resolve, reject) => {
         console.log('Restoring World Maps...');
-        
-        console.log('  Making Fixture Templates...');
-        for (const id in fixtureTemplates) {
-            fixtureTemplatesById[id] = new FixtureTemplate(fixtureTemplates[id]);
-        }
-        console.log('  Constructed ' + objectKeys(fixtureTemplatesById).length + ' FixtureTemplate Objects.');
-        
-        console.log('  Making Compositions...');
-        for (const id in compositions) {
-            compositionsByCompId[id] = new Composition(compositions[id]);
-        }
-        console.log('  Constructed ' + objectKeys(compositionsByCompId).length + ' Composition Objects.');
         
         let jsonData = orb.readDataFile(FILENAME_MAPS);
         if (jsonData) {

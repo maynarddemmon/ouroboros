@@ -12,10 +12,10 @@ const orb = require('./orb.js'),
     {
         CommonEntityModelMixin,
         CommonCharacterModelMixin,
-        FACINGS,
-        permissions:{PERM_CREATOR}
+        facings:{NORTH},
+        permissions:{PERM_CREATOR},
+        isValidLocArr
     } = require('../common/common.js'),
-    {isValidLocArr} = require('../common/util.js'),
     {TYPE_ALTER_ENTITY, TYPE_SOUND} = require('../common/SocketProtocol.js'),
     
     FILENAME_CHARACTERS = 'characters',
@@ -33,7 +33,7 @@ const orb = require('./orb.js'),
             attrs.zombie ??= false;
             attrs.astral ??= false;
             attrs.loc ??= [0,0,0,0];
-            attrs.facing ??= FACINGS.NORTH;
+            attrs.facing ??= NORTH;
             
             this.callSuper(attrs);
         },

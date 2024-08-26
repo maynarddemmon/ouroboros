@@ -52,43 +52,6 @@
                     }
                 }
                 return accum.join('');
-            },
-            
-            // Map Functions
-            locIdToArr: locId => {
-                let locArr;
-                if (locId) {
-                    locArr = locId.split(',');
-                    const len = locArr.length;
-                    for (let i = 0; i < len; i++) {
-                        locArr[i] = parseInt(locArr[i]);
-                    }
-                } else {
-                    locArr = [];
-                }
-                return locArr;
-            },
-            locArrToId: locArr => locArr.join(),
-            locIdToMapId: locId => locId ? locId.split(',')[0] : null,
-            locArrToMapId: locArr => '' + locArr[0],
-            isValidLocArr: locArr => {
-                if (locArr.length === 4) {
-                    for (const entry of locArr) {
-                        if (!Number.isInteger(entry)) return false;
-                    }
-                    return true;
-                }
-                return false;
-            },
-            areLocArrEqual: (locArrA, locArrB) => {
-                if (locArrA !== locArrB) {
-                    if (locArrA == null || locArrB == null) return false;
-                    if (locArrA[1] !== locArrB[1]) return false;
-                    if (locArrA[2] !== locArrB[2]) return false;
-                    if (locArrA[3] !== locArrB[3]) return false;
-                    if (locArrA[0] !== locArrB[0]) return false;
-                }
-                return true;
             }
         };
     

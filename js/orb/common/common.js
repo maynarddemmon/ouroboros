@@ -12,11 +12,12 @@
     }
     
     const
-        {
-            AccessorSupport:{generateSetterName}
-        } = tym,
+        {Eventable} = tym,
         
-        JSModule = JS.Module,
+        {Module:JSModule, Class:JSClass} = JS,
+        
+        compositionsByCompId = {},
+        fixtureTemplatesById = {},
         
         PERM_CREATOR = 'creator',
         
@@ -27,151 +28,19 @@
         COMPASS_UP = 5,
         COMPASS_DOWN = 6,
         
-        /* all zags must be the same order within a path
-            should walk from origin out to loc. */
-        VISIBILITY_PATHS = [
-            [,
-                ['up'],
-                ['up', 'up'],
-                ['up', 'up', 'up'],
-                ['up', 'up', 'up', 'up'],
-                ['up', 'up', 'up', 'up', 'up'],
-                ['up', 'up', 'up', 'up', 'up', 'up'],
-                ['up', 'up', 'up', 'up', 'up', 'up', 'up'],
-                ['up', 'up', 'up', 'up', 'up', 'up', 'up', 'up'],
-                ['up', 'up', 'up', 'up', 'up', 'up', 'up', 'up', 'up']
-            ],[,
-                ['zz'],
-                ['up', 'zz'],
-                ['up', 'zz', 'up'],
-                ['up', 'zz', 'up', 'up'],
-                ['up', 'up', 'up', 'zz', 'up'],
-                ['up', 'up', 'up', 'zz', 'up', 'up'],
-                ['up', 'up', 'up', 'up', 'uo', 'up', 'up'],
-                ['up', 'up', 'up', 'up', 'zz', 'up', 'up', 'up'],
-                ['up', 'up', 'up', 'up', 'zz', 'up', 'up', 'up', 'up'],
-            ],[,,
-                ['zz', 'zz'],
-                ['zz', 'up', 'zz'],
-                ['up', 'zz', 'up', 'zz'],
-                ['up', 'zz', 'up', 'zz', 'up'],
-                ['up', 'zz', 'up', 'up', 'zz', 'up'],
-                ['up', 'up', 'zz', 'up', 'up', 'zz', 'up'],
-                ['up', 'up', 'zz', 'up', 'up', 'up', 'zz', 'up'],
-                ['up', 'up', 'up', 'zz', 'up', 'up', 'up', 'zz', 'up'],
-            ],[,,,
-                ['zz', 'zz', 'zz'],
-                ['zz', 'up', 'zz', 'zz'],
-                ['up', 'uo', 'up', 'uo', 'zz'],
-                ['up', 'uo', 'up', 'uo', 'up', 'uo'],
-                ['up', 'up', 'up', 'up', 'uo', 'up', 'uo'],
-                ['up', 'zz', 'up', 'up', 'zz', 'up', 'zz', 'up'],
-            ],[,,,,
-                ['zz', 'zz', 'zz', 'zz'],
-                ['zz', 'zz', 'up', 'zz', 'zz'],
-                ['up', 'uo', 'zz', 'up', 'uo', 'zz'],
-                ['uo', 'up', 'up' ,'uo', 'zz', 'uo', 'up'],
-                ['up', 'uo', 'up', 'uo', 'up', 'uo', 'up', 'uo'],
-            ],[,,,,,
-                ['zz', 'zz', 'zz', 'zz', 'zz'],
-                ['zz', 'up', 'uo', 'uo', 'uo' ,'zz'],
-                ['zz' ,'up', 'uo' ,'zz', 'up', 'uo' ,'zz'],
-                ['zz' ,'up', 'zz' ,'up', 'uo', 'up', 'uo', 'zz'],
-            ],[,,,,,,
-                ['zz', 'zz' ,'zz' ,'zz' ,'zz' ,'zz'],
-                ['zz' ,'up' ,'uo', 'uo', 'uo', 'zz' ,'zz'],
-            ]
-        ],
-        
-        RING_0 = [[0,0]],
-        RING_1 = (() => {
-            let x = -1, y = 0;
-            return [[++x,++y],[++x,--y],[--x,--y],[--x,++y]];
-        })(),
-        RING_2 = (() => {
-            let x = -1, y = 2;
-            return [
-                [++x,y],[++x,y],[x,--y],[++x,y],
-                [x,--y],[x,--y],[--x,y],[x,--y],
-                [--x,y],[--x,y],[x,++y],[--x,y],
-                [x,++y],[x,++y],[++x,y],[x,++y]
-            ];
-        })(),
-        RING_3 = (() => {
-            let x = -1, y = 3;
-            return [
-                [++x,y],[++x,y],[++x,--y],[++x,--y],
-                [x,--y],[x,--y],[--x,--y],[--x,--y],
-                [--x,y],[--x,y],[--x,++y],[--x,++y],
-                [x,++y],[x,++y],[++x,++y],[++x,++y]
-            ];
-        })(),
-        RING_4 = (() => {
-            let x = -1, y = 4;
-            return [
-                [++x,y],[++x,y],[++x,--y],[++x,y],[x,--y],[++x,--y],
-                [x,--y],[x,--y],[--x,--y],[x,--y],[--x,y],[--x,--y],
-                [--x,y],[--x,y],[--x,++y],[--x,y],[x,++y],[--x,++y],
-                [x,++y],[x,++y],[++x,++y],[x,++y],[++x,y],[++x,++y]
-            ];
-        })(),
-        RING_5 = (() => {
-            let x = -1, y = 5;
-            return [
-                [++x,y],[++x,y],[++x,y],[x,--y],[++x,y],[++x,--y],[x,--y],[++x,y],[x,--y],
-                [x,--y],[x,--y],[x,--y],[--x,y],[x,--y],[--x,--y],[--x,y],[x,--y],[--x,y],
-                [--x,y],[--x,y],[--x,y],[x,++y],[--x,y],[--x,++y],[x,++y],[--x,y],[x,++y],
-                [x,++y],[x,++y],[x,++y],[++x,y],[x,++y],[++x,++y],[++x,y],[x,++y],[++x,y]
-            ];
-        })(),
-        RING_6 = (() => {
-            let x = -1, y = 6;
-            return [
-                [++x,y],[++x,y],[++x,y],[++x,--y],[++x,y],[x,--y],[++x,y],[x,--y],[++x,--y],[x,--y],
-                [x,--y],[x,--y],[x,--y],[--x,--y],[x,--y],[--x,y],[x,--y],[--x,y],[--x,--y],[--x,y],
-                [--x,y],[--x,y],[--x,y],[--x,++y],[--x,y],[x,++y],[--x,y],[x,++y],[--x,++y],[x,++y],
-                [x,++y],[x,++y],[x,++y],[++x,++y],[x,++y],[++x,y],[x,++y],[++x,y],[++x,++y],[++x,y]
-            ];
-        })(),
-        RING_7 = (() => {
-            let x = -1, y = 7;
-            return [
-                [++x,y],[++x,y],[++x,y],[++x,--y],[++x,y],[++x,--y],[x,--y],[++x,y],[x,--y],[++x,--y],[x,--y],
-                [x,--y],[x,--y],[x,--y],[--x,--y],[x,--y],[--x,--y],[--x,y],[x,--y],[--x,y],[--x,--y],[--x,y],
-                [--x,y],[--x,y],[--x,y],[--x,++y],[--x,y],[--x,++y],[x,++y],[--x,y],[x,++y],[--x,++y],[x,++y],
-                [x,++y],[x,++y],[x,++y],[++x,++y],[x,++y],[++x,++y],[++x,y],[x,++y],[++x,y],[++x,++y],[++x,y]
-            ];
-        })(),
-        RING_8 = (() => {
-            let x = -1, y = 8;
-            return [
-                [++x,y],[++x,y],[++x,y],[++x,--y],[++x,y],[++x,--y],[++x,--y],[x,--y],[++x,y],[x,--y],[++x,--y],[x,--y],
-                [x,--y],[x,--y],[x,--y],[--x,--y],[x,--y],[--x,--y],[--x,--y],[--x,y],[x,--y],[--x,y],[--x,--y],[--x,y],
-                [--x,y],[--x,y],[--x,y],[--x,++y],[--x,y],[--x,++y],[--x,++y],[x,++y],[--x,y],[x,++y],[--x,++y],[x,++y],
-                [x,++y],[x,++y],[x,++y],[++x,++y],[x,++y],[++x,++y],[++x,++y],[++x,y],[x,++y],[++x,y],[++x,++y],[++x,y]
-            ];
-        })(),
-        RING_9 = (() => {
-            let x = -1, y = 9;
-            return [
-                //   r       r       r        dr       r       r       d       r       d       r       d       r       d       d        rd       d
-                [++x,y],[++x,y],[++x,y],[++x,--y],[++x,y],[++x,y],[x,--y],[++x,y],[x,--y],[++x,y],[x,--y],[++x,y],[x,--y],[x,--y],[++x,--y],[x,--y],
-                [x,--y],[x,--y],[x,--y],[--x,--y],[x,--y],[x,--y],[--x,y],[x,--y],[--x,y],[x,--y],[--x,y],[x,--y],[--x,y],[--x,y],[--x,--y],[--x,y],
-                [--x,y],[--x,y],[--x,y],[--x,++y],[--x,y],[--x,y],[x,++y],[--x,y],[x,++y],[--x,y],[x,++y],[--x,y],[x,++y],[x,++y],[--x,++y],[x,++y],
-                [x,++y],[x,++y],[x,++y],[++x,++y],[x,++y],[x,++y],[++x,y],[x,++y],[++x,y],[x,++y],[++x,y],[x,++y],[++x,y],[++x,y],[++x,++y],[++x,y]
-            ];
-        })(),
-        
-        CIRCLE_0 = RING_0,
-        CIRCLE_1 = [...CIRCLE_0, ...RING_1],
-        CIRCLE_2 = [...CIRCLE_1, ...RING_2],
-        CIRCLE_3 = [...CIRCLE_2, ...RING_3],
-        CIRCLE_4 = [...CIRCLE_3, ...RING_4],
-        CIRCLE_5 = [...CIRCLE_4, ...RING_5],
-        CIRCLE_6 = [...CIRCLE_5, ...RING_6],
-        CIRCLE_7 = [...CIRCLE_6, ...RING_7],
-        CIRCLE_8 = [...CIRCLE_7, ...RING_8],
-        CIRCLE_9 = [...CIRCLE_8, ...RING_9],
+        locIdToArr = locId => {
+            let locArr;
+            if (locId) {
+                locArr = locId.split(',');
+                const len = locArr.length;
+                for (let i = 0; i < len; i++) {
+                    locArr[i] = parseInt(locArr[i]);
+                }
+            } else {
+                locArr = [];
+            }
+            return locArr;
+        },
         
         CommonMapModelMixin = new JSModule('CommonMapModelMixin', {
             setName: function(v) {this.set('name', v, true);},
@@ -182,7 +51,7 @@
             getElements: function() {return this.elements;}
         }),
         
-        CommonCompositionModelMixin = new JSModule('CommonCompositionModelMixin', {
+        CompositionModel = new JSClass('CompositionModel', Eventable, {
             setName: function(v) {this.set('name', v, true);},
             getName: function() {return this.name;},
             
@@ -199,7 +68,7 @@
             getDamping: function() {return this.damping;}
         }),
         
-        CommonFixtureTemplateModelMixin = new JSModule('CommonFixtureTemplateModelMixin', {
+        FixtureTemplate = new JSClass('FixtureTemplate', Eventable, {
             setName: function(v) {this.set('name', v, true);},
             getName: function() {return this.name;},
             
@@ -222,7 +91,7 @@
             
             setTemplate: function(v) {this.set('template', v, true);},
             getTemplate: function() {return this.template;},
-            getTemplateObject: () => {/* Subclasses must implement. */},
+            getTemplateObject: () => {return fixtureTemplatesById[this.getTemplate()];},
             
             getStateObject: function() {return this.state ??= {};},
             setStateByAttr: function(attrName, value) {this.getStateObject()[attrName] = value;},
@@ -284,16 +153,27 @@
             setC: function(v) {this.set('c', v, true);},
             setComposition: function(v) {this.setC(v);},
             getComposition: function() {return this.c;},
-            getCompositionObject: () => {/* Subclasses must implement. */},
+            getCompositionObject: function() {return compositionsByCompId[this.getComposition()];},
         }),
         
         CommonCellModelMixin = new JSModule('CommonCellModelMixin', {
             include:[FixtureContainerMixin],
             
+            setLocId: function(v) {
+                if (this.locId !== v) {
+                    this.locId = v;
+                    this.locArr = null;
+                }
+            },
+            getLocArr: function(asCopy) {
+                const locArr = this.locArr ??= locIdToArr(this.locId);
+                return asCopy ? locArr.slice() : locArr;
+            },
+            
             setC: function(v) {this.set('c', v, true);},
             setComposition: function(v) {this.setC(v);},
             getComposition: function() {return this.c;},
-            getCompositionObject: () => {/* Subclasses must implement. */},
+            getCompositionObject: function() {return compositionsByCompId[this.getComposition()];},
             
             isCompositionVoid: function() {return this.getCompositionObject().getSolidity() === -1;},
             isCompositionAether: function() {
@@ -401,25 +281,62 @@
         }),
         
         EXPORT = {
+            // Start: loc
+            locIdToArr:locIdToArr,
+            locArrToId: locArr => locArr.join(),
+            locIdToMapId: locId => locId ? locId.split(',')[0] : null,
+            locArrToMapId: locArr => '' + locArr[0],
+            isValidLocArr: locArr => {
+                if (locArr.length === 4) {
+                    for (const entry of locArr) {
+                        if (!Number.isInteger(entry)) return false;
+                    }
+                    return true;
+                }
+                return false;
+            },
+            areLocArrEqual: (locArrA, locArrB) => {
+                if (locArrA !== locArrB) {
+                    if (locArrA == null || locArrB == null) return false;
+                    if (locArrA[1] !== locArrB[1]) return false;
+                    if (locArrA[2] !== locArrB[2]) return false;
+                    if (locArrA[3] !== locArrB[3]) return false;
+                    if (locArrA[0] !== locArrB[0]) return false;
+                }
+                return true;
+            },
+            // End: loc
+            
+            getComposition: compId => compositionsByCompId[compId],
+            getFixtureTemplate: id => fixtureTemplatesById[id],
+            
             CommonMapModelMixin:CommonMapModelMixin,
-            CommonCompositionModelMixin:CommonCompositionModelMixin,
             CommonFaceModelMixin:CommonFaceModelMixin,
             CommonCellModelMixin:CommonCellModelMixin,
             CommonEntityModelMixin:CommonEntityModelMixin,
             CommonCharacterModelMixin:CommonCharacterModelMixin,
-            CommonFixtureTemplateModelMixin:CommonFixtureTemplateModelMixin,
             CommonFixtureModelMixin:CommonFixtureModelMixin,
             
-            cellOffsetsByDistance:[CIRCLE_0,CIRCLE_1,CIRCLE_2,CIRCLE_3,CIRCLE_4,CIRCLE_5,CIRCLE_6,CIRCLE_7,CIRCLE_8,CIRCLE_9],
-            visibilityPaths:VISIBILITY_PATHS,
-            
-            FACINGS:{
+            facings:{
                 NORTH:COMPASS_NORTH,
                 SOUTH:COMPASS_SOUTH,
                 EAST:COMPASS_EAST,
                 WEST:COMPASS_WEST,
                 UP:COMPASS_UP,
                 DOWN:COMPASS_DOWN,
+                
+                isValidFacing: v => {
+                    switch (v) {
+                        case COMPASS_NORTH:
+                        case COMPASS_SOUTH:
+                        case COMPASS_EAST:
+                        case COMPASS_WEST:
+                        case COMPASS_UP:
+                        case COMPASS_DOWN:
+                            return true;
+                    }
+                    return false;
+                },
                 
                 getOppositeDirection: compassDirection => {
                     switch (compassDirection) {
@@ -431,19 +348,6 @@
                         case COMPASS_DOWN: return COMPASS_UP;
                     }
                 }
-            },
-            
-            isValidFacing: v => {
-                switch (v) {
-                    case COMPASS_NORTH:
-                    case COMPASS_SOUTH:
-                    case COMPASS_EAST:
-                    case COMPASS_WEST:
-                    case COMPASS_UP:
-                    case COMPASS_DOWN:
-                        return true;
-                }
-                return false;
             },
             
             permissions:{
@@ -663,6 +567,16 @@
                 }
             }
         };
+    
+    const compositions = EXPORT.composition.compositions;
+    for (const compId in compositions) {
+        compositionsByCompId[compId] = new CompositionModel(compositions[compId]);
+    }
+    
+    const fixtureTemplates = EXPORT.fixture.templates;
+    for (const id in fixtureTemplates) {
+        fixtureTemplatesById[id] = new FixtureTemplate(fixtureTemplates[id]);
+    }
     
     if (IS_NODEJS) {
         module.exports = EXPORT;

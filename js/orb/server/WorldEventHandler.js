@@ -19,11 +19,10 @@ const orb = require('./orb.js'),
         TYPE_ALTER_CHARACTER
     } = require('../common/SocketProtocol.js'),
     {
-        FACINGS:{NORTH, SOUTH, EAST, WEST, UP, DOWN},
-        permissions:{PERM_CREATOR}
+        facings:{NORTH, SOUTH, EAST, WEST, UP, DOWN},
+        permissions:{PERM_CREATOR},
+        locArrToId, locIdToArr, isValidLocArr
     } = require('../common/common.js'),
-    
-    {locArrToId, locIdToArr, isValidLocArr} = require('../common/util.js'),
     
     warningMessageToUser = (username, msg, extraInfo) => {
         console.warn(msg, extraInfo);

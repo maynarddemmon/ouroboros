@@ -9,7 +9,7 @@
     
     const JSClass = JS.Class,
         
-        {min:mathMin, ceil:mathCeil, abs:mathAbs} = Math,
+        {min:mathMin, ceil:mathCeil} = Math,
         
         {
             View, PaddedText, ImageSupport, Reusable, MouseOverAndDown, TrackActivesPool, 
@@ -18,9 +18,9 @@
         } = myt,
         
         {
-            cellOffsetsByDistance, visibilityPaths,
-            util:{locArrToId,locIdToArr},
-            FACINGS:{NORTH, SOUTH, EAST, WEST, getOppositeDirection},
+            cellOffsetsByDistance, getVisibilityPath, getComposition, getFixtureTemplate,
+            locArrToId, locIdToArr,
+            facings:{NORTH, SOUTH, EAST, WEST, getOppositeDirection},
         } = common,
         
         {
@@ -29,7 +29,6 @@
         } = pkg,
         
         COMPASS_DIRECTION_SELF = 0,
-        AUDIBLE_THRESHOLD = 0.5,
         FACE_OVERAGE = 4,
         
         QUIET_ADVERBS = ['quiet','faint','muted','muffled','soft','low'],
@@ -244,7 +243,6 @@
             
             initNode: function(parent, attrs) {
                 attrs.width = attrs.height = cellSize;
-                attrs.pointerEvents = 'none';
                 attrs.imageSize = 'contain';
                 
                 this.callSuper(parent, attrs);
@@ -252,7 +250,7 @@
             
             update: function(fixture) {
                 if (fixture) {
-                    this.setImageUrl(model.getFixtureTemplate(fixture.template)?.getUrlByStateKey(fixture.getStateKey()) ?? null);
+                    this.setImageUrl(getFixtureTemplate(fixture.template)?.getUrlByStateKey(fixture.getStateKey()) ?? null);
                 } else {
                     this.setImageUrl(null);
                 }
@@ -269,6 +267,8 @@
             
             update: function(fixturesContainerModel) {
                 this.destroyAllSubviews();
+                // FIXME: use a pool?
+                
                 if (fixturesContainerModel) {
                     for (const [fixtureId, fixture] of fixturesContainerModel) {
                         const fixtureView = new FixtureView(this);
@@ -298,9 +298,7 @@
             },
             
             update: function(face) {
-                const compId = face?.getComposition();
-                this.setImageUrl(model.getComposition(compId)?.getTileUrl() ?? null);
-                
+                this.setImageUrl(face?.getCompositionObject()?.getTileUrl() ?? null);
                 this._fixtures.update(face?.getFixturesMap());
             }
         }),
@@ -392,7 +390,7 @@
                         }
                     }
                     
-                    const comp = model.getComposition(compId);
+                    const comp = getComposition(compId);
                     this.setImageUrl(comp.getTileUrl());
                     this.setBgColor(comp.getMapColor() ?? 'transparent');
                     
@@ -413,55 +411,6 @@
                 this._observedOverlay?.setVisible(!isSeen);
             }
         });
-        
-        getVisibilityPath = (x, y, isPosX, isPosY, isYgtX, isYgtNegX) => {
-            let lookupX,
-                lookupY;
-            if (x === y) {
-                // origin and diagonal
-                lookupX = lookupY = mathAbs(x);
-            } else if (x === 0) {
-                // horizontal
-                lookupX = 0;
-                lookupY = mathAbs(y);
-            } else if (y === 0) {
-                // vertical
-                lookupX = 0;
-                lookupY = mathAbs(x);
-            } else if (isPosX) {
-                if (isPosY) {
-                    if (isYgtX) {
-                        lookupX = x;
-                        lookupY = y;
-                    } else {
-                        lookupX = y;
-                        lookupY = x;
-                    }
-                } else if (isYgtNegX) {
-                    lookupX = -y;
-                    lookupY = x;
-                } else {
-                    lookupX = x;
-                    lookupY = -y;
-                }
-            } else if (isPosY) {
-                if (isYgtNegX) {
-                    lookupX = -x;
-                    lookupY = y;
-                } else {
-                    lookupX = y;
-                    lookupY = -x;
-                }
-            } else if (isYgtX) {
-                lookupX = -y;
-                lookupY = -x;
-            } else {
-                lookupX = -x;
-                lookupY = -y;
-            }
-            
-            return visibilityPaths[lookupX][lookupY];
-        };
     
     pkg.GameMap = new JSClass('GameMap', View, {
         include:[ImageSupport],
@@ -519,8 +468,8 @@
             }
         },
         
-        propogateValue: (startLocId, value, endLocId) => {
-            // Succeed Fast when the sound originates in the same Cell.
+        propogateValue: (startLocId, value, threshold, endLocId) => {
+            // Succeed Fast when the value originates in the same Cell.
             if (startLocId === endLocId) {
                 return value * model.getCellComposition(startLocId).getDamping();
             }
@@ -532,11 +481,11 @@
             
             const storeToValue = (to, cell, compassDirection, locArr, value) => {
                 value *= cell.getFaceForDirection(compassDirection)?.getCompositionObject().getDamping() ?? 1;
-                if (value > AUDIBLE_THRESHOLD) {
+                if (value > threshold) {
                     const nextCell = model.getCellByLocArr(locArr);
                     if (!nextCell) return;
                     value *= nextCell.getFaceForOppositeDirection(compassDirection)?.getCompositionObject().getDamping() ?? 1;
-                    if (value > AUDIBLE_THRESHOLD) {
+                    if (value > threshold) {
                         const existingToEntry = to.get(nextCell);
                         if (existingToEntry == null || existingToEntry < value) {
                             to.set(nextCell, value);
@@ -551,8 +500,8 @@
                 const to = new Map();
                 for (const [cell, fromValue] of from) {
                     const toValue = fromValue * cell.getCompositionObject().getDamping();
-                    if (toValue > AUDIBLE_THRESHOLD) {
-                        const locArr = locIdToArr(cell.locId);
+                    if (toValue > threshold) {
+                        const locArr = cell.getLocArr(true);
                         locArr[1] -= 1;
                         storeToValue(to, cell, WEST, locArr, toValue);
                         locArr[1] += 2;
@@ -576,7 +525,8 @@
         
         handleSoundMessage: socketMsg => {
             const {locId, from, type, volume, message} = socketMsg,
-                effectiveVolume = gameMap.propogateValue(locId, volume, locArrToId(character.getLocArr()));
+                AUDIBLE_THRESHOLD = 0.5,
+                effectiveVolume = gameMap.propogateValue(locId, volume, AUDIBLE_THRESHOLD, locArrToId(character.getLocArr()));
             
             if (effectiveVolume <= AUDIBLE_THRESHOLD) {
                 // Sound to low to hear.
@@ -692,7 +642,6 @@
                             DIR_OVER = isNotFlipped ? (isPosX ? EAST : WEST) : (isPosY ? SOUTH : NORTH);
                         
                         let opacityTotal = 0,
-                            endedOnObserved = false,
                             prevCell = originCell;
                         const isCellObscured = (locArrToCheck, isUp) => {
                             const cellToCheck = model.getCellByLocArr(locArrToCheck);
@@ -757,7 +706,6 @@
                                             optBOpacityTotal = opacityTotal,
                                             optBPrevCell = prevCell;
                                         retval = isObscured(depth, false, true);
-                                        const optAEndedOnObserved = endedOnObserved;
                                         
                                         // If option A was obscured try option B.
                                         if (retval) {
@@ -766,7 +714,6 @@
                                             opacityTotal = optBOpacityTotal;
                                             prevCell = optBPrevCell;
                                             retval = isObscured(depth, false, false);
-                                            if (retval && optAEndedOnObserved) endedOnObserved = true;
                                         }
                                         return retval;
                                     } else if (zzOptA) {
@@ -792,20 +739,15 @@
                             }
                             
                             if (retval) {
-                                endedOnObserved = (x + baseX === locArrToCheck[1]) && (y + baseY === locArrToCheck[2]);
                                 return true;
-                            }
-                            
-                            if (depth < len) {
+                            } else if (depth < len) {
                                 return isObscured(++depth, firstZZ, zzOptA);
                             } else {
                                 return false;
                             }
                         };
                         
-                        if (isObscured(0, true, true)) {
-                            /*if (!endedOnObserved)*/ obscuredLocIds.add(locId);
-                        }
+                        if (isObscured(0, true, true)) obscuredLocIds.add(locId);
                     }
                 } else {
                     // Cells that don't exist yet are always considered obscured.

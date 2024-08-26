@@ -10,16 +10,15 @@
         } = myt,
         
         {
-            CommonMapModelMixin, CommonCompositionModelMixin, CommonFaceModelMixin, CommonCellModelMixin, 
+            CommonMapModelMixin, CommonFaceModelMixin, CommonCellModelMixin, 
             CommonEntityModelMixin, CommonCharacterModelMixin,
             CommonFixtureTemplateModelMixin, CommonFixtureModelMixin,
             greek:{TYPE_MOVE},
-            composition:{compositions},
             fixture:{templates:fixtureTemplates},
             permissions:{
                 PERM_CREATOR
             },
-            util:{locArrToId, locIdToArr},
+            locArrToId, locIdToArr,
         } = common,
         
         COMPASS_FIELDS = ['n', 's', 'e', 'w', 't', 'b'],
@@ -30,31 +29,16 @@
         entityData = {},
         characters = [],
         
-        fixtureTemplatesById = {},
-        compositionsByCompId = {},
-        
         MapModel = new JSClass('MapModel', Eventable, {
             include:[CommonMapModelMixin]
         }),
         
-        CompositionModel = new JSClass('CompositionModel', Eventable, {
-            include:[CommonCompositionModelMixin]
-        }),
-        
-        FixtureTemplate = new JSClass('FixtureTemplate', Eventable, {
-            include:[CommonFixtureTemplateModelMixin]
-        }),
-        
         FixtureModel = new JSClass('FixtureModel', Eventable, {
             include:[CommonFixtureModelMixin],
-            
-            getTemplateObject: () => {return fixtureTemplatesById[this.getTemplate()];},
         }),
         
         FaceModel = new JSClass('FaceModel', Eventable, {
             include:[CommonFaceModelMixin],
-            
-            getCompositionObject: function() {return compositionsByCompId[this.getComposition()];},
             
             // Fixtures //
             makeFixtureFromDatum: datum => new FixtureModel(datum),
@@ -73,15 +57,6 @@
             
             setBeenSeen: function(v) {this.beenSeen = v;},
             hasBeenSeen: function() {return this.beenSeen;},
-            
-            setLocId: function(v) {
-                if (this.locId !== v) {
-                    this.locId = v;
-                    this.locArr = null;
-                }
-            },
-            getLocArr: function() {return this.locArr ??= locIdToArr(this.locId);},
-            getCompositionObject: function() {return compositionsByCompId[this.getComposition()];},
             
             setN: function(v) {
                 if (v) {
@@ -321,10 +296,6 @@
             },
             // Map:end
             
-            // Fixtures:start
-            getFixtureTemplate: id => fixtureTemplatesById[id],
-            // Fixtures:end
-            
             // Cell:start
             makeUnknownCell: locId => new CellModel({locId:locId, c:'unk'}),
             getCell: locId => cellData[locId],
@@ -333,7 +304,6 @@
                 const cell = model.getCell(locId);
                 if (cell) return cell.getCompositionObject();
             },
-            getComposition: compId => compositionsByCompId[compId],
             storeCellData: data => {
                 const cellData = getCellData();
                 for (const locId in data) {
@@ -366,11 +336,4 @@
                 model.clearMapAndCellData();
             }
         });
-    
-    for (const compId in compositions) {
-        compositionsByCompId[compId] = new CompositionModel(compositions[compId]);
-    }
-    for (const id in fixtureTemplates) {
-        fixtureTemplatesById[id] = new FixtureTemplate(fixtureTemplates[id]);
-    }
 })(orb);

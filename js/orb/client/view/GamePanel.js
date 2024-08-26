@@ -37,9 +37,9 @@
                 ATTR_DIRECTION,
                 TYPE_EXIT_WORLD, TYPE_ALTER_CELL, TYPE_CHANGE_FACING, TYPE_VOCALIZE
             },
-            FACINGS:{NORTH, SOUTH, EAST, WEST, UP, DOWN},
+            facings:{NORTH, SOUTH, EAST, WEST, UP, DOWN},
             composition:{compositions},
-            util:{locIdToArr}
+            locIdToArr
         } = common,
         
         {
@@ -54,14 +54,14 @@
         tabSliderBtnHeight = cellSize,
         
         getMapInfo = cell => {
-            const locArr = locIdToArr(cell.locId),
+            const locArr = cell.getLocArr(),
                 mapId = locArr[0],
                 mapDatum = model.getMapDatum(mapId);
             return (mapDatum ? mapDatum.name : 'Pocket Dimension ' + mapId) + ' - Level ' + locArr[3];
         },
         
         getLocInfo = cell => {
-            const locArr = locIdToArr(cell.locId),
+            const locArr = cell.getLocArr(),
                 mapDatum = model.getMapDatum(locArr[0]);
             return compositions[cell.hasBeenSeen() ? cell.getComposition() : 'unk'].name + ' / x:' + locArr[1] + ' / y:' + locArr[2];
         },
