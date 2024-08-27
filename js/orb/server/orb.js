@@ -197,11 +197,11 @@ const path = require('path'),
                 }
                 
                 const face = cell.getFaceForDirection(compassDirection);
-                if (face && !orb.rules.isTraversableSolidityForCorporeal(face.getCompositionObject().getSolidity())) {
+                if (face && !orb.rules.isTraversableSolidityForCorporeal(face.getAffectedValue('solidity'))) {
                     return false;
                 }
                 
-                if (!orb.rules.isTraversableSolidityForCorporeal(cell.getCompositionObject().getSolidity())) {
+                if (!orb.rules.isTraversableSolidityForCorporeal(cell.getAffectedValue('solidity'))) {
                     return false;
                 }
                 
@@ -221,11 +221,11 @@ const path = require('path'),
                 }
                 
                 const face = cell.getFaceForOppositeDirection(compassDirection);
-                if (face && !orb.rules.isTraversableSolidityForCorporeal(face.getCompositionObject().getSolidity())) {
+                if (face && !orb.rules.isTraversableSolidityForCorporeal(face.getAffectedValue('solidity'))) {
                     return false;
                 }
                 
-                if (!orb.rules.isTraversableSolidityForCorporeal(cell.getCompositionObject().getSolidity())) {
+                if (!orb.rules.isTraversableSolidityForCorporeal(cell.getAffectedValue('solidity'))) {
                     return false;
                 }
                 

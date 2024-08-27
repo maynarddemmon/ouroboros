@@ -8,6 +8,16 @@
                     states:{
                         open:'boolean'
                     },
+                    effects:['solidity','opacity','damping'],
+                    affectValue: function(fixture, attrName, value) {
+                        const open = fixture.getStateByName('open');
+                        switch (attrName) {
+                            case 'solidity': value += (open ? 0 : 0.5); break;
+                            case 'opacity': value += (open ? 0 : 0.75); break;
+                            case 'damping': value += (open ? 0 : -0.1); break;
+                        }
+                        return value;
+                    },
                     urlsByState:{
                         "open-true":"/img/fixture/wooden_door_open.png",
                         "open-false":"/img/fixture/wooden_door_closed.png"
@@ -18,6 +28,16 @@
                     states:{
                         open:'boolean',
                         locked:'boolean'
+                    },
+                    effects:['solidity','opacity','damping'],
+                    affectValue: function(fixture, attrName, value) {
+                        const open = fixture.getStateByName('open');
+                        switch (attrName) {
+                            case 'solidity': value += (open ? 0 : 0.5); break;
+                            case 'opacity': value += (open ? 0 : 0.75); break;
+                            case 'damping': value += (open ? 0 : -0.1); break;
+                        }
+                        return value;
                     },
                     urlsByState:{
                         "locked-true_open-true":"/img/fixture/wooden_door_open.png",
@@ -31,6 +51,7 @@
                     states:{
                         facing:'number'
                     },
+                    effects:[], // FIXME: cell occupancy limit? solidity. opacity, damping?
                     urlsByState:{
                         "DEFAULT":"/img/fixture/statue.png"
                     }

@@ -487,7 +487,7 @@
         propogateValue: (startLocId, value, threshold, endLocId) => {
             // Succeed Fast when the value originates in the same Cell.
             if (startLocId === endLocId) {
-                return value * model.getCellComposition(startLocId).getDamping();
+                return value * model.getCell(startLocId).getAffectedValue('damping');
             }
             
             const startCell = model.getCell(startLocId),
@@ -496,11 +496,11 @@
             let retval;
             
             const storeToValue = (to, cell, compassDirection, locArr, value) => {
-                value *= cell.getFaceForDirection(compassDirection)?.getCompositionObject().getDamping() ?? 1;
+                value *= cell.getFaceForDirection(compassDirection)?.getAffectedValue('damping') ?? 1;
                 if (value > threshold) {
                     const nextCell = model.getCellByLocArr(locArr);
                     if (!nextCell) return;
-                    value *= nextCell.getFaceForOppositeDirection(compassDirection)?.getCompositionObject().getDamping() ?? 1;
+                    value *= nextCell.getFaceForOppositeDirection(compassDirection)?.getAffectedValue('damping') ?? 1;
                     if (value > threshold) {
                         const existingToEntry = to.get(nextCell);
                         if (existingToEntry == null || existingToEntry < value) {
@@ -515,7 +515,7 @@
             const propogate = from => {
                 const to = new Map();
                 for (const [cell, fromValue] of from) {
-                    const toValue = fromValue * cell.getCompositionObject().getDamping();
+                    const toValue = fromValue * cell.getAffectedValue('damping');
                     if (toValue > threshold) {
                         const locArr = cell.getLocArr(true);
                         locArr[1] -= 1;
@@ -667,7 +667,7 @@
                                 if (prevCell) {
                                     face = prevCell.getFaceForDirection(direction);
                                     if (face) {
-                                        opacityTotal += face.getCompositionObject().getOpacity();
+                                        opacityTotal += face.getAffectedValue('opacity');
                                         if (opacityTotal >= 1) return true;
                                     }
                                 }
@@ -676,7 +676,7 @@
                                 // Check face within the current cell we are checking
                                 face = cellToCheck.getFaceForOppositeDirection(direction);
                                 if (face) {
-                                    opacityTotal += face.getCompositionObject().getOpacity();
+                                    opacityTotal += face.getAffectedValue('opacity');
                                     if (opacityTotal >= 1) {
                                         cellToCheck.partsSeen.add(getOppositeDirection(direction));
                                         return true;
@@ -684,7 +684,7 @@
                                 }
                                 
                                 // Check cell itself
-                                opacityTotal += cellToCheck.getCompositionObject().getOpacity();
+                                opacityTotal += cellToCheck.getAffectedValue('opacity');
                                 if (opacityTotal >= 1) {
                                     cellToCheck.partsSeen.add(COMPASS_DIRECTION_SELF); // Indicates we should show the Cell composition
                                     return true;

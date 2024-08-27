@@ -72,12 +72,6 @@ const orb = require('./orb.js'),
     FixtureModel = new JSClass('FixtureModel', CommonFixtureModel, {
         init: function(attrs) {
             attrs.id ??= orb.getGuidString('f');
-            
-            const cell = attrs.cell;
-            if (cell) {
-                this.setCell(cell);
-                delete attrs.cell;
-            }
             this.callSuper(attrs);
         },
         

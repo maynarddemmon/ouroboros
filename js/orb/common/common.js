@@ -63,17 +63,31 @@
         }),
         
         FixtureTemplate = new JSClass('FixtureTemplate', Eventable, {
+            init: function(attrs) {
+                if (attrs.affectValue) {
+                    this.affectValue = attrs.affectValue.bind(this);
+                    delete attrs.affectValue;
+                }
+                
+                this.callSuper(attrs);
+            },
+            
             setName: function(v) {this.set('name', v, true);},
             getName: function() {return this.name;},
             
             setStates: function(v) {this.set('states', v, true);},
             getStates: function() {return this.states;},
             
+            setEffects: function(v) {this.set('effects', v, true);},
+            getEffects: function() {return this.effects;},
+            
             setUrlsByState: function(v) {this.set('urlsByState', v, true);},
             getUrlsByState: function() {return this.urlsByState;},
             getUrlByStateKey: function(stateKey) {
                 return this.urlsByState[stateKey] ?? this.urlsByState.DEFAULT;
-            }
+            },
+            
+            affectValue: (fixture, attrName, value) => value
         }),
         
         CommonMapModel = new JSClass('CommonMapModel', Eventable, {
@@ -85,20 +99,119 @@
             getElements: function() {return this.elements;}
         }),
         
+        ValueAffectorMixin = new JSModule('ValueAffectorMixin', {
+            affectValue: (attrName, value) => value,
+            
+            registerEffects: function(affectable) {
+                const effects = this.getTemplateObject()?.getEffects();
+                if (effects?.length > 0) {
+                    for (const effectedAttrName of effects) {
+                        affectable.registerValueAffector(effectedAttrName, this);
+                    }
+                }
+            },
+            
+            unregisterEffects: function(affectable) {
+                const effects = this.getTemplateObject()?.getEffects();
+                if (effects?.length > 0) {
+                    for (const effectedAttrName of effects) {
+                        affectable.unregisterValueAffector(effectedAttrName, this);
+                    }
+                }
+            }
+        }),
+        
+        AffectableValuesMixin = new JSModule('AffectableValuesMixin', {
+            registerValueAffector: function(attrName, affector) {
+                const affectorsByAttrName = this._affectorsByAttrName ??= {},
+                    affectors = affectorsByAttrName[attrName] ??= new Set();
+                affectors.add(affector);
+            },
+            
+            unregisterValueAffector: function(attrName, effector) {
+                const affectorsByAttrName = this._affectorsByAttrName ??= {},
+                    affectors = affectorsByAttrName[attrName] ??= [];
+                affectors.delete(affector);
+            },
+            
+            getAffectedValue: function(attrName) {
+                let value = this.get(attrName);
+                const affectorsByAttrName = this._affectorsByAttrName;
+                if (affectorsByAttrName) {
+                    const affectors = affectorsByAttrName[attrName];
+                    if (affectors?.size > 0) {
+                        for (const affector of affectors) {
+                            value = affector.affectValue(attrName, value);
+                        }
+                    }
+                }
+                return value;
+            }
+        }),
+        
         CommonFixtureModel = new JSClass('CommonFixtureModel', Eventable, {
+            include:[ValueAffectorMixin],
+            
+            /** Fixtures will have either a face or a cell but not both. The cell for a face
+                can be accessed via the face. */
+            init: function(attrs) {
+                const face = attrs.face,
+                    cell = attrs.cell;
+                if (face) {
+                    this.setFace(face);
+                } else if (cell) {
+                    this.setCell(cell);
+                }
+                delete attrs.face;
+                delete attrs.cell;
+                
+                this.callSuper(attrs);
+                
+                if (this.face) {
+                    this.registerEffects(this.face);
+                } else if (this.cell) {
+                    this.registerEffects(this.cell);
+                }
+            },
+            
+            destroy: function() {
+                if (this.face) {
+                    this.unregisterEffects(this.face);
+                } else if (this.cell) {
+                    this.unregisterEffects(this.cell);
+                }
+                this.callSuper();
+            },
+            
+            affectValue: function(attrName, value) {
+                const template = this.getTemplateObject();
+                return template ? template.affectValue(this, attrName, value) : this.callSuper(value);
+            },
+            
             setId: function(v) {this.set('id', v, true);},
             getId: function() {return this.id;},
             
-            setCell: function(v) {this.set('cell', v, true);},
+            setFace: function(v) {
+                if (this.inited && this.face) this.unregisterEffects(this.face);
+                this.set('face', v, true);
+                if (this.inited) this.registerEffects(this.face);
+            },
+            getFace: function() {return this.face;},
+            
+            setCell: function(v) {
+                if (this.inited && this.cell) this.unregisterEffects(this.cell);
+                this.set('cell', v, true);
+                if (this.inited) this.registerEffects(this.cell);
+            },
             getCell: function() {return this.cell;},
             
             setTemplate: function(v) {this.set('template', v, true);},
             getTemplate: function() {return this.template;},
-            getTemplateObject: () => {return fixtureTemplatesById[this.getTemplate()];},
+            getTemplateObject: function() {return fixtureTemplatesById[this.getTemplate()];},
             
             getStateObject: function() {return this.state ??= {};},
-            setStateByAttr: function(attrName, value) {this.getStateObject()[attrName] = value;},
-            getStateByAttr: function(attrName) {return this.getStateObject()[attrName];},
+            setStateByName: function(stateName, value) {this.getStateObject()[stateName] = value;},
+            getStateByName: function(stateName) {return this.getStateObject()[stateName];},
             
             getStateKey: function() {
                 const parts = [],
@@ -111,14 +224,18 @@
         }),
         
         FixtureContainerMixin = new JSModule('FixtureContainerMixin', {
+            include: [AffectableValuesMixin],
+            
             setFix: function(fixturesData) {
                 if (fixturesData) {
                     for (const fixtureId in fixturesData) {
-                        const datum = fixturesData[fixtureId];
-                        datum.id = fixtureId;
-                        this.addFixture(this.makeFixtureFromDatum(datum));
+                        this.addFixture(this.makeFixtureFromDatum(this.prepareFixtureDatum(fixturesData[fixtureId])));
                     }
                 }
+            },
+            prepareFixtureDatum: (datum, fixtureId) => {
+                datum.id = fixtureId;
+                return datum;
             },
             makeFixtureFromDatum: datum => {/* Subclasses must implement. */},
             getFixturesMap: function() {return this.fixtures ??= new Map();},
@@ -147,20 +264,36 @@
             }
         }),
         
-        CommonFaceModel = new JSClass('CommonFaceModel', Eventable, {
-            include:[FixtureContainerMixin],
-            
-            setCell: function(v) {this.set('cell', v, true);},
-            getCell: function() {return this.cell;},
-            
+        CompositionTemplateProxyMixin = new JSModule('CompositionTemplateProxyMixin', {
             setC: function(v) {this.set('c', v, true);},
             setComposition: function(v) {this.setC(v);},
             getComposition: function() {return this.c;},
             getCompositionObject: function() {return compositionTemplatesById[this.getComposition()];},
+            
+            getSolidity: function() {return this.getCompositionObject()?.getSolidity();},
+            getOpacity: function() {return this.getCompositionObject()?.getOpacity();},
+            getDamping: function() {return this.getCompositionObject()?.getDamping();}
+        }),
+        
+        CommonFaceModel = new JSClass('CommonFaceModel', Eventable, {
+            include:[FixtureContainerMixin, CompositionTemplateProxyMixin],
+            
+            prepareFixtureDatum: function(datum, fixtureId) {
+                datum.face = this;
+                return this.callSuper(datum, fixtureId);
+            },
+            
+            setCell: function(v) {this.set('cell', v, true);},
+            getCell: function() {return this.cell;},
         }),
         
         CommonCellModel = new JSClass('CommonCellModel', Eventable, {
-            include:[FixtureContainerMixin],
+            include:[FixtureContainerMixin, CompositionTemplateProxyMixin],
+            
+            prepareFixtureDatum: function(datum, fixtureId) {
+                datum.cell = this;
+                return this.callSuper(datum, fixtureId);
+            },
             
             setLocId: function(v) {
                 if (this.locId !== v) {
@@ -172,11 +305,6 @@
                 const locArr = this.locArr ??= locIdToArr(this.locId);
                 return asCopy ? locArr.slice() : locArr;
             },
-            
-            setC: function(v) {this.set('c', v, true);},
-            setComposition: function(v) {this.setC(v);},
-            getComposition: function() {return this.c;},
-            getCompositionObject: function() {return compositionTemplatesById[this.getComposition()];},
             
             setN: function(v) {this.set('n', v, true);},
             getNorthFace: function(v) {return this.n;},
