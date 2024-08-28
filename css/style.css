@@ -66,3 +66,24 @@ div.roundspinner {
     border-radius:50%;
     animation: centerspin 2s linear infinite;
 }
+
+.expository {
+    font-size:12px;
+    color:#ccc;
+}
+.expository a:link {
+    color:#69f;
+    text-decoration:none;
+}
+.expository a:visited {
+    color:#69f;
+    text-decoration:none;
+}
+.expository a:hover {
+    color:#9cf;
+    text-decoration:underline;
+}
+.expository a:active {
+    color:#36f;
+    text-decoration:underline;
+}

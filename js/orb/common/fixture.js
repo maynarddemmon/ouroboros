@@ -1,14 +1,66 @@
 (() => {
     const IS_NODEJS = typeof module === 'object' && module.exports,
         
+        /*
+        
+        
+        makeLink: (text, callbackName, data) => {
+            return '<a href="#" onclick=\'jgo.doLink(this, "' + callbackName + '", &apos;' + JSONStringify(data) + '&apos;); return false;\'>' + text + '</a>';
+        },
+        
+        doLink: (elem, callbackName, data) => {
+            while (elem) {
+                const model = elem.model;
+                if (model && typeof model[callbackName] === 'function') {
+                    let value;
+                    if (data) {
+                        try {
+                            value = JSONParse(data);
+                        } catch(e) {
+                            M.dumpStack(e);
+                        }
+                    }
+                    model[callbackName].call(model, value);
+                    break;
+                }
+                elem = elem.parentNode;
+            }
+        },
+        
+        */
         EXPORT = {
             templates:{
                 d1:{
-                    name:'Wooden Door',
+                    name:'wooden door',
                     states:{
                         open:'boolean'
                     },
                     effects:['solidity','opacity','damping'],
+                    getInteractions: (fixture, character) => [fixture.getStateByName('open') ? 'close' : 'open'],
+                    describe: function(fixture, character) {
+                        return (fixture.getStateByName('open') ? 'an open' : 'a closed') + ' ' + this.name;
+                    },
+                    
+                    /*getInteractions: function(fixture, character) {
+                        const open = fixture.getStateByName('open');
+                        if (open) {
+                            return '<a href="">Open</a> the door.';
+                        } else {
+                            return '<a href="">Close</a> the door.';
+                        }
+                    },*/
+                    /*doInteraction: function(fixture, character, interactionId) {
+                        const open = fixture.getStateByName('open');
+                        if (open) {
+                            if (interactionId === 'close') {
+                                fixture.setStateByName('open', false);
+                            }
+                        } else {
+                            if (interactionId === 'open') {
+                                fixture.setStateByName('open', true);
+                            }
+                        }
+                    },*/
                     affectValue: function(fixture, attrName, value) {
                         const open = fixture.getStateByName('open');
                         switch (attrName) {
@@ -24,12 +76,16 @@
                     }
                 },
                 d2:{
-                    name:'Lockable Wooden Door',
+                    name:'lockable wooden door',
                     states:{
                         open:'boolean',
                         locked:'boolean'
                     },
                     effects:['solidity','opacity','damping'],
+                    getInteractions: (fixture, character) => [fixture.getStateByName('open') ? 'close' : 'open'],
+                    describe: function(fixture, character) {
+                        return (fixture.getStateByName('open') ? 'an open' : 'a closed') + ' ' + this.name;
+                    },
                     affectValue: function(fixture, attrName, value) {
                         const open = fixture.getStateByName('open');
                         switch (attrName) {
@@ -47,11 +103,12 @@
                     }
                 },
                 s1:{
-                    name:'Stone Statue',
+                    name:'stone statue',
                     states:{
                         facing:'number'
                     },
                     effects:[], // FIXME: cell occupancy limit? solidity. opacity, damping?
+                    describe: function(fixture, character) {return 'a ' + this.name;},
                     urlsByState:{
                         "DEFAULT":"/img/fixture/statue.png"
                     }

@@ -220,6 +220,10 @@
                     parts.push(stateName + '-' + stateObj[stateName]);
                 }
                 return parts.sort().join('_');
+            },
+            
+            describeForCharacter: function(character) {
+                return this.getTemplateObject().describe(this, character);
             }
         }),
         
@@ -229,7 +233,7 @@
             setFix: function(fixturesData) {
                 if (fixturesData) {
                     for (const fixtureId in fixturesData) {
-                        this.addFixture(this.makeFixtureFromDatum(this.prepareFixtureDatum(fixturesData[fixtureId])));
+                        this.addFixture(this.makeFixtureFromDatum(this.prepareFixtureDatum(fixturesData[fixtureId], fixtureId)));
                     }
                 }
             },
@@ -258,6 +262,18 @@
                     retval = {};
                     for (const [fixtureId, fixture] of fixtures) {
                         retval[fixtureId] = fixture.getAsData();
+                    }
+                }
+                return retval;
+            },
+            
+            getFixtureInteractions: function(character) {
+                let retval;
+                const fixtures = this.fixtures;
+                if (fixtures?.size > 0) {
+                    for (const [fixtureId, fixture] of fixtures) {
+                        retval ??= {};
+                        retval[fixtureId] = fixture.getTemplateObject().getInteractions?.(fixture, character);
                     }
                 }
                 return retval;
@@ -339,6 +355,17 @@
                     case COMPASS_UP: return this.getBottomFace();
                     case COMPASS_DOWN: return this.getTopFace();
                 }
+            },
+            
+            getInteractions: function(character) {
+                const accum = {};
+                for (const faceDir of ['n','s','e','w','t','b']) {
+                    const face = this[faceDir];
+                    if (face) accum[faceDir] = face.getFixtureInteractions(character);
+                    // FIXME: get adjacent cell faces
+                }
+                accum.cell = this.getFixtureInteractions(character);
+                return accum;
             }
         }),
         
@@ -379,12 +406,13 @@
             setMoveSpeed: function(v) {this.set('moveSpeed', v, true);},
             getMoveSpeed: function(contextObj) {return this.moveSpeed;},
             getFreeActionSpeed: function(contextObj) {return 1;},
+            getActionSpeed: function(contextObj) {return 3;},
             
             // Lock Times
             setLockMove: function(v) {this.set('lockMove', v, true);},
             getLockMove: function() {return this.lockMove;},
             setLockAct: function(v) {this.set('lockAct', v, true);},
-            getLockAction: function() {return this.lockAct;},
+            getLockAct: function() {return this.lockAct;},
             setLockFree: function(v) {this.set('lockFree', v, true);},
             getLockFree: function() {return this.lockFree;},
             setLockReact: function(v) {this.set('lockReact', v, true);},

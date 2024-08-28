@@ -1,7 +1,8 @@
 (pkg => {
     let worldClockIntervalId,
         mapData,
-        cellData;
+        cellData,
+        fixtureData;
     
     const JSClass = JS.Class,
         {
@@ -26,11 +27,37 @@
         getMapData = () => mapData ??= {},
         getCellData = () => cellData ??= {},
         
+        // Fixture:start
+        getFixtureData = () => fixtureData ??= {},
+        makeFixtureFromDatum = datum => {
+            const fixture = new CommonFixtureModel(datum);
+            getFixtureData()[fixture.getId()] = fixture;
+            return fixture;
+        },
+        // Fixture:end
+        
+        // Entity:start
         entityData = {},
+        makeEntityFromData = entityDatum => {
+            const entityId = entityDatum.id;
+            let entity = model.getEntityById(entityId);
+            if (entity) {
+                // Update
+                entity.callSetters(entityDatum);
+            } else {
+                // Create
+                entity = setEntity(entityId, new EntityModel(entityDatum));
+            }
+            return entity;
+        },
+        setEntity = (entityId, entity) => entityData[entityId] = entity,
+        removeEntity = entityId => delete entityData[entityId],
+        // Entity:end
+        
         characters = [],
         
         FaceModel = new JSClass('FaceModel', CommonFaceModel, {
-            makeFixtureFromDatum: datum => new CommonFixtureModel(datum),
+            makeFixtureFromDatum:makeFixtureFromDatum,
         }),
         
         CellModel = new JSClass('CellModel', CommonCellModel, {
@@ -95,7 +122,7 @@
             },
             
             // Fixtures //
-            makeFixtureFromDatum: datum => new CommonFixtureModel(datum),
+            makeFixtureFromDatum:makeFixtureFromDatum
         }),
         
         EntityModel = new JSClass('EntityModel', Eventable, {
@@ -167,24 +194,6 @@
         }),
         
         model = pkg.model = new JS.Singleton('Model', Node, {
-            // Entity:start
-            getEntityById: entityId => entityData[entityId],
-            setEntity: (entityId, entity) => entityData[entityId] = entity,
-            removeEntity: entityId => delete entityData[entityId],
-            makeEntityFromData: entityDatum => {
-                const entityId = entityDatum.id;
-                let entity = model.getEntityById(entityId);
-                if (entity) {
-                    // Update
-                    entity.callSetters(entityDatum);
-                } else {
-                    // Create
-                    entity = model.setEntity(entityId, new EntityModel(entityDatum));
-                }
-                return entity;
-            },
-            // Entity:end
-            
             // Characters:start
             setMaxCharacters: v => {model.set('maxCharacters', v, true);},
             getCharacters: () => characters,
@@ -209,7 +218,7 @@
                             const character = new CharacterModel(datum);
                             if (character) {
                                 characters.push(character);
-                                model.setEntity(character.getId(), character);
+                                setEntity(character.getId(), character);
                             }
                         }
                     }
@@ -220,7 +229,7 @@
                 const character = new CharacterModel(datum);
                 if (character) {
                     characters.push(character);
-                    model.setEntity(character.getId(), character);
+                    setEntity(character.getId(), character);
                     model.fireEvent('characters', characters);
                 }
             },
@@ -239,7 +248,7 @@
                 while (i) {
                     if (characters[--i].id === id) {
                         characters.splice(i, 1);
-                        model.removeEntity(id);
+                        removeEntity(id);
                         model.fireEvent('characters', characters);
                         return true;
                     }
@@ -249,14 +258,8 @@
             // Characters:end
             
             // Time:start
-            setWorldClockTick: v => {
-                model.set('worldClockTick', v, true);
-            },
-            
-            setWorldClockTime: v => {
-                model.set('worldClockTime', v, true);
-            },
-            
+            setWorldClockTick: v => {model.set('worldClockTick', v, true);},
+            setWorldClockTime: v => {model.set('worldClockTime', v, true);},
             updateWorldClockTime: v => {
                 if (worldClockIntervalId) clearInterval(worldClockIntervalId);
                 model.setWorldClockTime(v);
@@ -266,19 +269,11 @@
             },
             // Time:end
             
-            // Map and Cell
-            clearMapAndCellData: () => {
-                mapData = {};
-                model.fireEvent('mapsChanged');
-                cellData = {};
-                model.fireEvent('cellsChanged');
-            },
-            
             // Map:start
-            getMapDatum: mapId => mapData[mapId],
+            getMap: mapId => mapData[mapId],
             storeMapData: data => {
                 const mapData = getMapData();
-                for (const key in data) mapData[key] = new CommonMapModel(data[key]);
+                for (const mapId in data) mapData[mapId] = new CommonMapModel(data[mapId]);
                 model.fireEvent('mapsChanged');
             },
             // Map:end
@@ -287,10 +282,6 @@
             makeUnknownCell: locId => new CellModel({locId:locId, c:'unk'}),
             getCell: locId => cellData[locId],
             getCellByLocArr: locArr => cellData[locArrToId(locArr)],
-            getCellComposition: locId => {
-                const cell = model.getCell(locId);
-                if (cell) return cell.getCompositionObject();
-            },
             storeCellData: data => {
                 const cellData = getCellData();
                 for (const locId in data) {
@@ -300,7 +291,7 @@
                         entities = cellDatum.ent;
                     if (entities) {
                         let i = entities.length;
-                        while (i--) entities[i] = model.makeEntityFromData(entities[i]);
+                        while (i--) entities[i] = makeEntityFromData(entities[i]);
                     } else {
                         cellDatum.ent = null;
                     }
@@ -316,11 +307,35 @@
             },
             // Cell:end
             
+            // Entity:start
+            getEntityById: entityId => entityData[entityId],
+            // Entity:end
+            
+            // Fixture:start
+            getFixtureById: fixtureId => fixtureData[fixtureId],
+            // Fixture:end
+            
+            
             // Methods /////////////////////////////////////////////////////////
             wipeClean: () => {
                 model.maxCharacters = 0;
                 characters.length = 0;
-                model.clearMapAndCellData();
+                model.cleanupOnExitWorld();
+            },
+            
+            cleanupOnExitWorld: () => {
+                mapData = {};
+                model.fireEvent('mapsChanged');
+                cellData = {};
+                fixtureData = {};
+                // Purge non-Characters.
+                for (const entityId in entityData) {
+                    const entity = entityData[entityId];
+                    if (!entity.isA(CharacterModel)) {
+                        delete entityData[entityId];
+                    }
+                }
+                model.fireEvent('cellsChanged');
             }
         });
 })(orb);

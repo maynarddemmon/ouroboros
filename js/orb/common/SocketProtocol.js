@@ -40,9 +40,11 @@
             },
             
             // Actions
+            TYPE_INTERACT_WITH_FIXTURE:'interactFixture',
             TYPE_ACTION_FAILED:'actionFailed',
             ACTION_ERROR_CODES:{
-                ACTION_NOT_ALLOWED:1
+                INVALID_VALUE:1,
+                ACTION_NOT_ALLOWED:2
             },
             
             // Reactions

@@ -427,7 +427,7 @@
                 if (characterDatum) {
                     if (model.updateCharacterFromData(characterDatum)) {
                         model.setCharacterInPlay();
-                        model.clearMapAndCellData();
+                        model.cleanupOnExitWorld();
                         pkg.app.selectPanel(pkg.PANEL_ID_LOBBY);
                     } else {
                         growl('failure', 'Character Not Found', 'The chracter sent back by the server was not found locally.');
@@ -473,6 +473,8 @@
             
             websocket.registerListener(response => {
                 switch (response.code) {
+                    case ACTION_ERROR_CODES.INVALID_VALUE:
+                        growl('warning', JSON.stringify(response));
                     case ACTION_ERROR_CODES.ACTION_NOT_ALLOWED:
                         notifyUserOfFailure('<i>Action not allowed.</i>');
                         break;

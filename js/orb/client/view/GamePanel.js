@@ -35,7 +35,8 @@
         {
             greek:{
                 ATTR_DIRECTION,
-                TYPE_EXIT_WORLD, TYPE_ALTER_CELL, TYPE_CHANGE_FACING, TYPE_VOCALIZE
+                TYPE_EXIT_WORLD, TYPE_ALTER_CELL, TYPE_CHANGE_FACING, TYPE_VOCALIZE,
+                TYPE_INTERACT_WITH_FIXTURE
             },
             facings:{NORTH, SOUTH, EAST, WEST, UP, DOWN},
             composition:{templates},
@@ -56,14 +57,83 @@
         getMapInfo = cell => {
             const locArr = cell.getLocArr(),
                 mapId = locArr[0],
-                mapDatum = model.getMapDatum(mapId);
-            return (mapDatum ? mapDatum.name : 'Pocket Dimension ' + mapId) + ' - Level ' + locArr[3];
+                mapObj = model.getMap(mapId);
+            return (mapObj ? mapObj.getName() : 'Pocket Dimension ' + mapId) + ' - Level ' + locArr[3];
         },
         
         getLocInfo = cell => {
-            const locArr = cell.getLocArr(),
-                mapDatum = model.getMapDatum(locArr[0]);
+            const locArr = cell.getLocArr();
             return templates[cell.hasBeenSeen() ? cell.getComposition() : 'unk'].name + ' / x:' + locArr[1] + ' / y:' + locArr[2];
+        },
+        
+        getDirectionWordsByFacing = facing => {
+            const front = 'Before you',
+                back = 'Behind you',
+                left = 'To your left',
+                right = 'To your right',
+                above = 'Above you',
+                below = 'Beneath you';
+            switch (facing) {
+                case NORTH: return {n:front, s:back, e:right, w:left, t:above, b:below};
+                case SOUTH: return {n:back, s:front, e:left, w:right, t:above, b:below};
+                case EAST: return {n:left, s:right, e:front, w:back, t:above, b:below};
+                case WEST: return {n:right, s:left, e:back, w:front, t:above, b:below};
+            }
+        },
+        
+        getFixtureClause = (character, fixtureIds) => {
+            let accum = '';
+            for (const fixtureId in fixtureIds) {
+                const interactions = fixtureIds[fixtureId],
+                    fixture = model.getFixtureById(fixtureId);
+                
+                accum += fixture.describeForCharacter(character);
+                
+                if (interactions) {
+                    for (const interaction of interactions) {
+                        accum += ' [<a href="#" onclick="orb.gamePanel.doFixtureLink(\'' + fixtureId + '\',\'' + interaction + '\'); return false;">' + interaction + '</a>]';
+                    }
+                }
+            }
+            return accum;
+        },
+        
+        getFullLocInfo = (character, cell, interactionsAccum) => {
+            const accum = [];
+            
+            const comp = cell.getCompositionObject();
+            let cellEntry = 'All about you is ' + comp.getName();
+            
+            const fixtureIds = interactionsAccum.cell;
+            if (fixtureIds) {
+                cellEntry += '. This location contains ' + getFixtureClause(character, fixtureIds);
+            }
+            cellEntry += '.<br><br>';
+            accum.push(cellEntry);
+            
+            const facing = character.getFacing();
+            accum.push('You are facing ' + I18N('facing-' + facing) + '.<br><br>');
+            
+            
+            const directionWords = getDirectionWordsByFacing(facing);
+            for (const faceDir of ['n','s','e','w','t','b']) {
+                const face = cell[faceDir];
+                if (face) {
+                    let faceEntry = directionWords[faceDir] + ' is a ' + face.getCompositionObject().getName();
+                    
+                    const fixtureIds = interactionsAccum[faceDir];
+                    if (fixtureIds) {
+                        faceEntry += ' which contains ';
+                        faceEntry += getFixtureClause(character, fixtureIds);
+                    }
+                    
+                    faceEntry += '.<br><br>';
+                    
+                    accum.push(faceEntry);
+                }
+            }
+            
+            return accum.join(' ');
         },
         
         getEntityInfo = entity => {
@@ -120,7 +190,7 @@
                 hv = new View(parent, {
                     height:cellSize, pointerEvents:'none', visible:false,
                     bgColor:'#333', opacity:0.8, boxShadow:[0,0,8,'#000'], 
-                    zIndex:11
+                    zIndex:102
                 }, [{
                     update: function(isOver, entity, entityView) {
                         this.setVisible(isOver);
@@ -150,7 +220,7 @@
                 shadowColor = '#000',
                 hv = new View(parent, {
                     height:cellSize + bw4x, pointerEvents:'none', visible:false,
-                    opacity:0.8, boxShadow:[0,0,8,shadowColor], zIndex:10
+                    opacity:0.8, boxShadow:[0,0,8,shadowColor], zIndex:101
                 }, [{
                     update: function(isOver, cell, cellView) {
                         this.setVisible(isOver);
@@ -329,6 +399,13 @@
         // Methods /////////////////////////////////////////////////////////////
         appendToChatLog: msg => {if (msg) msgLog.appendMsg(msg);},
         
+        doFixtureLink: (fixtureId, interactionName) => {
+            if (!character.doAction(TYPE_INTERACT_WITH_FIXTURE, {fixtureId:fixtureId, interactionName:interactionName})) {
+                gameMap.animateEntity(character.getId());
+                gamePanel.appendToChatLog('<i>You can\'t perform an action right now.</i>');
+            }
+        },
+        
         /** @private */
         _keyDown: event => {
             const domEvent = event.value,
@@ -355,13 +432,13 @@
         buildUI: () => {
             gamePanel.buildLeftPanel();
             gameMap = new pkg.GameMap(gamePanel, {}, [{
-                doCharacterCell: (character, cell, cellView) => {
+                doCharacterCell: (character, cell, interactionsAccum) => {
                     if (curLocId !== cell.locId) {
                         curLocId = cell.locId;
                         cellHV.setVisible(false);
                     }
                     mapInfo.setText(pkg.FA_GLOBE + ' ' + getMapInfo(cell));
-                    myLocInfo.setText('My Location: ' + getLocInfo(cell));
+                    myLocInfo.setText(getFullLocInfo(character, cell, interactionsAccum));
                 }
             }]);
             gamePanel.buildOverlays();
@@ -383,13 +460,13 @@
                 tabId:'location', text:pkg.FA_LOCATION + ' Location'
             });
             
-            myLocInfo = new Text(locationTab, {height:20, textColor:colorBgF});
+            myLocInfo = new Text(locationTab, {
+                x:spacing, whiteSpace:'normal',
+                percentOfParentWidth:100, percentOfParentWidthOffset:-2*spacing,
+                domClass:'expository'
+            }, [SizeToParent]);
             
-            new WrappingLayout(locationTab, {
-                inset:padding, spacing:spacing, outset:padding, 
-                lineInset:padding, lineSpacing:spacing, lineOutset:padding
-            });
-            
+            new SpacedLayout(locationTab, {axis:'y', inset:spacing, spacing:spacing});
             
             // Chat Tab
             const chatTab = new LocalTabSlider(leftPanel, {
@@ -399,7 +476,8 @@
             
             msgLog = new PaddedText(chatTab, {
                 percentOfParentWidth:100, layoutHint:1, padding:spacing, text:'',
-                whiteSpace:'normal', overflow:'autoy', userUnselectable:false
+                whiteSpace:'normal', overflow:'autoy', userUnselectable:false,
+                domClass:'expository'
             }, [SizeToParent, {
                 appendMsg: function(msg) {
                     this.setText(this.text + msg + '<br>');

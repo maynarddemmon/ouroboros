@@ -22,4 +22,15 @@ LOCALE_JSON = {
     'cooldownName-lockAct':'Action',
     'cooldownName-lockFree':'Free Action',
     'cooldownName-lockReact':'Reaction',
+    'compass-n':'North',
+    'compass-s':'South',
+    'compass-e':'East',
+    'compass-w':'West',
+    'compass-t':'above',
+    'compass-b':'below',
+    
+    'facing-1':'North',
+    'facing-2':'South',
+    'facing-3':'East',
+    'facing-4':'West',
 };

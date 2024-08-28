@@ -799,7 +799,6 @@
                         const characterView = entityPool.getInstance();
                         characterView.setEntity(character);
                         characterView.updatePosition(posCount++, cellView);
-                        gameMap.doCharacterCell(character, cell, cellView);
                     }
                     if (isSeen && len > 0) {
                         for (const entity of entities) {
@@ -822,6 +821,11 @@
                 bubble.reposition();
             }
             
+            // Update available actions for Character's current location
+            if (originCell) {
+                const interactionsAccum = originCell.getInteractions(character);
+                gameMap.doCharacterCell(character, originCell, interactionsAccum);
+            }
             
             // Have backgroundImage track the map offset so the background image does not drift
             // as the character moves.

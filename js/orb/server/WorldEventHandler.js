@@ -16,7 +16,8 @@ const orb = require('./orb.js'),
         TYPE_ACTION_FAILED, ACTION_ERROR_CODES,
         TYPE_REACT_FAILED, REACT_ERROR_CODES,
         TYPE_CHANGE_FACING, TYPE_VOCALIZE, TYPE_ALTER_CELL, TYPE_FREE_FAILED, FREE_ERROR_CODES,
-        TYPE_ALTER_CHARACTER
+        TYPE_ALTER_CHARACTER,
+        TYPE_INTERACT_WITH_FIXTURE
     } = require('../common/SocketProtocol.js'),
     {
         facings:{NORTH, SOUTH, EAST, WEST, UP, DOWN},
@@ -268,6 +269,21 @@ const orb = require('./orb.js'),
                         character.doVocalize(volume, message);
                     } else {
                         accountService.addMessageToUser(username, {type:TYPE_FREE_FAILED, code:FREE_ERROR_CODES.INVALID_VALUE});
+                    }
+                }
+            );
+        },
+        
+        [TYPE_INTERACT_WITH_FIXTURE]:event => {
+            performAction(
+                event, 'lockAct', 'getActionSpeed', null, 
+                (username, character, now) => {
+                    const {fixtureId, interactionName} = event.msg;
+                    if (fixtureId && interactionName) {
+                        console.log('FIXME', fixtureId, interactionName);
+                        // FIXME: do interaction with the fixture.
+                    } else {
+                        accountService.addMessageToUser(username, {type:TYPE_ACTION_FAILED, code:ACTION_ERROR_CODES.INVALID_VALUE});
                     }
                 }
             );

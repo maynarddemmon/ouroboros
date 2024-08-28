@@ -43,7 +43,7 @@
                 
                 // Void
                 v1:{
-                    name:'Void',
+                    name:'fathomless void',
                     mapColor:'#0ff9',
                     tileUrl:'/img/tile/void.png',
                     solidity:-1,
@@ -51,7 +51,7 @@
                     damping:0.4
                 },
                 v2:{
-                    name:'Null',
+                    name:'inconceivable nothingness',
                     mapColor:'#09f9',
                     tileUrl:'/img/tile/null.png',
                     solidity:-1,
@@ -77,7 +77,7 @@
                 
                 // Earth
                 s1:{
-                    name:'Solid Stone',
+                    name:'solid stone',
                     mapColor:'#0003',
                     tileUrl:'/img/tile/stone_solid.png',
                     solidity:1,
@@ -87,13 +87,13 @@
                 
                 // Air
                 a1:{
-                    name:'Open Air',
+                    name:'clear air',
                     solidity:0,
                     opacity:0.01,
                     damping:0.5
                 },
                 a2:{
-                    name:'Dusty Air',
+                    name:'dusty air',
                     mapColor:'#fea2',
                     solidity:0,
                     opacity:0.05,
@@ -102,7 +102,7 @@
                 
                 // Fire
                 f1:{
-                    name:'Fire',
+                    name:'swirling flames',
                     mapColor:'#f66',
                     tileUrl:'/img/tile/fire.png',
                     solidity:0,
@@ -112,7 +112,7 @@
                 
                 // Water
                 w1:{
-                    name:'Solid Ice',
+                    name:'solid ice',
                     mapColor:'#ccf',
                     tileUrl:'/img/tile/ice_solid.png',
                     solidity:1,
@@ -123,43 +123,43 @@
                 
                 // Faces
                 W1:{
-                    name:'Smooth Stone Wall',
+                    name:'smooth stone wall',
                     tileUrl:'/img/tile/stone_wall.png',
                     solidity:1,
                     opacity:1,
                     damping:0.13
                 },
                 W2:{
-                    name:'Rough Stone Wall',
+                    name:'rough stone wall',
                     tileUrl:'/img/tile/rough_stone_wall.png',
                     solidity:1,
                     opacity:1,
                     damping:0.13
                 },
                 W3:{
-                    name:'Smooth Stone Wall with Door Frame',
+                    name:'smooth stone wall with an arched door frame',
                     tileUrl:'/img/tile/stone_wall_door_frame.png',
                     solidity:0.5,
                     opacity:0.25,
-                    damping:0.13
+                    damping:0.25
                 },
                 
                 C1:{
-                    name:'Vaulted Stone Ceiling',
+                    name:'vaulted stone ceiling',
                     solidity:1,
                     opacity:1,
                     damping:0.13
                 },
                 
                 F1:{
-                    name:'Stone Floor',
+                    name:'stone floor',
                     tileUrl:'/img/tile/stone_floor.png',
                     solidity:1,
                     opacity:1,
                     damping:0.13
                 },
                 F2:{
-                    name:'Dirt Floor',
+                    name:'dirt floor',
                     tileUrl:'/img/tile/dirt_floor.png',
                     solidity:1,
                     opacity:1,
