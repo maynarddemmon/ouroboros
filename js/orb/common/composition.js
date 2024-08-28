@@ -97,7 +97,7 @@
                     mapColor:'#fea2',
                     solidity:0,
                     opacity:0.05,
-                    damping:0.49
+                    damping:0.5
                 },
                 
                 // Fire
@@ -141,7 +141,7 @@
                     tileUrl:'/img/tile/stone_wall_door_frame.png',
                     solidity:0.5,
                     opacity:0.25,
-                    damping:0.25
+                    damping:0.5
                 },
                 
                 C1:{

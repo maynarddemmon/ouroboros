@@ -224,6 +224,11 @@
             
             describeForCharacter: function(character) {
                 return this.getTemplateObject().describe(this, character);
+            },
+            
+            /** Server side only. */
+            doInteractionForCharacter: function(character, interactionId) {
+                this.getTemplateObject().doInteraction?.(this, character, interactionId);
             }
         }),
         

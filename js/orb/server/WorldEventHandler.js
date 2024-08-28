@@ -280,8 +280,39 @@ const orb = require('./orb.js'),
                 (username, character, now) => {
                     const {fixtureId, interactionName} = event.msg;
                     if (fixtureId && interactionName) {
-                        console.log('FIXME', fixtureId, interactionName);
-                        // FIXME: do interaction with the fixture.
+                        const interactions = character.getCell().getInteractions(character);
+                        let matchedFixtureInteractionsArray,
+                            fixture;
+                        for (const fixtureContainerKey in interactions) {
+                            const fixtureContainerData = interactions[fixtureContainerKey];
+                            if (fixtureContainerData) {
+                                const interactionsArray = fixtureContainerData[fixtureId];
+                                if (interactionsArray) {
+                                    matchedFixtureInteractionsArray = interactionsArray;
+                                    fixture = worldMap.getFixtureById(fixtureId);
+                                    break;
+                                }
+                            }
+                        }
+                        
+                        if (fixture && matchedFixtureInteractionsArray) {
+                            let matchedInteractionName;
+                            for (const iaName of matchedFixtureInteractionsArray) {
+                                if (iaName === interactionName) {
+                                    matchedInteractionName = true;
+                                    break;
+                                }
+                            }
+                            
+                            // Do interaction
+                            if (matchedInteractionName) {
+                                fixture.doInteractionForCharacter(character, interactionName);
+                            } else {
+                                accountService.addMessageToUser(username, {type:TYPE_ACTION_FAILED, code:ACTION_ERROR_CODES.ACTION_NOT_ALLOWED});
+                            }
+                        } else {
+                            accountService.addMessageToUser(username, {type:TYPE_ACTION_FAILED, code:ACTION_ERROR_CODES.ACTION_NOT_ALLOWED});
+                        }
                     } else {
                         accountService.addMessageToUser(username, {type:TYPE_ACTION_FAILED, code:ACTION_ERROR_CODES.INVALID_VALUE});
                     }

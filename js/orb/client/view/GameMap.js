@@ -57,6 +57,8 @@
             21: ChatBubbleViews
             ---
             100: overlays in GamePanel.js
+            101: cell highlight in GamePanel.js
+            102: entity highlight in GamePanel.js
         */
         
         ChatBubbleView = new JSClass('ChatBubbleView', PaddedText, {
@@ -549,7 +551,7 @@
                 return;
             }
             
-            const isGarbled = effectiveVolume <= 1,
+            const isGarbled = effectiveVolume < 1,
                 entity = model.getEntityById(from);
             let entityName = '',
                 isMyCharacter = false;

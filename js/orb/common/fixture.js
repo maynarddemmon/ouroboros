@@ -1,33 +1,6 @@
 (() => {
     const IS_NODEJS = typeof module === 'object' && module.exports,
         
-        /*
-        
-        
-        makeLink: (text, callbackName, data) => {
-            return '<a href="#" onclick=\'jgo.doLink(this, "' + callbackName + '", &apos;' + JSONStringify(data) + '&apos;); return false;\'>' + text + '</a>';
-        },
-        
-        doLink: (elem, callbackName, data) => {
-            while (elem) {
-                const model = elem.model;
-                if (model && typeof model[callbackName] === 'function') {
-                    let value;
-                    if (data) {
-                        try {
-                            value = JSONParse(data);
-                        } catch(e) {
-                            M.dumpStack(e);
-                        }
-                    }
-                    model[callbackName].call(model, value);
-                    break;
-                }
-                elem = elem.parentNode;
-            }
-        },
-        
-        */
         EXPORT = {
             templates:{
                 d1:{
@@ -40,33 +13,19 @@
                     describe: function(fixture, character) {
                         return (fixture.getStateByName('open') ? 'an open' : 'a closed') + ' ' + this.name;
                     },
-                    
-                    /*getInteractions: function(fixture, character) {
-                        const open = fixture.getStateByName('open');
-                        if (open) {
-                            return '<a href="">Open</a> the door.';
+                    doInteraction: function(fixture, character, interactionId) {
+                        if (fixture.getStateByName('open')) {
+                            if (interactionId === 'close') fixture.setStateByName('open', false);
                         } else {
-                            return '<a href="">Close</a> the door.';
+                            if (interactionId === 'open') fixture.setStateByName('open', true);
                         }
-                    },*/
-                    /*doInteraction: function(fixture, character, interactionId) {
-                        const open = fixture.getStateByName('open');
-                        if (open) {
-                            if (interactionId === 'close') {
-                                fixture.setStateByName('open', false);
-                            }
-                        } else {
-                            if (interactionId === 'open') {
-                                fixture.setStateByName('open', true);
-                            }
-                        }
-                    },*/
+                    },
                     affectValue: function(fixture, attrName, value) {
                         const open = fixture.getStateByName('open');
                         switch (attrName) {
                             case 'solidity': value += (open ? 0 : 0.5); break;
                             case 'opacity': value += (open ? 0 : 0.75); break;
-                            case 'damping': value += (open ? 0 : -0.1); break;
+                            case 'damping': value *= (open ? 1 : 0.15); break;
                         }
                         return value;
                     },
@@ -91,7 +50,7 @@
                         switch (attrName) {
                             case 'solidity': value += (open ? 0 : 0.5); break;
                             case 'opacity': value += (open ? 0 : 0.75); break;
-                            case 'damping': value += (open ? 0 : -0.1); break;
+                            case 'damping': value *= (open ? 1 : 0.15); break;
                         }
                         return value;
                     },

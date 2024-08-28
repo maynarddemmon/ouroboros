@@ -1,6 +1,4 @@
-let isReady = false,
-    maps = {},
-    cells = {};
+let isReady = false;
 
 const orb = require('./orb.js'),
     
@@ -23,6 +21,10 @@ const orb = require('./orb.js'),
     
     FILENAME_MAPS = 'maps',
     FILENAME_CELLS = 'cells',
+    
+    maps = {},
+    cells = {},
+    fixtures = {},
     
     MapModel = new JSClass('MapModel', CommonMapModel, {
         // Methods /////////////////////////////////////////////////////////////
@@ -71,8 +73,9 @@ const orb = require('./orb.js'),
     
     FixtureModel = new JSClass('FixtureModel', CommonFixtureModel, {
         init: function(attrs) {
-            attrs.id ??= orb.getGuidString('f');
+            const id = attrs.id ??= orb.getGuidString('f');
             this.callSuper(attrs);
+            fixtures[id] = this;
         },
         
         getAsData: function() {
@@ -80,6 +83,14 @@ const orb = require('./orb.js'),
                 template:this.template,
                 state:this.state
             };
+        },
+        
+        setStateByName: function(stateName, value) {
+            this.callSuper(stateName, value);
+            if (this.inited) {
+                const cell = this.getCell() ?? this.getFace()?.getCell();
+                cell?.notifyAllVisualChangeListenersThatCellChanged();
+            }
         },
     }),
     
@@ -470,6 +481,8 @@ const orb = require('./orb.js'),
         getCellByLocArr:getCellByLocArr,
         cellExistsForArr:cellExistsForArr,
         makeAndSetCell:makeAndSetCell,
+        
+        getFixtureById:fixtureId => fixtures[fixtureId],
         
         getMapDataForCharacter: character => {
             // Send all mapData since it doesn't hurt and it's needed when a character changes maps.
