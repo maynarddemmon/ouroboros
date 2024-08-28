@@ -20,7 +20,7 @@
         {Module:JSModule, Class:JSClass} = JS,
         
         compositionTemplatesById = {},
-        fixtureTemplatesById = {},
+        fixtureTemplatesById = fixture.templates,
         
         PERM_CREATOR = 'creator',
         
@@ -60,34 +60,6 @@
             getOpacity: function() {return this.opacity;},
             setDamping: function(v) {this.set('damping', v, true);},
             getDamping: function() {return this.damping;}
-        }),
-        
-        FixtureTemplate = new JSClass('FixtureTemplate', Eventable, {
-            init: function(attrs) {
-                if (attrs.affectValue) {
-                    this.affectValue = attrs.affectValue.bind(this);
-                    delete attrs.affectValue;
-                }
-                
-                this.callSuper(attrs);
-            },
-            
-            setName: function(v) {this.set('name', v, true);},
-            getName: function() {return this.name;},
-            
-            setStates: function(v) {this.set('states', v, true);},
-            getStates: function() {return this.states;},
-            
-            setEffects: function(v) {this.set('effects', v, true);},
-            getEffects: function() {return this.effects;},
-            
-            setUrlsByState: function(v) {this.set('urlsByState', v, true);},
-            getUrlsByState: function() {return this.urlsByState;},
-            getUrlByStateKey: function(stateKey) {
-                return this.urlsByState[stateKey] ?? this.urlsByState.DEFAULT;
-            },
-            
-            affectValue: (fixture, attrName, value) => value
         }),
         
         CommonMapModel = new JSClass('CommonMapModel', Eventable, {
@@ -213,13 +185,8 @@
             setStateByName: function(stateName, value) {this.getStateObject()[stateName] = value;},
             getStateByName: function(stateName) {return this.getStateObject()[stateName];},
             
-            getStateKey: function() {
-                const parts = [],
-                    stateObj = this.getStateObject();
-                for (const stateName in stateObj) {
-                    parts.push(stateName + '-' + stateObj[stateName]);
-                }
-                return parts.sort().join('_');
+            getTemplateUrl: function(character) {
+                return this.getTemplateObject().getUrl(this, character);
             },
             
             describeForCharacter: function(character) {
@@ -527,11 +494,6 @@
     const compositionTemplates = EXPORT.composition.templates;
     for (const compId in compositionTemplates) {
         compositionTemplatesById[compId] = new CompositionTemplate(compositionTemplates[compId]);
-    }
-    
-    const fixtureTemplates = EXPORT.fixture.templates;
-    for (const id in fixtureTemplates) {
-        fixtureTemplatesById[id] = new FixtureTemplate(fixtureTemplates[id]);
     }
     
     if (IS_NODEJS) {

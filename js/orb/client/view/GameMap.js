@@ -268,7 +268,7 @@
             update: function(fixture) {
                 if (fixture) {
                     this.setVisible(true);
-                    this.setImageUrl(getFixtureTemplate(fixture.template)?.getUrlByStateKey(fixture.getStateKey()) ?? null);
+                    this.setImageUrl(fixture.getTemplateUrl(character) ?? null);
                 } else {
                     this.setImageUrl(null);
                 }
