@@ -306,7 +306,10 @@ const orb = require('./orb.js'),
                             
                             // Do interaction
                             if (matchedInteractionName) {
-                                fixture.doInteractionForCharacter(character, interactionName);
+                                const failureMsg = fixture.doInteractionForCharacter(character, interactionName);
+                                if (failureMsg) {
+                                    accountService.addMessageToUser(username, {type:TYPE_ACTION_FAILED, msg:failureMsg});
+                                }
                             } else {
                                 accountService.addMessageToUser(username, {type:TYPE_ACTION_FAILED, code:ACTION_ERROR_CODES.ACTION_NOT_ALLOWED});
                             }

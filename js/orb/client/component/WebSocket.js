@@ -467,7 +467,11 @@
                         notifyUserOfFailure('<i>Movement to that location not allowed.</i>');
                         break;
                     default:
-                        growl('warning', JSON.stringify(response));
+                        if (response.msg) {
+                            notifyUserOfFailure('<i>' + response.msg + '</i>');
+                        } else {
+                            growl('warning', JSON.stringify(response));
+                        }
                 }
             }, greek.TYPE_MOVE_FAILED);
             
@@ -479,7 +483,11 @@
                         notifyUserOfFailure('<i>Action not allowed.</i>');
                         break;
                     default:
-                        growl('warning', JSON.stringify(response));
+                        if (response.msg) {
+                            notifyUserOfFailure('<i>' + response.msg + '</i>');
+                        } else {
+                            growl('warning', JSON.stringify(response));
+                        }
                 }
             }, greek.TYPE_ACTION_FAILED);
             
@@ -489,7 +497,11 @@
                         notifyUserOfFailure('<i>Reaction not allowed.</i>');
                         break;
                     default:
-                        growl('warning', JSON.stringify(response));
+                        if (response.msg) {
+                            notifyUserOfFailure('<i>' + response.msg + '</i>');
+                        } else {
+                            growl('warning', JSON.stringify(response));
+                        }
                 }
             }, greek.TYPE_REACT_FAILED);
             
@@ -501,7 +513,11 @@
                         notifyUserOfFailure('<i>Free action not allowed.</i>');
                         break;
                     default:
-                        growl('info', response.msg);
+                        if (response.msg) {
+                            notifyUserOfFailure('<i>' + response.msg + '</i>');
+                        } else {
+                            growl('warning', JSON.stringify(response));
+                        }
                 }
             }, greek.TYPE_FREE_FAILED);
             

@@ -195,7 +195,7 @@
             
             /** Server side only. */
             doInteractionForCharacter: function(character, interactionId) {
-                this.getTemplateObject().doInteraction?.(this, character, interactionId);
+                return this.getTemplateObject().doInteraction?.(this, character, interactionId);
             }
         }),
         

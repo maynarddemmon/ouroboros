@@ -67,11 +67,16 @@
             
             // Methods /////////////////////////////////////////////////////////
             getInteractions: (fixture, character) => [],
+            affectValue: (fixture, attrName, value) => value,
+            
+            // Server Only
+            /** Optionally returns an error message. */
+            doInteraction: function(fixture, character, interactionId) {},
+            
+            // Client Only
             describe: function(fixture, character, isAppend) {
                 return isAppend ? this.name : getPhraseWithArticle(this.name);
             },
-            doInteraction: function(fixture, character, interactionId) {},
-            affectValue: (fixture, attrName, value) => value,
             getUrl: (fixture, character) => IMAGE_PREFIX + 'box.png'
         }),
         
@@ -92,15 +97,27 @@
                 return getPhraseWithArticle(fixture.getStateByName(STATE_OPEN) ? 'open' : 'closed', isAppend) + ' ' + this.callSuper(fixture, character, true);
             },
             doInteraction: function(fixture, character, interactionId) {
-                if (!fixture.getStateByName(STATE_LOCKED)) {
-                    // Can't open/close while locked is true.
-                    if (fixture.getStateByName(STATE_OPEN)) {
-                        if (interactionId === INTERACTION_CLOSE) fixture.setStateByName(STATE_OPEN, false);
-                    } else {
-                        if (interactionId === INTERACTION_OPEN) fixture.setStateByName(STATE_OPEN, true);
-                    }
+                switch (interactionId) {
+                    case INTERACTION_CLOSE:
+                        if (fixture.getStateByName(STATE_OPEN)) {
+                            fixture.setStateByName(STATE_OPEN, false);
+                        } else {
+                            return 'Can\'t close the ' + this.name + ' because it\'s already closed.';
+                        }
+                        return;
+                    case INTERACTION_OPEN:
+                        if (fixture.getStateByName(STATE_OPEN)) {
+                            return 'Can\'t open the ' + this.name + ' because it\'s already open.';
+                        } else {
+                            if (fixture.getStateByName(STATE_LOCKED)) {
+                                return 'Can\'t open the ' + this.name + ' because it appears to be locked.';
+                            } else {
+                                fixture.setStateByName(STATE_OPEN, true);
+                            }
+                        }
+                        return;
                 }
-                this.callSuper(fixture, character, interactionId);
+                return this.callSuper(fixture, character, interactionId);
             }
         }),
         
@@ -121,15 +138,23 @@
                 return getPhraseWithArticle(fixture.getStateByName(STATE_LOCKED) ? 'locked' : 'unlocked', isAppend) + ' ' + this.callSuper(fixture, character, true);
             },
             doInteraction: function(fixture, character, interactionId) {
-                if (!fixture.getStateByName(STATE_OPEN)) {
-                    // Can't lock/unlock if open is true.
-                    if (fixture.getStateByName(STATE_LOCKED)) {
-                        if (interactionId === INTERACTION_UNLOCK) fixture.setStateByName(STATE_LOCKED, false);
-                    } else {
-                        if (interactionId === INTERACTION_LOCK) fixture.setStateByName(STATE_LOCKED, true);
-                    }
+                switch (interactionId) {
+                    case INTERACTION_UNLOCK:
+                        if (fixture.getStateByName(STATE_LOCKED)) {
+                            fixture.setStateByName(STATE_LOCKED, false);
+                        } else {
+                            return 'Can\'t unlock the ' + this.name + ' because it\'s already unlocked.';
+                        }
+                        return;
+                    case INTERACTION_LOCK:
+                        if (fixture.getStateByName(STATE_LOCKED)) {
+                            return 'Can\'t lock the ' + this.name + ' because it\'s already locked.';
+                        } else {
+                            fixture.setStateByName(STATE_LOCKED, true);
+                        }
+                        return;
                 }
-                this.callSuper(fixture, character, interactionId);
+                return this.callSuper(fixture, character, interactionId);
             }
         }),
         
@@ -144,7 +169,7 @@
             
             describe: function(fixture, character, isAppend) {
                 return getPhraseWithArticle(I18N('facing-' + fixture.getStateByName(STATE_FACING)) + ' facing ', isAppend) + this.callSuper(fixture, character, true);
-            },
+            }
         }),
         
         DoorFixtureTemplate = new JSClass('DoorFixtureTemplate', FixtureTemplate, {
@@ -166,7 +191,7 @@
                     case 'damping': value *= (open ? 1 : 0.15); break;
                 }
                 return value;
-            },
+            }
         }),
         
         EXPORT = {
@@ -194,7 +219,7 @@
                 }]),
                 
                 crate_1:new FixtureTemplate({
-                    name:'wooden frame crate'
+                    name:'wooden crate'
                 })
             }
         };
