@@ -133,7 +133,7 @@ const orb = require('./orb.js'),
                 v.cell = this;
                 this.callSuper(new FaceModel(v));
             } else {
-                const existingFace = this.getNorthFace();
+                const existingFace = this.getN();
                 if (existingFace) existingFace.destroy();
                 this.callSuper(v);
             }
@@ -144,7 +144,7 @@ const orb = require('./orb.js'),
                 v.cell = this;
                 this.callSuper(new FaceModel(v));
             } else {
-                const existingFace = this.getSouthFace();
+                const existingFace = this.getS();
                 if (existingFace) existingFace.destroy();
                 this.callSuper(v);
             }
@@ -155,7 +155,7 @@ const orb = require('./orb.js'),
                 v.cell = this;
                 this.callSuper(new FaceModel(v));
             } else {
-                const existingFace = this.getEastFace();
+                const existingFace = this.getE();
                 if (existingFace) existingFace.destroy();
                 this.callSuper(v);
             }
@@ -166,7 +166,7 @@ const orb = require('./orb.js'),
                 v.cell = this;
                 this.callSuper(new FaceModel(v));
             } else {
-                const existingFace = this.getWestFace();
+                const existingFace = this.getW();
                 if (existingFace) existingFace.destroy();
                 this.callSuper(v);
             }
@@ -177,7 +177,7 @@ const orb = require('./orb.js'),
                 v.cell = this;
                 this.callSuper(new FaceModel(v));
             } else {
-                const existingFace = this.getTopFace();
+                const existingFace = this.getT();
                 if (existingFace) existingFace.destroy();
                 this.callSuper(v);
             }
@@ -188,7 +188,7 @@ const orb = require('./orb.js'),
                 v.cell = this;
                 this.callSuper(new FaceModel(v));
             } else {
-                const existingFace = this.getBottomFace();
+                const existingFace = this.getB();
                 if (existingFace) existingFace.destroy();
                 this.callSuper(v);
             }

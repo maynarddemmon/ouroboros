@@ -20,7 +20,7 @@
         {
             cellOffsetsByDistance, getVisibilityPath, getComposition, getFixtureTemplate,
             locArrToId, locIdToArr,
-            facings:{NORTH, SOUTH, EAST, WEST, getOppositeDirection},
+            facings:{NORTH, SOUTH, EAST, WEST, SELF, getOppositeDirection},
         } = common,
         
         {
@@ -28,7 +28,6 @@
             cfg:{mapRangeOffset, cellSize, entitySizeM}
         } = pkg,
         
-        COMPASS_DIRECTION_SELF = 0,
         FACE_OVERAGE = 4,
         
         QUIET_ADVERBS = ['quiet','faint','muted','muffled','soft','low'],
@@ -376,11 +375,11 @@
                         compId = cell.getComposition();
                         fixtures = cell.getFixturesMap();
                         
-                        bFace = cell.getBottomFace();
-                        nFace = cell.getNorthFace();
-                        sFace = cell.getSouthFace();
-                        eFace = cell.getEastFace();
-                        wFace = cell.getWestFace();
+                        bFace = cell.getB();
+                        nFace = cell.getN();
+                        sFace = cell.getS();
+                        eFace = cell.getE();
+                        wFace = cell.getW();
                     } else {
                         compId = 'unk';
                         const partsSeen = cell.partsSeen;
@@ -388,18 +387,18 @@
                             for (const part of partsSeen) {
                                 switch (part) {
                                     case NORTH:
-                                        nFace = cell.getNorthFace();
+                                        nFace = cell.getN();
                                         break;
                                     case SOUTH:
-                                        sFace = cell.getSouthFace();
+                                        sFace = cell.getS();
                                         break;
                                     case EAST:
-                                        eFace = cell.getEastFace();
+                                        eFace = cell.getE();
                                         break;
                                     case WEST:
-                                        wFace = cell.getWestFace();
+                                        wFace = cell.getW();
                                         break;
-                                    case COMPASS_DIRECTION_SELF: // Cell composition
+                                    case SELF: // Cell composition
                                         compId = cell.getComposition();
                                         fixtures = cell.getFixturesMap();
                                         break;
@@ -411,14 +410,13 @@
                     const comp = getComposition(compId);
                     this.setImageUrl(comp.getTileUrl());
                     this.setBgColor(comp.getMapColor() ?? 'transparent');
+                    this._fixtures.update(fixtures);
                     
                     this._bFace.update(bFace);
                     this._nFace.update(nFace);
                     this._sFace.update(sFace);
                     this._eFace.update(eFace);
                     this._wFace.update(wFace);
-                    
-                    this._fixtures.update(fixtures);
                     
                     cellViewsByLocId.set(cell.locId, this);
                 }
@@ -688,7 +686,7 @@
                                 // Check cell itself
                                 opacityTotal += cellToCheck.getAffectedValue('opacity');
                                 if (opacityTotal >= 1) {
-                                    cellToCheck.partsSeen.add(COMPASS_DIRECTION_SELF); // Indicates we should show the Cell composition
+                                    cellToCheck.partsSeen.add(SELF); // Indicates we should show the Cell composition
                                     return true;
                                 } else {
                                     return false;

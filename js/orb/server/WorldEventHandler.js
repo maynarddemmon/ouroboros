@@ -20,7 +20,7 @@ const orb = require('./orb.js'),
         TYPE_INTERACT_WITH_FIXTURE
     } = require('../common/SocketProtocol.js'),
     {
-        facings:{NORTH, SOUTH, EAST, WEST, UP, DOWN},
+        facings:{NORTH, SOUTH, EAST, WEST, UP, DOWN, SELF},
         permissions:{PERM_CREATOR},
         locArrToId, locIdToArr, isValidLocArr
     } = require('../common/common.js'),
@@ -217,27 +217,13 @@ const orb = require('./orb.js'),
                             };
                         
                         switch (prop) {
-                            case 'c':
-                                cell.setC(value);
-                                break;
-                            case NORTH + '.c':
-                                updateFaceFunc(cell.getNorthFace(), 'n');
-                                break;
-                            case SOUTH + '.c':
-                                updateFaceFunc(cell.getSouthFace(), 's');
-                                break;
-                            case EAST + '.c':
-                                updateFaceFunc(cell.getEastFace(), 'e');
-                                break;
-                            case WEST + '.c':
-                                updateFaceFunc(cell.getWestFace(), 'w');
-                                break;
-                            case UP + '.c':
-                                updateFaceFunc(cell.getTopFace(), 't');
-                                break;
-                            case DOWN + '.c':
-                                updateFaceFunc(cell.getBottomFace(), 'b');
-                                break;
+                            case SELF:  cell.setC(value); break;
+                            case NORTH: updateFaceFunc(cell.getN(), NORTH); break;
+                            case SOUTH: updateFaceFunc(cell.getS(), SOUTH); break;
+                            case EAST:  updateFaceFunc(cell.getE(), EAST); break;
+                            case WEST:  updateFaceFunc(cell.getW(), WEST); break;
+                            case UP:    updateFaceFunc(cell.getT(), UP); break;
+                            case DOWN:  updateFaceFunc(cell.getB(), DOWN); break;
                         }
                     } else {
                         accountService.addMessageToUser(username, {type:TYPE_FREE_FAILED, code:FREE_ERROR_CODES.FREE_NOT_ALLOWED});

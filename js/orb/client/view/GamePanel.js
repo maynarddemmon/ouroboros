@@ -38,7 +38,7 @@
                 TYPE_EXIT_WORLD, TYPE_ALTER_CELL, TYPE_CHANGE_FACING, TYPE_VOCALIZE,
                 TYPE_INTERACT_WITH_FIXTURE
             },
-            facings:{NORTH, SOUTH, EAST, WEST, UP, DOWN},
+            facings:{NORTH, SOUTH, EAST, WEST, UP, DOWN, SELF, COMPASS_FIELDS},
             composition:{templates},
             locIdToArr
         } = common,
@@ -116,7 +116,7 @@
             
             
             const directionWords = getDirectionWordsByFacing(facing);
-            for (const faceDir of ['n','s','e','w','t','b']) {
+            for (const faceDir of COMPASS_FIELDS) {
                 const face = cell[faceDir];
                 if (face) {
                     let faceEntry = directionWords[faceDir] + ' is a ' + face.getCompositionObject().getName();
@@ -633,13 +633,13 @@
             }]);
             alterCellTargetSelector = new InputSelect(characterTab, {
                 visible:false, height:28, options:[
-                    {label:'cell', value:'c'},
-                    {label:'north', value:NORTH + '.c'},
-                    {label:'south', value:SOUTH + '.c'},
-                    {label:'east', value:EAST + '.c'},
-                    {label:'west', value:WEST + '.c'},
-                    {label:'top', value:UP + '.c'},
-                    {label:'bottom', value:DOWN + '.c'}
+                    {label:'cell',        value:SELF},
+                    {label:'north face',  value:NORTH},
+                    {label:'south face',  value:SOUTH},
+                    {label:'east face',   value:EAST},
+                    {label:'west face',   value:WEST},
+                    {label:'top face',    value:UP},
+                    {label:'bottom face', value:DOWN}
                 ]
             });
             const options = [];

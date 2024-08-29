@@ -19,10 +19,9 @@
             permissions:{
                 PERM_CREATOR
             },
+            facings:{COMPASS_FIELDS},
             locArrToId, locIdToArr,
         } = common,
-        
-        COMPASS_FIELDS = ['n', 's', 'e', 'w', 't', 'b'],
         
         getMapData = () => mapData ??= {},
         getCellData = () => cellData ??= {},

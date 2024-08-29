@@ -24,12 +24,40 @@
         
         PERM_CREATOR = 'creator',
         
-        COMPASS_NORTH = 1,
-        COMPASS_SOUTH = 2,
-        COMPASS_EAST = 3,
-        COMPASS_WEST = 4,
-        COMPASS_UP = 5,
-        COMPASS_DOWN = 6,
+        COMPASS_NORTH = 'n',
+        COMPASS_SOUTH = 's',
+        COMPASS_EAST = 'e',
+        COMPASS_WEST = 'w',
+        COMPASS_UP = 't',
+        COMPASS_DOWN = 'b',
+        COMPASS_SELF = 'c',
+        
+        /* Does not contain COMPASS_SELF. */
+        COMPASS_FIELDS = [COMPASS_NORTH, COMPASS_SOUTH, COMPASS_EAST, COMPASS_WEST, COMPASS_UP, COMPASS_DOWN],
+        
+        isValidCompassFacing = v => {
+            switch (v) {
+                case COMPASS_NORTH:
+                case COMPASS_SOUTH:
+                case COMPASS_EAST:
+                case COMPASS_WEST:
+                case COMPASS_UP:
+                case COMPASS_DOWN:
+                    return true;
+            }
+            return false;
+        },
+        
+        getOppositeCompassFacing = compassDirection => {
+            switch (compassDirection) {
+                case COMPASS_NORTH: return COMPASS_SOUTH;
+                case COMPASS_SOUTH: return COMPASS_NORTH;
+                case COMPASS_EAST: return COMPASS_WEST;
+                case COMPASS_WEST: return COMPASS_EAST;
+                case COMPASS_UP: return COMPASS_DOWN;
+                case COMPASS_DOWN: return COMPASS_UP;
+            }
+        },
         
         locIdToArr = locId => {
             let locArr;
@@ -294,44 +322,35 @@
                 return asCopy ? locArr.slice() : locArr;
             },
             
-            setN: function(v) {this.set('n', v, true);},
-            getNorthFace: function(v) {return this.n;},
-            setS: function(v) {this.set('s', v, true);},
-            getSouthFace: function(v) {return this.s;},
-            setE: function(v) {this.set('e', v, true);},
-            getEastFace: function(v) {return this.e;},
-            setW: function(v) {this.set('w', v, true);},
-            getWestFace: function(v) {return this.w;},
-            setT: function(v) {this.set('t', v, true);},
-            getTopFace: function(v) {return this.t;},
-            setB: function(v) {this.set('b', v, true);},
-            getBottomFace: function(v) {return this.b;},
+            setN: function(v) {this.set(COMPASS_NORTH, v, true);},
+            getN: function(v) {return this[COMPASS_NORTH];},
+            
+            setS: function(v) {this.set(COMPASS_SOUTH, v, true);},
+            getS: function(v) {return this[COMPASS_SOUTH];},
+            
+            setE: function(v) {this.set(COMPASS_EAST, v, true);},
+            getE: function(v) {return this[COMPASS_EAST];},
+            
+            setW: function(v) {this.set(COMPASS_WEST, v, true);},
+            getW: function(v) {return this[COMPASS_WEST];},
+            
+            setT: function(v) {this.set(COMPASS_UP, v, true);},
+            getT: function(v) {return this[COMPASS_UP];},
+            
+            setB: function(v) {this.set(COMPASS_DOWN, v, true);},
+            getB: function(v) {return this[COMPASS_DOWN];},
             
             getFaceForDirection: function(compassDirection) {
-                switch (compassDirection) {
-                    case COMPASS_NORTH: return this.getNorthFace();
-                    case COMPASS_SOUTH: return this.getSouthFace();
-                    case COMPASS_EAST: return this.getEastFace();
-                    case COMPASS_WEST: return this.getWestFace();
-                    case COMPASS_UP: return this.getTopFace();
-                    case COMPASS_DOWN: return this.getBottomFace();
-                }
+                if (isValidCompassFacing(compassDirection)) return this.get(compassDirection);
             },
             
             getFaceForOppositeDirection: function(compassDirection) {
-                switch (compassDirection) {
-                    case COMPASS_NORTH: return this.getSouthFace();
-                    case COMPASS_SOUTH: return this.getNorthFace();
-                    case COMPASS_EAST: return this.getWestFace();
-                    case COMPASS_WEST: return this.getEastFace();
-                    case COMPASS_UP: return this.getBottomFace();
-                    case COMPASS_DOWN: return this.getTopFace();
-                }
+                return this.getFaceForDirection(getOppositeCompassFacing(compassDirection));
             },
             
             getInteractions: function(character) {
                 const accum = {};
-                for (const faceDir of ['n','s','e','w','t','b']) {
+                for (const faceDir of COMPASS_FIELDS) {
                     const face = this[faceDir];
                     if (face) accum[faceDir] = face.getFixtureInteractions(character);
                     // FIXME: get adjacent cell faces
@@ -447,29 +466,17 @@
                 WEST:COMPASS_WEST,
                 UP:COMPASS_UP,
                 DOWN:COMPASS_DOWN,
+                SELF:COMPASS_SELF,
                 
-                isValidFacing: v => {
-                    switch (v) {
-                        case COMPASS_NORTH:
-                        case COMPASS_SOUTH:
-                        case COMPASS_EAST:
-                        case COMPASS_WEST:
-                        case COMPASS_UP:
-                        case COMPASS_DOWN:
-                            return true;
-                    }
-                    return false;
-                },
+                COMPASS_FIELDS:COMPASS_FIELDS,
                 
+                isValidCompassFacing:isValidCompassFacing,
+                isValidFacing: v => v === COMPASS_SELF || isValidCompassFacing(v),
+                
+                getOppositeCompassFacing:getOppositeCompassFacing,
                 getOppositeDirection: compassDirection => {
-                    switch (compassDirection) {
-                        case COMPASS_NORTH: return COMPASS_SOUTH;
-                        case COMPASS_SOUTH: return COMPASS_NORTH;
-                        case COMPASS_EAST: return COMPASS_WEST;
-                        case COMPASS_WEST: return COMPASS_EAST;
-                        case COMPASS_UP: return COMPASS_DOWN;
-                        case COMPASS_DOWN: return COMPASS_UP;
-                    }
+                    if (compassDirection === COMPASS_SELF) return COMPASS_SELF;
+                    return getOppositeCompassFacing(compassDirection);
                 }
             },
             
