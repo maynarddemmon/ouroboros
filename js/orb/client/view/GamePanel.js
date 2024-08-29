@@ -63,7 +63,7 @@
         
         getLocInfo = cell => {
             const locArr = cell.getLocArr();
-            return templates[cell.hasBeenSeen() ? cell.getComposition() : 'unk'].name + ' / x:' + locArr[1] + ' / y:' + locArr[2];
+            return templates[cell.selfOrPartHasBeenSeen(SELF) ? cell.getComposition() : 'unk'].name + ' / x:' + locArr[1] + ' / y:' + locArr[2];
         },
         
         getDirectionWordsByFacing = facing => {

@@ -306,6 +306,11 @@
         CommonCellModel = new JSClass('CommonCellModel', Eventable, {
             include:[FixtureContainerMixin, CompositionTemplateProxyMixin],
             
+            extend: {
+                // Set by the client and server so the appropriate face class is instantated.
+                FACE_MODEL_CLASS:null
+            },
+            
             prepareFixtureDatum: function(datum, fixtureId) {
                 datum.cell = this;
                 return this.callSuper(datum, fixtureId);
@@ -322,22 +327,70 @@
                 return asCopy ? locArr.slice() : locArr;
             },
             
-            setN: function(v) {this.set(COMPASS_NORTH, v, true);},
+            setN: function(v) {
+                if (v) {
+                    v.cell = this;
+                    v = new CommonCellModel.FACE_MODEL_CLASS(v);
+                } else {
+                    this.getN()?.destroy();
+                }
+                this.set(COMPASS_NORTH, v, true);
+            },
             getN: function(v) {return this[COMPASS_NORTH];},
             
-            setS: function(v) {this.set(COMPASS_SOUTH, v, true);},
+            setS: function(v) {
+                if (v) {
+                    v.cell = this;
+                    v = new CommonCellModel.FACE_MODEL_CLASS(v);
+                } else {
+                    this.getS()?.destroy();
+                }
+                this.set(COMPASS_SOUTH, v, true);
+            },
             getS: function(v) {return this[COMPASS_SOUTH];},
             
-            setE: function(v) {this.set(COMPASS_EAST, v, true);},
+            setE: function(v) {
+                if (v) {
+                    v.cell = this;
+                    v = new CommonCellModel.FACE_MODEL_CLASS(v);
+                } else {
+                    this.getE()?.destroy();
+                }
+                this.set(COMPASS_EAST, v, true);
+            },
             getE: function(v) {return this[COMPASS_EAST];},
             
-            setW: function(v) {this.set(COMPASS_WEST, v, true);},
+            setW: function(v) {
+                if (v) {
+                    v.cell = this;
+                    v = new CommonCellModel.FACE_MODEL_CLASS(v);
+                } else {
+                    this.getW()?.destroy();
+                }
+                this.set(COMPASS_WEST, v, true);
+            },
             getW: function(v) {return this[COMPASS_WEST];},
             
-            setT: function(v) {this.set(COMPASS_UP, v, true);},
+            setT: function(v) {
+                if (v) {
+                    v.cell = this;
+                    v = new CommonCellModel.FACE_MODEL_CLASS(v);
+                } else {
+                    this.getT()?.destroy();
+                }
+                this.set(COMPASS_UP, v, true);
+            },
             getT: function(v) {return this[COMPASS_UP];},
             
-            setB: function(v) {this.set(COMPASS_DOWN, v, true);},
+            setB: function(v) {
+                if (v) {
+                    v.cell = this;
+                    v = new CommonCellModel.FACE_MODEL_CLASS(v);
+                } else {
+                    this.getB()?.destroy();
+                }
+                this.set(COMPASS_DOWN, v, true);
+            },
             getB: function(v) {return this[COMPASS_DOWN];},
             
             getFaceForDirection: function(compassDirection) {

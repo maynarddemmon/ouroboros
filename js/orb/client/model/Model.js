@@ -70,54 +70,16 @@
             
             setBeenSeen: function(v) {this.beenSeen = v;},
             hasBeenSeen: function() {return this.beenSeen;},
-            
-            setN: function(v) {
-                if (v) {
-                    v.cell = this;
-                    this.callSuper(new FaceModel(v));
-                } else {
-                    this.callSuper(v);
+            partHasBeenSeen: function(part) {
+                if (part && this.partsSeen.size > 0) {
+                    for (const seenPart of this.partsSeen) {
+                        if (seenPart === part) return true;
+                    }
                 }
+                return false;
             },
-            setS: function(v) {
-                if (v) {
-                    v.cell = this;
-                    this.callSuper(new FaceModel(v));
-                } else {
-                    this.callSuper(v);
-                }
-            },
-            setE: function(v) {
-                if (v) {
-                    v.cell = this;
-                    this.callSuper(new FaceModel(v));
-                } else {
-                    this.callSuper(v);
-                }
-            },
-            setW: function(v) {
-                if (v) {
-                    v.cell = this;
-                    this.callSuper(new FaceModel(v));
-                } else {
-                    this.callSuper(v);
-                }
-            },
-            setT: function(v) {
-                if (v) {
-                    v.cell = this;
-                    this.callSuper(new FaceModel(v));
-                } else {
-                    this.callSuper(v);
-                }
-            },
-            setB: function(v) {
-                if (v) {
-                    v.cell = this;
-                    this.callSuper(new FaceModel(v));
-                } else {
-                    this.callSuper(v);
-                }
+            selfOrPartHasBeenSeen: function(part) {
+                return this.hasBeenSeen() || this.partHasBeenSeen(part);
             },
             
             // Fixtures //
@@ -337,4 +299,6 @@
                 model.fireEvent('cellsChanged');
             }
         });
+    
+    CommonCellModel.FACE_MODEL_CLASS = FaceModel;
 })(orb);

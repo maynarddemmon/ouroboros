@@ -129,69 +129,27 @@ const orb = require('./orb.js'),
         },
         
         setN: function(v) {
-            if (v) {
-                v.cell = this;
-                this.callSuper(new FaceModel(v));
-            } else {
-                const existingFace = this.getN();
-                if (existingFace) existingFace.destroy();
-                this.callSuper(v);
-            }
+            this.callSuper(v);
             if (this.inited) this.notifyAllVisualChangeListenersThatCellChanged();
         },
         setS: function(v) {
-            if (v) {
-                v.cell = this;
-                this.callSuper(new FaceModel(v));
-            } else {
-                const existingFace = this.getS();
-                if (existingFace) existingFace.destroy();
-                this.callSuper(v);
-            }
+            this.callSuper(v);
             if (this.inited) this.notifyAllVisualChangeListenersThatCellChanged();
         },
         setE: function(v) {
-            if (v) {
-                v.cell = this;
-                this.callSuper(new FaceModel(v));
-            } else {
-                const existingFace = this.getE();
-                if (existingFace) existingFace.destroy();
-                this.callSuper(v);
-            }
+            this.callSuper(v);
             if (this.inited) this.notifyAllVisualChangeListenersThatCellChanged();
         },
         setW: function(v) {
-            if (v) {
-                v.cell = this;
-                this.callSuper(new FaceModel(v));
-            } else {
-                const existingFace = this.getW();
-                if (existingFace) existingFace.destroy();
-                this.callSuper(v);
-            }
+            this.callSuper(v);
             if (this.inited) this.notifyAllVisualChangeListenersThatCellChanged();
         },
         setT: function(v) {
-            if (v) {
-                v.cell = this;
-                this.callSuper(new FaceModel(v));
-            } else {
-                const existingFace = this.getT();
-                if (existingFace) existingFace.destroy();
-                this.callSuper(v);
-            }
+            this.callSuper(v);
             if (this.inited) this.notifyAllVisualChangeListenersThatCellChanged();
         },
         setB: function(v) {
-            if (v) {
-                v.cell = this;
-                this.callSuper(new FaceModel(v));
-            } else {
-                const existingFace = this.getB();
-                if (existingFace) existingFace.destroy();
-                this.callSuper(v);
-            }
+            this.callSuper(v);
             if (this.inited) this.notifyAllVisualChangeListenersThatCellChanged();
         },
         
@@ -553,3 +511,5 @@ const orb = require('./orb.js'),
         }
         // End:Listener Management
     };
+
+CommonCellModel.FACE_MODEL_CLASS = FaceModel;
