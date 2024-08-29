@@ -1,5 +1,3 @@
-let GUID_COUNTER = -1;
-
 const path = require('path'),
     fs = require('fs'),
     JSON5 = require('json5'),
@@ -13,7 +11,10 @@ const path = require('path'),
     
     FILENAME_PACKAGE_STATE = 'pkg_state',
     
-    getGuid = () => ++GUID_COUNTER,
+    GUID_COUNTER = {},
+    GUID_KEY_CHARACTER = 'C',
+    GUID_KEY_FIXTURE = 'F',
+    getGuidString = prefix => prefix + (++GUID_COUNTER[prefix]),
     
     makePath = suffix => path.join(__dirname, PATH_PREFIX + suffix),
     
@@ -58,9 +59,17 @@ const path = require('path'),
         console.log('Restoring Package State...');
         const jsonData = readDataFile(FILENAME_PACKAGE_STATE);
         if (jsonData) {
-            GUID_COUNTER = jsonData.guidCounter ?? -1;
+            const guidCounter = jsonData.guidCounter;
+            if (guidCounter) {
+                for (const key in guidCounter) GUID_COUNTER[key] = guidCounter[key];
+            } else {
+                console.warn('No guidCounter so initializing one.');
+                for (const key of [GUID_KEY_CHARACTER, GUID_KEY_FIXTURE]) GUID_COUNTER[key] = -1;
+            }
+            resolve();
+        } else {
+            reject();
         }
-        resolve();
     },
     
     die = (resolve, reject) => {
@@ -121,7 +130,8 @@ const path = require('path'),
             }
         },
         
-        getGuidString: prefix => (prefix ? prefix : '') + getGuid(),
+        getCharacterGuid: () => getGuidString(GUID_KEY_CHARACTER),
+        getFixtureGuid: () => getGuidString(GUID_KEY_FIXTURE),
         
         /** Watch a file for changes and execute a callback when a change
             occurs setting the file to a non-empty value. On each such change

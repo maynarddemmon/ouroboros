@@ -306,7 +306,7 @@ const orb = require('./orb.js'),
                 retval.message = 'Character name already exists.';
             } else {
                 const character = new Character({
-                    id:orb.getGuidString('c'),
+                    id:orb.getCharacterGuid(),
                     uid:userId,
                     name:name,
                     loc:[0,2,2,0]

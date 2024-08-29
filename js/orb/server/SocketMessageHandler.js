@@ -29,7 +29,7 @@ const {maxCharactersPerUser} = require('./orb.js'),
         [TYPE_CREATE_CHARACTER]: (username, type, msg) => {
             const {success, message, character} = characterService.createCharacter(username, msg),
                 msgObj = {success:success, message:message};
-            if (success) msgObj.character = character;
+            if (success) msgObj.character = character.getAsData();
             return {type:type, msg:msgObj, [ATTR_TIME]:getNow()};
         },
         

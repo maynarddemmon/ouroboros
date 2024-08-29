@@ -73,7 +73,7 @@ const orb = require('./orb.js'),
     
     FixtureModel = new JSClass('FixtureModel', CommonFixtureModel, {
         init: function(attrs) {
-            const id = attrs.id ??= orb.getGuidString('f');
+            const id = attrs.id ??= orb.getFixtureGuid();
             this.callSuper(attrs);
             fixtures[id] = this;
         },
