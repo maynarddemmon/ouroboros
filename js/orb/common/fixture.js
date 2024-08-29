@@ -11,8 +11,7 @@
         tym = global.myt;
     }
     
-    const
-        {Eventable} = tym,
+    const {I18N:{get:I18N}, Eventable} = tym,
         {Module:JSModule, Class:JSClass} = JS,
         
         IMAGE_PREFIX = '/img/fixture/',
@@ -25,6 +24,35 @@
         INTERACTION_CLOSE = 'close',
         INTERACTION_LOCK = 'lock',
         INTERACTION_UNLOCK = 'unlock',
+        
+        WORD_AN = 'an',
+        WORD_A = 'a',
+        WORD_AND = 'and',
+        
+        getArticle = phrase => {
+            const match = /\w+/.exec(phrase);
+            if (!match) return WORD_AN;
+            
+            // Exceptional word starts that should be preceded by "an".
+            const word = match[0].toLowerCase();
+            for (const altCase of ['honest', 'hour', 'hono']) {
+                if (word.startsWith(altCase)) return WORD_AN;
+            }
+            
+            // Special cases where a word that begins with a vowel should be preceded by "a".
+            for (const regex of [/^e[uw]/, /^onc?e\b/, /^uni([^nmd]|mo)/, /^u[bcfhjkqrst][aeiou]/]) {
+                if (word.match(regex)) return WORD_A;
+            }
+            
+            // Words that begin with a vowel being preceded by "an".
+            if ('aeiou'.includes(word[0])) return WORD_AN;
+            
+            // Instances where y followed by specific letters is preceded by "an".
+            if (word.match(/^y(b[lor]|cl[ea]|fere|gg|p[ios]|rou|tt)/)) return WORD_AN;
+            
+            return WORD_A;
+        },
+        getPhraseWithArticle = (phrase, isAppend) => (isAppend ? WORD_AND : getArticle(phrase)) + ' ' + phrase,
         
         FixtureTemplate = new JSClass('FixtureTemplate', Eventable, {
             setName: function(v) {this.set('name', v, true);},
@@ -39,7 +67,9 @@
             
             // Methods /////////////////////////////////////////////////////////
             getInteractions: (fixture, character) => [],
-            describe: function(fixture, character, isAppend) {return this.name;},
+            describe: function(fixture, character, isAppend) {
+                return isAppend ? this.name : getPhraseWithArticle(this.name);
+            },
             doInteraction: function(fixture, character, interactionId) {},
             affectValue: (fixture, attrName, value) => value,
             getUrl: (fixture, character) => IMAGE_PREFIX + 'box.png'
@@ -59,9 +89,7 @@
                 return retval;
             },
             describe: function(fixture, character, isAppend) {
-                const isOpen = fixture.getStateByName(STATE_OPEN),
-                    prefix = isAppend ? 'and ' : (isOpen ? 'an' : 'a');
-                return prefix + ' ' + (isOpen ? 'open' : 'closed') + ' ' + this.callSuper(fixture, character, true);
+                return getPhraseWithArticle(fixture.getStateByName(STATE_OPEN) ? 'open' : 'closed', isAppend) + ' ' + this.callSuper(fixture, character, true);
             },
             doInteraction: function(fixture, character, interactionId) {
                 if (!fixture.getStateByName(STATE_LOCKED)) {
@@ -90,9 +118,7 @@
                 return retval;
             },
             describe: function(fixture, character, isAppend) {
-                const isLocked = fixture.getStateByName(STATE_LOCKED),
-                    prefix = isAppend ? 'and ' : (isLocked ? 'a' : 'an');
-                return prefix + ' ' + (isLocked ? 'locked' : 'unlocked') + ' ' + this.callSuper(fixture, character, true);
+                return getPhraseWithArticle(fixture.getStateByName(STATE_LOCKED) ? 'locked' : 'unlocked', isAppend) + ' ' + this.callSuper(fixture, character, true);
             },
             doInteraction: function(fixture, character, interactionId) {
                 if (!fixture.getStateByName(STATE_OPEN)) {
@@ -105,6 +131,20 @@
                 }
                 this.callSuper(fixture, character, interactionId);
             }
+        }),
+        
+        /** A fixture with a non-interactive "facing". */
+        FaceableFixture = new JSModule('FaceableFixture', {
+            init: function(attrs) {
+                attrs.states ??= [];
+                attrs.states[STATE_FACING] = 'number';
+                
+                this.callSuper(attrs);
+            },
+            
+            describe: function(fixture, character, isAppend) {
+                return getPhraseWithArticle(I18N('facing-' + fixture.getStateByName(STATE_FACING)) + ' facing ', isAppend) + this.callSuper(fixture, character, true);
+            },
         }),
         
         DoorFixtureTemplate = new JSClass('DoorFixtureTemplate', FixtureTemplate, {
@@ -148,21 +188,14 @@
                 }]),
                 
                 s1:new FixtureTemplate({
-                    name:'marble statue',
-                    states:{
-                        [STATE_FACING]:'number'
-                    },
-                    effects:[] // FIXME: cell occupancy limit? solidity. opacity, damping?
-                },[{
-                    describe: function(fixture, character, isAppend) {return 'a ' + this.callSuper(fixture, character, isAppend);},
+                    name:'marble statue'
+                },[FaceableFixture, {
                     getUrl: (fixture, character) => IMAGE_PREFIX + 'statue.png'
                 }]),
                 
                 crate_1:new FixtureTemplate({
                     name:'wooden frame crate'
-                },[{
-                    describe: function(fixture, character, isAppend) {return 'a ' + this.callSuper(fixture, character, isAppend);}
-                }])
+                })
             }
         };
     

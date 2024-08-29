@@ -33,4 +33,6 @@ LOCALE_JSON = {
     'facing-2':'South',
     'facing-3':'East',
     'facing-4':'West',
+    'facing-5':'upward',
+    'facing-6':'downward',
 };
