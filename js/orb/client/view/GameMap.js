@@ -20,7 +20,7 @@
         {
             cellOffsetsByDistance, getVisibilityPath, getComposition, getFixtureTemplate,
             locArrToId, locIdToArr,
-            facings:{NORTH, SOUTH, EAST, WEST, SELF, getOppositeDirection},
+            facings:{NORTH, SOUTH, EAST, WEST, SELF, getOppositeDirection}
         } = common,
         
         {
@@ -769,6 +769,11 @@
                     // Cells that don't exist yet are always considered obscured.
                     obscuredLocIds.add(locId);
                 }
+            }
+            
+            // Always consider adjacent faces as partsSeen
+            for (const direction of [NORTH, SOUTH, EAST, WEST]) {
+                originCell.getAdjacentCell(direction).partsSeen.add(getOppositeDirection(direction));
             }
             
             // Render the Cells and Entities

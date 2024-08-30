@@ -247,9 +247,7 @@ const orb = require('./orb.js'),
             if (isReady) {
                 const self = this;
                 for (const character of self.getVisualChangeListeners()) {
-                    accountService.addMessageToUser(character.getUserId(), {
-                        type:TYPE_CELL_DATA, msg:{[self.locId]:self.getAsDataForCharacter(character)}
-                    });
+                    sendCellDataMessageToUser(character, {[self.locId]:self.getAsDataForCharacter(character)});
                 }
             }
         },
@@ -257,9 +255,7 @@ const orb = require('./orb.js'),
             if (isReady) {
                 const self = this;
                 for (const character of self.getAuditoryChangeListeners()) {
-                    accountService.addMessageToUser(character.getUserId(), {
-                        type:TYPE_CELL_DATA, msg:{[self.locId]:self.getAsDataForCharacter(character)}
-                    });
+                    sendCellDataMessageToUser(character, {[self.locId]:self.getAsDataForCharacter(character)});
                 }
             }
         },
@@ -325,11 +321,13 @@ const orb = require('./orb.js'),
             if (distance >= 0 && distance < cellOffsetsByDistance.length) {
                 let facingFilterFunction;
                 if (useFacing) {
+                    // Only observe cells in the facing direction. Also always observe the rear
+                    // adjacent cell since interactions often occur there.
                     switch (character.getFacing()) {
-                        case NORTH:facingFilterFunction = (offsetX, offsetY) => offsetY <= 0; break;
-                        case SOUTH:facingFilterFunction = (offsetX, offsetY) => offsetY >= 0; break;
-                        case EAST: facingFilterFunction = (offsetX, offsetY) => offsetX >= 0; break;
-                        case WEST: facingFilterFunction = (offsetX, offsetY) => offsetX <= 0; break;
+                        case NORTH:facingFilterFunction = (offsetX, offsetY) => offsetY <= 0 || (offsetX === 0 && offsetY === -1); break;
+                        case SOUTH:facingFilterFunction = (offsetX, offsetY) => offsetY >= 0 || (offsetX === 0 && offsetY === 1);; break;
+                        case EAST: facingFilterFunction = (offsetX, offsetY) => offsetX >= 0 || (offsetX === -1 && offsetY === 0);; break;
+                        case WEST: facingFilterFunction = (offsetX, offsetY) => offsetX <= 0 || (offsetX === 1 && offsetY === 0);; break;
                     }
                 }
                 
@@ -378,6 +376,52 @@ const orb = require('./orb.js'),
         }
         
         return {inAOnly, inBoth, inBOnly};
+    },
+    
+    _updateVisualListenersForCharacter = (character, newCell, msgAccum) => {
+        const observedCells = character.getVisualObservedCells(),
+            newObservedCells = getCellsToObserve(character, character.getSightDistance(), newCell, true),
+            {inAOnly, inBoth, inBOnly} = intersectCellArrays(observedCells, newObservedCells);
+        
+        // Stop Observing
+        for (const cell of inAOnly) cell.removeVisualChangeListener(character);
+        
+        // Start Observing
+        if (inBOnly.length > 0) {
+            for (const cell of inBOnly) {
+                cell.addVisualChangeListener(character);
+                msgAccum[cell.locId] ??= cell.getAsDataForCharacter(character);
+            }
+        }
+        
+        // Quickly update observedCells in character
+        character.setVisualObservedCells([...inBoth, ...inBOnly]);
+    },
+    
+    _updateAuditoryListenersForCharacter = (character, newCell, msgAccum) => {
+        const observedCells = character.getAuditoryObservedCells(),
+            newObservedCells = getCellsToObserve(character, character.getHearDistance(), newCell, false),
+            {inAOnly, inBoth, inBOnly} = intersectCellArrays(observedCells, newObservedCells);
+        
+        // Stop Observing
+        for (const cell of inAOnly) cell.removeAuditoryChangeListener(character);
+        
+        // Start Observing
+        if (inBOnly.length > 0) {
+            for (const cell of inBOnly) {
+                cell.addAuditoryChangeListener(character);
+                msgAccum[cell.locId] ??= cell.getAsDataForCharacter(character);
+            }
+        }
+        
+        // Quickly update observedCells in character
+        character.setAuditoryObservedCells([...inBoth, ...inBOnly]);
+    },
+    
+    sendCellDataMessageToUser = (character, msgAccum) => {
+        if (Object.keys(msgAccum).length > 0) {
+            accountService.addMessageToUser(character.getUserId(), {type:TYPE_CELL_DATA, msg:msgAccum});
+        }
     },
     
     live = (resolve, reject) => {
@@ -454,62 +498,30 @@ const orb = require('./orb.js'),
         },
         
         // Start:Listener Management
-        clearListenersForCharacter: function(character) {
-            worldMap.updateVisualListenersForCharacter(character);
-            worldMap.updateAuditoryListenersForCharacter(character);
+        clearListenersForCharacter: character => {
+            const msgAccum = {};
+            _updateVisualListenersForCharacter(character, null, msgAccum);
+            _updateAuditoryListenersForCharacter(character, null, msgAccum);
+            sendCellDataMessageToUser(character, msgAccum);
         },
         
-        updateListenersForCharacter: function(character, newCell) {
-            worldMap.updateVisualListenersForCharacter(character, newCell);
-            worldMap.updateAuditoryListenersForCharacter(character, newCell);
+        updateListenersForCharacter: (character, newCell) => {
+            const msgAccum = {};
+            _updateVisualListenersForCharacter(character, newCell, msgAccum);
+            _updateAuditoryListenersForCharacter(character, newCell, msgAccum);
+            sendCellDataMessageToUser(character, msgAccum);
         },
         
-        updateVisualListenersForCharacter: function(character, newCell) {
-            const observedCells = character.getVisualObservedCells(),
-                newObservedCells = getCellsToObserve(character, character.getSightDistance(), newCell, true),
-                {inAOnly, inBoth, inBOnly} = intersectCellArrays(observedCells, newObservedCells);
-            
-            // Stop Observing
-            for (const cell of inAOnly) cell.removeVisualChangeListener(character);
-            
-            // Start Observing
-            if (inBOnly.length > 0) {
-                const msgAccum = {};
-                for (const cell of inBOnly) {
-                    cell.addVisualChangeListener(character);
-                    msgAccum[cell.locId] = cell.getAsDataForCharacter(character);
-                }
-                
-                // Send data for new cells to the listener immediately
-                accountService.addMessageToUser(character.getUserId(), {type:TYPE_CELL_DATA, msg:msgAccum});
-            }
-            
-            // Quickly update observedCells in character
-            character.setVisualObservedCells([...inBoth, ...inBOnly]);
+        updateVisualListenersForCharacter: (character, newCell) => {
+            const msgAccum = {};
+            _updateVisualListenersForCharacter(character, newCell, msgAccum);
+            sendCellDataMessageToUser(character, msgAccum);
         },
         
-        updateAuditoryListenersForCharacter: function(character, newCell) {
-            const observedCells = character.getAuditoryObservedCells(),
-                newObservedCells = getCellsToObserve(character, character.getHearDistance(), newCell, false),
-                {inAOnly, inBoth, inBOnly} = intersectCellArrays(observedCells, newObservedCells);
-            
-            // Stop Observing
-            for (const cell of inAOnly) cell.removeAuditoryChangeListener(character);
-            
-            // Start Observing
-            if (inBOnly.length > 0) {
-                const msgAccum = {};
-                for (const cell of inBOnly) {
-                    cell.addAuditoryChangeListener(character);
-                    msgAccum[cell.locId] = cell.getAsDataForCharacter(character);
-                }
-                
-                // Send data for new cells to the listener immediately
-                accountService.addMessageToUser(character.getUserId(), {type:TYPE_CELL_DATA, msg:msgAccum});
-            }
-            
-            // Quickly update observedCells in character
-            character.setAuditoryObservedCells([...inBoth, ...inBOnly]);
+        updateAuditoryListenersForCharacter: (character, newCell) => {
+            const msgAccum = {};
+            _updateAuditoryListenersForCharacter(character, newCell, msgAccum);
+            sendCellDataMessageToUser(character, msgAccum);
         }
         // End:Listener Management
     };
