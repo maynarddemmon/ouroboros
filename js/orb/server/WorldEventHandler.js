@@ -201,29 +201,27 @@ const orb = require('./orb.js'),
                 (username, character, now) => {
                     if (character.hasPermission(PERM_CREATOR)) {
                         const locArr = character.getLocArr(true),
-                            {prop, value, direction} = event.msg;
-                        
-                        const cell = worldMap.getCell(locArrToId(locArr), true),
-                            updateFaceFunc = (face, field) => {
+                            {prop, value/*, direction*/} = event.msg,
+                            cell = worldMap.getCell(locArrToId(locArr), true);
+                        switch (prop) {
+                            case SELF: 
+                                cell.setC(value);
+                                break;
+                            case NORTH: case SOUTH: case EAST: case WEST: case UP: case DOWN:
                                 if (value === 'unk') {
-                                    cell.set(field, null);
+                                    // Clear the face
+                                    cell.set(prop, null);
                                 } else {
+                                    const face = cell.get(prop);
                                     if (face) {
+                                        // Update existing face
                                         face.setC(value);
                                     } else {
-                                        cell.set(field, {c:value});
+                                        // Make a new face
+                                        cell.set(prop, {c:value});
                                     }
                                 }
-                            };
-                        
-                        switch (prop) {
-                            case SELF:  cell.setC(value); break;
-                            case NORTH: updateFaceFunc(cell.getN(), NORTH); break;
-                            case SOUTH: updateFaceFunc(cell.getS(), SOUTH); break;
-                            case EAST:  updateFaceFunc(cell.getE(), EAST); break;
-                            case WEST:  updateFaceFunc(cell.getW(), WEST); break;
-                            case UP:    updateFaceFunc(cell.getT(), UP); break;
-                            case DOWN:  updateFaceFunc(cell.getB(), DOWN); break;
+                                break;
                         }
                     } else {
                         accountService.addMessageToUser(username, {type:TYPE_FREE_FAILED, code:FREE_ERROR_CODES.FREE_NOT_ALLOWED});

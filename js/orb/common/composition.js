@@ -1,5 +1,37 @@
 (() => {
-    const IS_NODEJS = typeof module === 'object' && module.exports,
+    const IS_NODEJS = typeof module === 'object' && module.exports;
+    
+    let tym, JS;
+    if (IS_NODEJS) {
+        const imported = require('../../../lib/tym.js');
+        JS = imported.JS;
+        tym = imported.tym;
+    } else {
+        JS = global.JS;
+        tym = global.myt;
+    }
+    
+    const {I18N:{get:I18N}, Eventable} = tym,
+        {Module:JSModule, Class:JSClass} = JS,
+        
+        IMAGE_PREFIX = '/img/tile/',
+        
+        CompositionTemplate = new JSClass('CompositionTemplate', Eventable, {
+            setName: function(v) {this.set('name', v, true);},
+            getName: function() {return this.name;},
+            
+            setMapColor: function(v) {this.set('mapColor', v, true);},
+            getMapColor: function() {return this.mapColor;},
+            setTileUrl: function(v) {this.set('tileUrl', v, true);},
+            getTileUrl: function() {return this.tileUrl;},
+            
+            setSolidity: function(v) {this.set('solidity', v, true);},
+            getSolidity: function() {return this.solidity;},
+            setOpacity: function(v) {this.set('opacity', v, true);},
+            getOpacity: function() {return this.opacity;},
+            setDamping: function(v) {this.set('damping', v, true);},
+            getDamping: function() {return this.damping;}
+        }),
         
         EXPORT = {
             // Matter, Energy, Light lookup table for missing Cells
@@ -34,137 +66,144 @@
             
             templates:{
                 // Unknown
-                unk:{
+                unk:new CompositionTemplate({
                     name:'Unknown',
                     solidity:0,
                     opacity:1,
                     damping:0
-                },
+                }),
                 
                 // Void
-                v1:{
+                v1:new CompositionTemplate({
                     name:'fathomless void',
                     mapColor:'#0ff9',
-                    tileUrl:'/img/tile/void.png',
+                    tileUrl:IMAGE_PREFIX + 'void.png',
                     solidity:-1,
                     opacity:0.5,
                     damping:0.4
-                },
-                v2:{
+                }),
+                v2:new CompositionTemplate({
                     name:'inconceivable nothingness',
                     mapColor:'#09f9',
-                    tileUrl:'/img/tile/null.png',
+                    tileUrl:IMAGE_PREFIX + 'null.png',
                     solidity:-1,
                     opacity:0.5,
                     damping:0.4
-                },
-                v3:{
+                }),
+                v3:new CompositionTemplate({
                     name:'Æthoid',
                     mapColor:'#9ff9',
-                    tileUrl:'/img/tile/aethoid.png',
+                    tileUrl:IMAGE_PREFIX + 'aethoid.png',
                     solidity:0,
                     opacity:0.25,
                     damping:0.45
-                },
-                v4:{
+                }),
+                v4:new CompositionTemplate({
                     name:'Æthrull',
                     mapColor:'#09f9',
-                    tileUrl:'/img/tile/aethrull.png',
+                    tileUrl:IMAGE_PREFIX + 'aethrull.png',
                     solidity:0,
                     opacity:0.25,
                     damping:0.45
-                },
+                }),
                 
                 // Earth
-                s1:{
+                s1:new CompositionTemplate({
                     name:'solid stone',
                     mapColor:'#0003',
-                    tileUrl:'/img/tile/stone_solid.png',
+                    tileUrl:IMAGE_PREFIX + 'stone_solid.png',
                     solidity:1,
                     opacity:1,
                     damping:0
-                },
+                }),
                 
                 // Air
-                a1:{
+                a1:new CompositionTemplate({
                     name:'clear air',
                     solidity:0,
                     opacity:0.01,
                     damping:0.5
-                },
-                a2:{
+                }),
+                a2:new CompositionTemplate({
                     name:'dusty air',
                     mapColor:'#fea2',
                     solidity:0,
                     opacity:0.05,
                     damping:0.5
-                },
+                }),
                 
                 // Fire
-                f1:{
+                f1:new CompositionTemplate({
                     name:'swirling flames',
                     mapColor:'#f66',
-                    tileUrl:'/img/tile/fire.png',
+                    tileUrl:IMAGE_PREFIX + 'fire.png',
                     solidity:0,
                     opacity:0.5,
                     damping:0.45
-                },
+                }),
                 
                 // Water
-                w1:{
+                w1:new CompositionTemplate({
                     name:'solid ice',
                     mapColor:'#ccf',
-                    tileUrl:'/img/tile/ice_solid.png',
+                    tileUrl:IMAGE_PREFIX + 'ice_solid.png',
                     solidity:1,
                     opacity:0.5,
                     damping:0.25
-                },
+                }),
                 
                 
                 // Faces
-                W1:{
+                W1:new CompositionTemplate({
                     name:'smooth stone wall',
-                    tileUrl:'/img/tile/stone_wall.png',
+                    tileUrl:IMAGE_PREFIX + 'stone_wall.png',
                     solidity:1,
                     opacity:1,
                     damping:0.13
-                },
-                W2:{
+                }),
+                W2:new CompositionTemplate({
                     name:'rough stone wall',
-                    tileUrl:'/img/tile/rough_stone_wall.png',
+                    tileUrl:IMAGE_PREFIX + 'rough_stone_wall.png',
                     solidity:1,
                     opacity:1,
                     damping:0.13
-                },
-                W3:{
+                }),
+                W3:new CompositionTemplate({
                     name:'smooth stone wall with an arched door frame',
-                    tileUrl:'/img/tile/stone_wall_door_frame.png',
+                    tileUrl:IMAGE_PREFIX + 'stone_wall_door_frame.png',
                     solidity:0.5,
                     opacity:0.25,
                     damping:0.5
-                },
+                }),
+                W4:new CompositionTemplate({
+                    name:'rough stone wall with an arched door frame',
+                    tileUrl:IMAGE_PREFIX + 'rough_stone_wall_door_frame.png',
+                    solidity:0.5,
+                    opacity:0.25,
+                    damping:0.5
+                }),
                 
-                C1:{
+                C1:new CompositionTemplate({
                     name:'vaulted stone ceiling',
                     solidity:1,
                     opacity:1,
                     damping:0.13
-                },
+                }),
                 
-                F1:{
+                F1:new CompositionTemplate({
                     name:'stone floor',
-                    tileUrl:'/img/tile/stone_floor.png',
+                    tileUrl:IMAGE_PREFIX + 'stone_floor.png',
                     solidity:1,
                     opacity:1,
                     damping:0.13
-                },
-                F2:{
+                }),
+                F2:new CompositionTemplate({
                     name:'dirt floor',
-                    tileUrl:'/img/tile/dirt_floor.png',
+                    tileUrl:IMAGE_PREFIX + 'dirt_floor.png',
                     solidity:1,
                     opacity:1,
                     damping:0.13
-                }
+                })
             }
         };
     

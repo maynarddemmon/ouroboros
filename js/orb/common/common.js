@@ -19,7 +19,7 @@
         {Eventable} = tym,
         {Module:JSModule, Class:JSClass} = JS,
         
-        compositionTemplatesById = {},
+        compositionTemplatesById = composition.templates,
         fixtureTemplatesById = fixture.templates,
         
         PERM_CREATOR = 'creator',
@@ -72,23 +72,6 @@
             }
             return locArr;
         },
-        
-        CompositionTemplate = new JSClass('CompositionTemplate', Eventable, {
-            setName: function(v) {this.set('name', v, true);},
-            getName: function() {return this.name;},
-            
-            setMapColor: function(v) {this.set('mapColor', v, true);},
-            getMapColor: function() {return this.mapColor;},
-            setTileUrl: function(v) {this.set('tileUrl', v, true);},
-            getTileUrl: function() {return this.tileUrl;},
-            
-            setSolidity: function(v) {this.set('solidity', v, true);},
-            getSolidity: function() {return this.solidity;},
-            setOpacity: function(v) {this.set('opacity', v, true);},
-            getOpacity: function() {return this.opacity;},
-            setDamping: function(v) {this.set('damping', v, true);},
-            getDamping: function() {return this.damping;}
-        }),
         
         CommonMapModel = new JSClass('CommonMapModel', Eventable, {
             setName: function(v) {this.set('name', v, true);},
@@ -550,11 +533,6 @@
             composition:composition,
             fixture:fixture
         };
-    
-    const compositionTemplates = EXPORT.composition.templates;
-    for (const compId in compositionTemplates) {
-        compositionTemplatesById[compId] = new CompositionTemplate(compositionTemplates[compId]);
-    }
     
     if (IS_NODEJS) {
         module.exports = EXPORT;
