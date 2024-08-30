@@ -55,6 +55,12 @@
         getPhraseWithArticle = (phrase, isAppend) => (isAppend ? WORD_AND : getArticle(phrase)) + ' ' + phrase,
         
         FixtureTemplate = new JSClass('FixtureTemplate', Eventable, {
+            init: function(attrs) {
+                attrs.adjacentSupported ??= false;
+                
+                this.callSuper(attrs);
+            },
+            
             setName: function(v) {this.set('name', v, true);},
             getName: function() {return this.name;},
             
@@ -64,9 +70,12 @@
             setEffects: function(v) {this.set('effects', v, true);},
             getEffects: function() {return this.effects;},
             
+            setAdjacentSupported: function(v) {this.set('adjacentSupported', v, true);},
+            isAdjacentSupported: function() {return this.adjacentSupported;},
+            
             
             // Methods /////////////////////////////////////////////////////////
-            getInteractions: (fixture, character) => [],
+            getInteractions: (fixture, character, adjacent) => [],
             affectValue: (fixture, attrName, value) => value,
             
             // Server Only
@@ -88,9 +97,11 @@
                 this.callSuper(attrs);
             },
             
-            getInteractions: function(fixture, character) {
+            getInteractions: function(fixture, character, adjacent) {
                 const retval = this.callSuper(fixture, character);
-                retval.push(fixture.getStateByName(STATE_OPEN) ? INTERACTION_CLOSE : INTERACTION_OPEN);
+                if (!adjacent || this.isAdjacentSupported()) {
+                    retval.push(fixture.getStateByName(STATE_OPEN) ? INTERACTION_CLOSE : INTERACTION_OPEN);
+                }
                 return retval;
             },
             describe: function(fixture, character, isAppend) {
@@ -129,9 +140,9 @@
                 this.callSuper(attrs);
             },
             
-            getInteractions: function(fixture, character) {
+            getInteractions: function(fixture, character, adjacent) {
                 const retval = this.callSuper(fixture, character);
-                retval.push(fixture.getStateByName(STATE_LOCKED) ? INTERACTION_UNLOCK : INTERACTION_LOCK);
+                if (!adjacent) retval.push(fixture.getStateByName(STATE_LOCKED) ? INTERACTION_UNLOCK : INTERACTION_LOCK);
                 return retval;
             },
             describe: function(fixture, character, isAppend) {
@@ -176,6 +187,7 @@
             include:[OpenableFixture],
             
             init: function(attrs) {
+                attrs.adjacentSupported ??= true;
                 attrs.effects ??= [];
                 attrs.effects.push('solidity','opacity','damping')
                 

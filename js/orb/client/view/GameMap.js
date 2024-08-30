@@ -470,7 +470,7 @@
         // Methods /////////////////////////////////////////////////////////////
         doMouseOverCell: (isOver, cell, cellView) => {},
         doMouseDownCell: (isDown, cell, cellView) => {},
-        doCharacterCell: (character, cell, cellView) => {},
+        doCharacterCell: (character, cell) => {},
         doMouseOverEntity: (isOver, entity, entityView) => {},
         doMouseDownEntity: (isDown, entity, entityView) => {},
         
@@ -822,10 +822,7 @@
             }
             
             // Update available actions for Character's current location
-            if (originCell) {
-                const interactionsAccum = originCell.getInteractions(character);
-                gameMap.doCharacterCell(character, originCell, interactionsAccum);
-            }
+            if (originCell) gameMap.doCharacterCell(character, originCell);
             
             // Have backgroundImage track the map offset so the background image does not drift
             // as the character moves.

@@ -123,6 +123,8 @@ const orb = require('./orb.js'),
     
     CellModel = new JSClass('CellModel', CommonCellModel, {
         // Accessors ///////////////////////////////////////////////////////////
+        getAnotherCell: locId => getCell(locId),
+        
         setC: function(v) {
             this.callSuper(v);
             if (this.inited) this.notifyAllVisualChangeListenersThatCellChanged();

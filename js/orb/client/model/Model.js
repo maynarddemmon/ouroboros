@@ -65,6 +65,8 @@
                 this.callSuper(attrs);
             },
             
+            getAnotherCell: locId => model.getCell(locId),
+            
             setEnt: function(v) {this.set('ent', v, true);},
             getEntities: function() {return this.ent;},
             

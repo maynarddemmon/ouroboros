@@ -38,7 +38,10 @@
                 TYPE_EXIT_WORLD, TYPE_ALTER_CELL, TYPE_CHANGE_FACING, TYPE_VOCALIZE,
                 TYPE_INTERACT_WITH_FIXTURE
             },
-            facings:{NORTH, SOUTH, EAST, WEST, UP, DOWN, SELF, COMPASS_FIELDS},
+            facings:{
+                getOppositeCompassFacing,
+                NORTH, SOUTH, EAST, WEST, UP, DOWN, SELF, COMPASS_FIELDS
+            },
             composition:{templates},
             locIdToArr
         } = common,
@@ -98,16 +101,14 @@
             return accum;
         },
         
-        getFullLocInfo = (character, cell, interactionsAccum) => {
-            const accum = [];
+        getFullLocInfo = (character, cell) => {
+            const accum = [],
+                comp = cell.getCompositionObject(),
+                interactionsAccum = cell.getInteractions(character),
+                fixtureIds = interactionsAccum.cell;
             
-            const comp = cell.getCompositionObject();
             let cellEntry = 'All about you is ' + comp.getName();
-            
-            const fixtureIds = interactionsAccum.cell;
-            if (fixtureIds) {
-                cellEntry += '. This location contains ' + getFixtureClause(character, fixtureIds);
-            }
+            if (fixtureIds) cellEntry += '. This location contains ' + getFixtureClause(character, fixtureIds);
             cellEntry += '.<br><br>';
             accum.push(cellEntry);
             
@@ -117,18 +118,30 @@
             
             const directionWords = getDirectionWordsByFacing(facing);
             for (const faceDir of COMPASS_FIELDS) {
-                const face = cell[faceDir];
+                const face = cell[faceDir],
+                    oppositeFaceDir = getOppositeCompassFacing(faceDir),
+                    adjCell = cell.getAdjacentCell(faceDir);
+                
+                let faceEntry,
+                    fixtureIds;
                 if (face) {
-                    let faceEntry = directionWords[faceDir] + ' is a ' + face.getCompositionObject().getName();
-                    
-                    const fixtureIds = interactionsAccum[faceDir];
+                    faceEntry = directionWords[faceDir] + ' is a ' + face.getCompositionObject().getName();
+                    fixtureIds = interactionsAccum[faceDir];
+                }
+                
+                if (adjCell) {
+                    const adjFace = adjCell[oppositeFaceDir];
+                    if (!faceEntry && adjFace) faceEntry = directionWords[faceDir] + ' is a ' + adjFace.getCompositionObject().getName();
+                    const adjFixtureIds = interactionsAccum['adj_' + oppositeFaceDir];
+                    if (adjFixtureIds) fixtureIds = fixtureIds ? fixtureIds.concat(adjFixtureIds) : adjFixtureIds;
+                }
+                
+                if (faceEntry) {
                     if (fixtureIds) {
                         faceEntry += ' which contains ';
                         faceEntry += getFixtureClause(character, fixtureIds);
                     }
-                    
                     faceEntry += '.<br><br>';
-                    
                     accum.push(faceEntry);
                 }
             }
@@ -432,13 +445,14 @@
         buildUI: () => {
             gamePanel.buildLeftPanel();
             gameMap = new pkg.GameMap(gamePanel, {}, [{
-                doCharacterCell: (character, cell, interactionsAccum) => {
+                doCharacterCell: (character, cell) => {
+                    const interactionsAccum = cell.getInteractions(character);
                     if (curLocId !== cell.locId) {
                         curLocId = cell.locId;
                         cellHV.setVisible(false);
                     }
                     mapInfo.setText(pkg.FA_GLOBE + ' ' + getMapInfo(cell));
-                    myLocInfo.setText(getFullLocInfo(character, cell, interactionsAccum));
+                    myLocInfo.setText(getFullLocInfo(character, cell));
                 }
             }]);
             gamePanel.buildOverlays();

@@ -59,6 +59,8 @@
             }
         },
         
+        locArrToId = locArr => locArr.join(),
+        
         locIdToArr = locId => {
             let locArr;
             if (locId) {
@@ -72,6 +74,8 @@
             }
             return locArr;
         },
+        
+        isTraversableSolidityForCorporeal = solidity => solidity >= 0 && solidity < 1,
         
         CommonMapModel = new JSClass('CommonMapModel', Eventable, {
             setName: function(v) {this.set('name', v, true);},
@@ -250,13 +254,13 @@
                 return retval;
             },
             
-            getFixtureInteractions: function(character) {
+            getFixtureInteractions: function(character, adjacent) {
                 let retval;
                 const fixtures = this.fixtures;
                 if (fixtures?.size > 0) {
                     for (const [fixtureId, fixture] of fixtures) {
                         retval ??= {};
-                        retval[fixtureId] = fixture.getTemplateObject().getInteractions?.(fixture, character);
+                        retval[fixtureId] = fixture.getTemplateObject().getInteractions?.(fixture, character, adjacent);
                     }
                 }
                 return retval;
@@ -384,14 +388,42 @@
                 return this.getFaceForDirection(getOppositeCompassFacing(compassDirection));
             },
             
+            getAnotherCell: locId => {/* Subclasses must implement. */},
+            getAdjacentCell: function(compassDirection) {
+                const locArr = this.getLocArr(true);
+                switch (compassDirection) {
+                    case COMPASS_NORTH: --locArr[2]; break;
+                    case COMPASS_SOUTH: ++locArr[2]; break;
+                    case COMPASS_EAST: ++locArr[1]; break;
+                    case COMPASS_WEST: --locArr[1]; break;
+                    case COMPASS_UP: ++locArr[3]; break;
+                    case COMPASS_DOWN: --locArr[3]; break;
+                }
+                return this.getAnotherCell(locArrToId(locArr));
+            },
+            
             getInteractions: function(character) {
                 const accum = {};
                 for (const faceDir of COMPASS_FIELDS) {
-                    const face = this[faceDir];
-                    if (face) accum[faceDir] = face.getFixtureInteractions(character);
-                    // FIXME: get adjacent cell faces
+                    let face = this[faceDir],
+                        solidity = 0;
+                    if (face) {
+                        accum[faceDir] = face.getFixtureInteractions(character, false);
+                        solidity = face.getSolidity();
+                    }
+                    
+                    // Adjacent interactions from adjacent cells
+                    if (isTraversableSolidityForCorporeal(solidity)) {
+                        const adjacentCell = this.getAdjacentCell(faceDir);
+                        if (adjacentCell) {
+                            const adjFaceDir = getOppositeCompassFacing(faceDir);
+                            face = adjacentCell[adjFaceDir];
+                            if (face) accum['adj_' + adjFaceDir] = face.getFixtureInteractions(character, true);
+                        }
+                    }
                 }
-                accum.cell = this.getFixtureInteractions(character);
+                accum.cell = this.getFixtureInteractions(character, false);
+                
                 return accum;
             }
         }),
@@ -459,9 +491,11 @@
         }),
         
         EXPORT = {
+            isTraversableSolidityForCorporeal:isTraversableSolidityForCorporeal,
+            
             // Start: loc
             locIdToArr:locIdToArr,
-            locArrToId: locArr => locArr.join(),
+            locArrToId:locArrToId,
             locIdToMapId: locId => locId ? locId.split(',')[0] : null,
             locArrToMapId: locArr => '' + locArr[0],
             isValidLocArr: locArr => {

@@ -264,39 +264,31 @@ const orb = require('./orb.js'),
                 (username, character, now) => {
                     const {fixtureId, interactionName} = event.msg;
                     if (fixtureId && interactionName) {
+                        // Get the interactions on the server side and lookup the requested
+                        // fixtureId and interactionName within it.
+                        let fixture,
+                            matchedInteractionName;
                         const interactions = character.getCell().getInteractions(character);
-                        let matchedFixtureInteractionsArray,
-                            fixture;
                         for (const fixtureContainerKey in interactions) {
                             const fixtureContainerData = interactions[fixtureContainerKey];
                             if (fixtureContainerData) {
                                 const interactionsArray = fixtureContainerData[fixtureId];
                                 if (interactionsArray) {
-                                    matchedFixtureInteractionsArray = interactionsArray;
                                     fixture = worldMap.getFixtureById(fixtureId);
+                                    for (const iaName of interactionsArray) {
+                                        if (iaName === interactionName) {
+                                            matchedInteractionName = true;
+                                            break;
+                                        }
+                                    }
                                     break;
                                 }
                             }
                         }
                         
-                        if (fixture && matchedFixtureInteractionsArray) {
-                            let matchedInteractionName;
-                            for (const iaName of matchedFixtureInteractionsArray) {
-                                if (iaName === interactionName) {
-                                    matchedInteractionName = true;
-                                    break;
-                                }
-                            }
-                            
-                            // Do interaction
-                            if (matchedInteractionName) {
-                                const failureMsg = fixture.doInteractionForCharacter(character, interactionName);
-                                if (failureMsg) {
-                                    accountService.addMessageToUser(username, {type:TYPE_ACTION_FAILED, msg:failureMsg});
-                                }
-                            } else {
-                                accountService.addMessageToUser(username, {type:TYPE_ACTION_FAILED, code:ACTION_ERROR_CODES.ACTION_NOT_ALLOWED});
-                            }
+                        if (fixture && matchedInteractionName) {
+                            const failureMsg = fixture.doInteractionForCharacter(character, interactionName);
+                            if (failureMsg) accountService.addMessageToUser(username, {type:TYPE_ACTION_FAILED, msg:failureMsg});
                         } else {
                             accountService.addMessageToUser(username, {type:TYPE_ACTION_FAILED, code:ACTION_ERROR_CODES.ACTION_NOT_ALLOWED});
                         }
