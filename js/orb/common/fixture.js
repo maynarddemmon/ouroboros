@@ -1,29 +1,36 @@
 (() => {
     const IS_NODEJS = typeof module === 'object' && module.exports;
     
-    let tym, JS;
+    let tym, JS, facing;
     if (IS_NODEJS) {
         const imported = require('../../../lib/tym.js');
         JS = imported.JS;
         tym = imported.tym;
+        facing = require('./facing.js');
     } else {
         JS = global.JS;
         tym = global.myt;
+        facing = global.facing;
     }
     
     const {I18N:{get:I18N}, Eventable} = tym,
         {Module:JSModule, Class:JSClass} = JS,
+        
+        {NORTH, SOUTH, EAST, WEST} = facing,
         
         IMAGE_PREFIX = '/img/fixture/',
         
         STATE_OPEN = 'open',
         STATE_LOCKED = 'locked',
         STATE_FACING = 'facing',
+        STATE_MATERIAL = 'material',
         
         INTERACTION_OPEN = 'open',
         INTERACTION_CLOSE = 'close',
         INTERACTION_LOCK = 'lock',
         INTERACTION_UNLOCK = 'unlock',
+        INTERACTION_ROTATE_CLOCKWISE = 'rotate clockwise',
+        INTERACTION_ROTATE_COUNTER_CLOCKWISE = 'rotate counter clockwise',
         
         WORD_AN = 'an',
         WORD_A = 'a',
@@ -62,7 +69,7 @@
             },
             
             setName: function(v) {this.set('name', v, true);},
-            getName: function() {return this.name;},
+            getName: function(fixture) {return this.name;},
             
             setStates: function(v) {this.set('states', v, true);},
             getStates: function() {return this.states;},
@@ -84,7 +91,7 @@
             
             // Client Only
             describe: function(fixture, character, isAppend) {
-                return isAppend ? this.name : getPhraseWithArticle(this.name);
+                return isAppend ? this.getName(fixture) : getPhraseWithArticle(this.getName(fixture));
             },
             getUrl: (fixture, character) => IMAGE_PREFIX + 'box.png'
         }),
@@ -113,15 +120,15 @@
                         if (fixture.getStateByName(STATE_OPEN)) {
                             fixture.setStateByName(STATE_OPEN, false);
                         } else {
-                            return 'Can\'t close the ' + this.name + ' because it\'s already closed.';
+                            return 'Can\'t close the ' + this.getName(fixture) + ' because it\'s already closed.';
                         }
                         return;
                     case INTERACTION_OPEN:
                         if (fixture.getStateByName(STATE_OPEN)) {
-                            return 'Can\'t open the ' + this.name + ' because it\'s already open.';
+                            return 'Can\'t open the ' + this.getName(fixture) + ' because it\'s already open.';
                         } else {
                             if (fixture.getStateByName(STATE_LOCKED)) {
-                                return 'Can\'t open the ' + this.name + ' because it appears to be locked.';
+                                return 'Can\'t open the ' + this.getName(fixture) + ' because it appears to be locked.';
                             } else {
                                 fixture.setStateByName(STATE_OPEN, true);
                             }
@@ -154,12 +161,12 @@
                         if (fixture.getStateByName(STATE_LOCKED)) {
                             fixture.setStateByName(STATE_LOCKED, false);
                         } else {
-                            return 'Can\'t unlock the ' + this.name + ' because it\'s already unlocked.';
+                            return 'Can\'t unlock the ' + this.getName(fixture) + ' because it\'s already unlocked.';
                         }
                         return;
                     case INTERACTION_LOCK:
                         if (fixture.getStateByName(STATE_LOCKED)) {
-                            return 'Can\'t lock the ' + this.name + ' because it\'s already locked.';
+                            return 'Can\'t lock the ' + this.getName(fixture) + ' because it\'s already locked.';
                         } else {
                             fixture.setStateByName(STATE_LOCKED, true);
                         }
@@ -173,7 +180,7 @@
         FaceableFixture = new JSModule('FaceableFixture', {
             init: function(attrs) {
                 attrs.states ??= [];
-                attrs.states[STATE_FACING] = 'number';
+                attrs.states[STATE_FACING] = 'string';
                 
                 this.callSuper(attrs);
             },
@@ -181,6 +188,57 @@
             describe: function(fixture, character, isAppend) {
                 return getPhraseWithArticle(I18N('facing-' + fixture.getStateByName(STATE_FACING)) + ' facing ', isAppend) + this.callSuper(fixture, character, true);
             }
+        }),
+        
+        /** A fixture that can be rotated (generally used with a facing). */
+        RotatableFixture = new JSModule('RotatableFixture', {
+            include:[FaceableFixture],
+            
+            getInteractions: function(fixture, character, adjacent) {
+                const retval = this.callSuper(fixture, character);
+                if (!adjacent) retval.push(INTERACTION_ROTATE_CLOCKWISE, INTERACTION_ROTATE_COUNTER_CLOCKWISE);
+                return retval;
+            },
+            doInteraction: function(fixture, character, interactionId) {
+                switch (interactionId) {
+                    case INTERACTION_ROTATE_CLOCKWISE:
+                        switch (fixture.getStateByName(STATE_FACING)) {
+                            case NORTH: fixture.setStateByName(STATE_FACING, EAST); break;
+                            case EAST: fixture.setStateByName(STATE_FACING, SOUTH); break;
+                            case SOUTH: fixture.setStateByName(STATE_FACING, WEST); break;
+                            case WEST: fixture.setStateByName(STATE_FACING, NORTH); break;
+                        }
+                        return;
+                    case INTERACTION_ROTATE_COUNTER_CLOCKWISE:
+                        switch (fixture.getStateByName(STATE_FACING)) {
+                            case NORTH: fixture.setStateByName(STATE_FACING, WEST); break;
+                            case EAST: fixture.setStateByName(STATE_FACING, NORTH); break;
+                            case SOUTH: fixture.setStateByName(STATE_FACING, EAST); break;
+                            case WEST: fixture.setStateByName(STATE_FACING, SOUTH); break;
+                        }
+                        return;
+                }
+                return this.callSuper(fixture, character, interactionId);
+            }
+        }),
+        
+        
+        // Materials for statues: alabaster, marble, limestone, sandstone, soapstone, granite, 
+        StatueFixture = new JSClass('StatueFixture', FixtureTemplate, {
+            include:[RotatableFixture],
+            
+            init: function(attrs) {
+                attrs.name ??= 'statute';
+                
+                attrs.states ??= [];
+                attrs.states[STATE_MATERIAL] = 'string';
+                
+                this.callSuper(attrs);
+            },
+            
+            getName: function(fixture) {return fixture.getStateByName(STATE_MATERIAL) + ' ' + this.callSuper();},
+            
+            getUrl: (fixture, character) => IMAGE_PREFIX + 'statue.png'
         }),
         
         DoorFixtureTemplate = new JSClass('DoorFixtureTemplate', FixtureTemplate, {
@@ -224,15 +282,9 @@
                     }
                 }]),
                 
-                s1:new FixtureTemplate({
-                    name:'marble statue'
-                },[FaceableFixture, {
-                    getUrl: (fixture, character) => IMAGE_PREFIX + 'statue.png'
-                }]),
+                s1:new StatueFixture(),
                 
-                crate_1:new FixtureTemplate({
-                    name:'wooden crate'
-                })
+                crate_1:new FixtureTemplate({name:'wooden crate'})
             }
         };
     

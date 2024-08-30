@@ -1,18 +1,20 @@
 (() => {
     const IS_NODEJS = typeof module === 'object' && module.exports;
     
-    let tym, JS, composition, fixture;
+    let tym, JS, composition, fixture, facing;
     if (IS_NODEJS) {
         const imported = require('../../../lib/tym.js');
         JS = imported.JS;
         tym = imported.tym;
         composition = require('./composition.js');
         fixture = require('./fixture.js');
+        facing = require('./facing.js');
     } else {
         JS = global.JS;
         tym = global.myt;
         composition = global.composition;
         fixture = global.fixture;
+        facing = global.facing;
     }
     
     const
@@ -23,41 +25,6 @@
         fixtureTemplatesById = fixture.templates,
         
         PERM_CREATOR = 'creator',
-        
-        COMPASS_NORTH = 'n',
-        COMPASS_SOUTH = 's',
-        COMPASS_EAST = 'e',
-        COMPASS_WEST = 'w',
-        COMPASS_UP = 't',
-        COMPASS_DOWN = 'b',
-        COMPASS_SELF = 'c',
-        
-        /* Does not contain COMPASS_SELF. */
-        COMPASS_FIELDS = [COMPASS_NORTH, COMPASS_SOUTH, COMPASS_EAST, COMPASS_WEST, COMPASS_UP, COMPASS_DOWN],
-        
-        isValidCompassFacing = v => {
-            switch (v) {
-                case COMPASS_NORTH:
-                case COMPASS_SOUTH:
-                case COMPASS_EAST:
-                case COMPASS_WEST:
-                case COMPASS_UP:
-                case COMPASS_DOWN:
-                    return true;
-            }
-            return false;
-        },
-        
-        getOppositeCompassFacing = compassDirection => {
-            switch (compassDirection) {
-                case COMPASS_NORTH: return COMPASS_SOUTH;
-                case COMPASS_SOUTH: return COMPASS_NORTH;
-                case COMPASS_EAST: return COMPASS_WEST;
-                case COMPASS_WEST: return COMPASS_EAST;
-                case COMPASS_UP: return COMPASS_DOWN;
-                case COMPASS_DOWN: return COMPASS_UP;
-            }
-        },
         
         locArrToId = locArr => locArr.join(),
         
@@ -321,9 +288,9 @@
                 } else {
                     this.getN()?.destroy();
                 }
-                this.set(COMPASS_NORTH, v, true);
+                this.set(facing.NORTH, v, true);
             },
-            getN: function(v) {return this[COMPASS_NORTH];},
+            getN: function(v) {return this[facing.NORTH];},
             
             setS: function(v) {
                 if (v) {
@@ -332,9 +299,9 @@
                 } else {
                     this.getS()?.destroy();
                 }
-                this.set(COMPASS_SOUTH, v, true);
+                this.set(facing.SOUTH, v, true);
             },
-            getS: function(v) {return this[COMPASS_SOUTH];},
+            getS: function(v) {return this[facing.SOUTH];},
             
             setE: function(v) {
                 if (v) {
@@ -343,9 +310,9 @@
                 } else {
                     this.getE()?.destroy();
                 }
-                this.set(COMPASS_EAST, v, true);
+                this.set(facing.EAST, v, true);
             },
-            getE: function(v) {return this[COMPASS_EAST];},
+            getE: function(v) {return this[facing.EAST];},
             
             setW: function(v) {
                 if (v) {
@@ -354,9 +321,9 @@
                 } else {
                     this.getW()?.destroy();
                 }
-                this.set(COMPASS_WEST, v, true);
+                this.set(facing.WEST, v, true);
             },
-            getW: function(v) {return this[COMPASS_WEST];},
+            getW: function(v) {return this[facing.WEST];},
             
             setT: function(v) {
                 if (v) {
@@ -365,9 +332,9 @@
                 } else {
                     this.getT()?.destroy();
                 }
-                this.set(COMPASS_UP, v, true);
+                this.set(facing.UP, v, true);
             },
-            getT: function(v) {return this[COMPASS_UP];},
+            getT: function(v) {return this[facing.UP];},
             
             setB: function(v) {
                 if (v) {
@@ -376,35 +343,35 @@
                 } else {
                     this.getB()?.destroy();
                 }
-                this.set(COMPASS_DOWN, v, true);
+                this.set(facing.DOWN, v, true);
             },
-            getB: function(v) {return this[COMPASS_DOWN];},
+            getB: function(v) {return this[facing.DOWN];},
             
             getFaceForDirection: function(compassDirection) {
-                if (isValidCompassFacing(compassDirection)) return this.get(compassDirection);
+                if (facing.isValidCompassFacing(compassDirection)) return this.get(compassDirection);
             },
             
             getFaceForOppositeDirection: function(compassDirection) {
-                return this.getFaceForDirection(getOppositeCompassFacing(compassDirection));
+                return this.getFaceForDirection(facing.getOppositeCompassFacing(compassDirection));
             },
             
             getAnotherCell: locId => {/* Subclasses must implement. */},
             getAdjacentCell: function(compassDirection) {
                 const locArr = this.getLocArr(true);
                 switch (compassDirection) {
-                    case COMPASS_NORTH: --locArr[2]; break;
-                    case COMPASS_SOUTH: ++locArr[2]; break;
-                    case COMPASS_EAST: ++locArr[1]; break;
-                    case COMPASS_WEST: --locArr[1]; break;
-                    case COMPASS_UP: ++locArr[3]; break;
-                    case COMPASS_DOWN: --locArr[3]; break;
+                    case facing.NORTH: --locArr[2]; break;
+                    case facing.SOUTH: ++locArr[2]; break;
+                    case facing.EAST: ++locArr[1]; break;
+                    case facing.WEST: --locArr[1]; break;
+                    case facing.UP: ++locArr[3]; break;
+                    case facing.DOWN: --locArr[3]; break;
                 }
                 return this.getAnotherCell(locArrToId(locArr));
             },
             
             getInteractions: function(character) {
                 const accum = {};
-                for (const faceDir of COMPASS_FIELDS) {
+                for (const faceDir of facing.COMPASS_FIELDS) {
                     let face = this[faceDir],
                         solidity = 0;
                     if (face) {
@@ -416,7 +383,7 @@
                     if (isTraversableSolidityForCorporeal(solidity)) {
                         const adjacentCell = this.getAdjacentCell(faceDir);
                         if (adjacentCell) {
-                            const adjFaceDir = getOppositeCompassFacing(faceDir);
+                            const adjFaceDir = facing.getOppositeCompassFacing(faceDir);
                             face = adjacentCell[adjFaceDir];
                             if (face) accum['adj_' + adjFaceDir] = face.getFixtureInteractions(character, true);
                         }
@@ -529,26 +496,6 @@
             CommonEntityModelMixin:CommonEntityModelMixin,
             CommonCharacterModelMixin:CommonCharacterModelMixin,
             
-            facings:{
-                NORTH:COMPASS_NORTH,
-                SOUTH:COMPASS_SOUTH,
-                EAST:COMPASS_EAST,
-                WEST:COMPASS_WEST,
-                UP:COMPASS_UP,
-                DOWN:COMPASS_DOWN,
-                SELF:COMPASS_SELF,
-                
-                COMPASS_FIELDS:COMPASS_FIELDS,
-                
-                isValidCompassFacing:isValidCompassFacing,
-                isValidFacing: v => v === COMPASS_SELF || isValidCompassFacing(v),
-                
-                getOppositeCompassFacing:getOppositeCompassFacing,
-                getOppositeDirection: compassDirection => {
-                    if (compassDirection === COMPASS_SELF) return COMPASS_SELF;
-                    return getOppositeCompassFacing(compassDirection);
-                }
-            },
             
             permissions:{
                 PERM_CREATOR:PERM_CREATOR
@@ -565,7 +512,8 @@
             },
             
             composition:composition,
-            fixture:fixture
+            fixture:fixture,
+            facings:facing
         };
     
     if (IS_NODEJS) {
