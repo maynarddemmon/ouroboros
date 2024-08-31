@@ -6,13 +6,17 @@ const orb = require('./orb.js'),
     } = require('../../../lib/tym.js'),
     
     worldMap = require('./WorldMap.js'),
+    accountService = require('./AccountService.js'),
     {
         CommonEntityModelMixin, CommonCharacterModelMixin,
         facings:{NORTH},
         permissions:{PERM_CREATOR},
-        isValidLocArr
+        isValidLocArr, locArrToId, locIdToArr
     } = require('../common/common.js'),
-    {TYPE_ALTER_ENTITY, TYPE_SOUND} = require('../common/SocketProtocol.js'),
+    {
+        TYPE_ALTER_ENTITY, TYPE_SOUND,
+        TYPE_ALTER_CHARACTER, TYPE_MOVE_FAILED, MOVE_ERROR_CODES
+    } = require('../common/SocketProtocol.js'),
     
     FILENAME_CHARACTERS = 'characters',
     
@@ -70,6 +74,39 @@ const orb = require('./orb.js'),
             self.getCell()?.notifyAllAuditoryChangeListeners(TYPE_SOUND, {
                 from:self.getId(), type:'vocalize', volume:volume, message:message
             }, true);
+        },
+        
+        doMove: function(locArrOrId, direction) {
+            let locArr,
+                locId;
+            if (typeof locArrOrId === 'string') {
+                locId = locArrOrId;
+                locArr = locIdToArr(locArrOrId);
+            } else {
+                locId = locArrToId(locArrOrId);
+                locArr = locArrOrId;
+            }
+            
+            // Determine if the new location will allow the character
+            const cell = worldMap.getCell(locId, true),
+                username = this.isA(Character) ? this.getUserId() : null;
+            if (cell.mayMoveInto(this, direction)) {
+                this.setLoc(locArr);
+                
+                // Send movement change
+                if (username) {
+                    accountService.addMessageToUser(username, {type:TYPE_ALTER_CHARACTER, msg:{
+                        id:this.id, p:'loc', v:locArr
+                    }});
+                }
+                
+                // Generate movement sound
+                orb.rules.generateSoundForEntityAction(this, cell, 'move');
+            } else {
+                if (username) {
+                    accountService.addMessageToUser(username, {type:TYPE_MOVE_FAILED, code:MOVE_ERROR_CODES.LOCATION_NOT_ALLOWED});
+                }
+            }
         }
     }),
     

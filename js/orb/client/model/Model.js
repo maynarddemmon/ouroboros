@@ -111,13 +111,17 @@
                 return this.lockMove == null || this.lockMove <= model.worldClockTime;
             },
             
-            doMove: function(direction) {
+            doBasicMove: function(direction) {
+                return this.doMove(TYPE_MOVE, {direction:direction});
+            },
+            
+            doMove: function(type, params) {
                 if (this.canMove()) {
                     // Pre-emptive indefinite lock. Will be updated once the
                     // server handles the character's movement.
                     this.lockMove = Number.MAX_SAFE_INTEGER;
                     
-                    pkg.websocket.sendTypedMessage(TYPE_MOVE, {id:this.id, direction:direction});
+                    pkg.websocket.sendTypedMessage(type, {id:this.id, ...params});
                     return true;
                 }
                 return false;

@@ -175,9 +175,13 @@
                 return this.getTemplateObject().describe(this, character);
             },
             
+            getLockPropertyForInteraction: function(character, interactionName) {
+                return this.getTemplateObject().getLockPropertyForInteraction?.(this, character, interactionName);
+            },
+            
             /** Server side only. */
-            doInteractionForCharacter: function(character, interactionId) {
-                return this.getTemplateObject().doInteraction?.(this, character, interactionId);
+            doInteractionForCharacter: function(character, interactionName) {
+                return this.getTemplateObject().doInteraction?.(this, character, interactionName);
             }
         }),
         
@@ -513,7 +517,29 @@
             
             composition:composition,
             fixture:fixture,
-            facings:facing
+            facings:facing,
+            
+            // String Manipulation
+            concatenateList: (list, isOr) => {
+                let txt = '';
+                if (list) {
+                    for (let i = 0, len = list.length; len > i; i++) {
+                        txt += list[i] + EXPORT.getConcatenator(i, len, isOr);
+                    }
+                }
+                return txt;
+            },
+            
+            getConcatenator: (i, len, isOr) => {
+                if (i === len - 1) {
+                    // No concatenator for last item
+                } else if (i === len - 2) {
+                    return isOr ? ' or ' : ' and ';
+                } else if (len > 1) {
+                    return ', ';
+                }
+                return '';
+            }
         };
     
     if (IS_NODEJS) {

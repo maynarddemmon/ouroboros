@@ -50,7 +50,7 @@ const orb = require('./orb.js'),
         }
     },
     
-    performAction = (event, lockProperty, cooldownFuncName, cooldownContext, actionFunc) => {
+    performAction = (event, lockProperty, cooldownContext, actionFunc) => {
         const username = verifyUserIdHasAccount(event);
         if (username) {
             const characterId = event.msg.id,
@@ -58,8 +58,21 @@ const orb = require('./orb.js'),
             if (character) {
                 if (character.getUserId() === username) {
                     const now = event[ATTR_TIME];
+                    
+                    // lockProperty can be a function. If so, invoke it to determine the kind of lock.
+                    lockProperty = typeof lockProperty === 'function' ? lockProperty(username, character, now) : lockProperty;
+                    if (!lockProperty) return;
+                    
                     let curLockValue = character.get(lockProperty);
                     if (now >= curLockValue) {
+                        let cooldownFuncName;
+                        switch (lockProperty) {
+                            case 'lockAct': cooldownFuncName = 'getActionSpeed'; break;
+                            case 'lockMove': cooldownFuncName = 'getMoveSpeed'; break;
+                            case 'lockReact': cooldownFuncName = 'getReactSpeed'; break;
+                            case 'lockFree': cooldownFuncName = 'getFreeActionSpeed'; break;
+                        }
+                        
                         const cooldownAmount = character[cooldownFuncName](cooldownContext),
                             fixedAmount = Math.floor(cooldownAmount),
                             randomChance = cooldownAmount - fixedAmount,
@@ -155,7 +168,7 @@ const orb = require('./orb.js'),
         [TYPE_MOVE]:event => {
             const direction = event.msg.direction;
             performAction(
-                event, 'lockMove', 'getMoveSpeed', {direction:direction}, 
+                event, 'lockMove', {direction:direction}, 
                 (username, character, now) => {
                     let locArr = character.getLocArr(true);
                     switch (direction) {
@@ -176,28 +189,14 @@ const orb = require('./orb.js'),
                             }
                     }
                     
-                    // Determine if the new location will allow the character
-                    const cell = worldMap.getCell(locArrToId(locArr), true);
-                    if (cell.mayMoveInto(character, direction)) {
-                        character.setLoc(locArr);
-                        
-                        // Send movement change
-                        accountService.addMessageToUser(username, {type:TYPE_ALTER_CHARACTER, msg:{
-                            id:character.id, p:'loc', v:locArr
-                        }});
-                        
-                        // Generate movement sound
-                        orb.rules.generateSoundForEntityAction(character, cell, 'move');
-                    } else {
-                        accountService.addMessageToUser(username, {type:TYPE_MOVE_FAILED, code:MOVE_ERROR_CODES.LOCATION_NOT_ALLOWED});
-                    }
+                    character.doMove(locArr, direction);
                 }
             );
         },
         
         [TYPE_ALTER_CELL]:event => {
             performAction(
-                event, 'lockFree', 'getFreeActionSpeed', null, 
+                event, 'lockFree', null, 
                 (username, character, now) => {
                     if (character.hasPermission(PERM_CREATOR)) {
                         const locArr = character.getLocArr(true),
@@ -232,7 +231,7 @@ const orb = require('./orb.js'),
         
         [TYPE_CHANGE_FACING]:event => {
             performAction(
-                event, 'lockFree', 'getFreeActionSpeed', null, 
+                event, 'lockFree', null, 
                 (username, character, now) => {
                     const compassDirection = event.msg[ATTR_DIRECTION];
                     if (compassDirection) {
@@ -246,7 +245,7 @@ const orb = require('./orb.js'),
         
         [TYPE_VOCALIZE]:event => {
             performAction(
-                event, 'lockFree', 'getFreeActionSpeed', null, 
+                event, 'lockFree', null, 
                 (username, character, now) => {
                     const {volume, message} = event.msg;
                     if (volume && message) {
@@ -259,15 +258,15 @@ const orb = require('./orb.js'),
         },
         
         [TYPE_INTERACT_WITH_FIXTURE]:event => {
+            const {fixtureId, interactionName} = event.msg;
+            let fixture,
+                matchedInteractionName;
             performAction(
-                event, 'lockAct', 'getActionSpeed', null, 
+                event, 
                 (username, character, now) => {
-                    const {fixtureId, interactionName} = event.msg;
                     if (fixtureId && interactionName) {
                         // Get the interactions on the server side and lookup the requested
                         // fixtureId and interactionName within it.
-                        let fixture,
-                            matchedInteractionName;
                         const interactions = character.getCell().getInteractions(character);
                         for (const fixtureContainerKey in interactions) {
                             const fixtureContainerData = interactions[fixtureContainerKey];
@@ -287,14 +286,18 @@ const orb = require('./orb.js'),
                         }
                         
                         if (fixture && matchedInteractionName) {
-                            const failureMsg = fixture.doInteractionForCharacter(character, interactionName);
-                            if (failureMsg) accountService.addMessageToUser(username, {type:TYPE_ACTION_FAILED, msg:failureMsg});
+                            return fixture.getLockPropertyForInteraction(character, interactionName) ?? 'lockAct';
                         } else {
                             accountService.addMessageToUser(username, {type:TYPE_ACTION_FAILED, code:ACTION_ERROR_CODES.ACTION_NOT_ALLOWED});
                         }
                     } else {
                         accountService.addMessageToUser(username, {type:TYPE_ACTION_FAILED, code:ACTION_ERROR_CODES.INVALID_VALUE});
                     }
+                }, 
+                null, 
+                (username, character, now) => {
+                    const failureMsg = fixture.doInteractionForCharacter(character, interactionName);
+                    if (failureMsg) accountService.addMessageToUser(username, {type:TYPE_ACTION_FAILED, msg:failureMsg});
                 }
             );
         },

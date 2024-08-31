@@ -43,7 +43,7 @@
                 NORTH, SOUTH, EAST, WEST, UP, DOWN, SELF, COMPASS_FIELDS
             },
             composition:{templates},
-            locIdToArr
+            locIdToArr, concatenateList
         } = common,
         
         {
@@ -85,20 +85,22 @@
         },
         
         getFixtureClause = (character, fixtureIds) => {
-            let accum = '';
+            let accum = [];
             for (const fixtureId in fixtureIds) {
+                let fixtureEntry = '';
                 const interactions = fixtureIds[fixtureId],
                     fixture = model.getFixtureById(fixtureId);
                 
-                accum += fixture.describeForCharacter(character);
+                fixtureEntry += fixture.describeForCharacter(character);
                 
                 if (interactions) {
                     for (const interaction of interactions) {
-                        accum += ' [<a href="#" onclick="orb.gamePanel.doFixtureLink(\'' + fixtureId + '\',\'' + interaction + '\'); return false;">' + interaction + '</a>]';
+                        fixtureEntry += ' [<a href="#" onclick="orb.gamePanel.doFixtureLink(\'' + fixtureId + '\',\'' + interaction + '\'); return false;">' + interaction + '</a>]';
                     }
                 }
+                accum.push(fixtureEntry);
             }
-            return accum;
+            return concatenateList(accum);
         },
         
         getFullLocInfo = (character, cell) => {
@@ -169,7 +171,7 @@
         },
         
         doMoveCharacter = direction => {
-            if (!character.doMove(direction)) {
+            if (!character.doBasicMove(direction)) {
                 gameMap.animateEntity(character.getId());
                 gamePanel.appendToChatLog('<i>You can\'t move right now.</i>');
             }
@@ -413,9 +415,19 @@
         appendToChatLog: msg => {if (msg) msgLog.appendMsg(msg);},
         
         doFixtureLink: (fixtureId, interactionName) => {
-            if (!character.doAction(TYPE_INTERACT_WITH_FIXTURE, {fixtureId:fixtureId, interactionName:interactionName})) {
-                gameMap.animateEntity(character.getId());
-                gamePanel.appendToChatLog('<i>You can\'t perform an action right now.</i>');
+            const fixture = model.getFixtureById(fixtureId);
+            if (fixture) {
+                let doXFuncName;
+                switch (fixture.getLockPropertyForInteraction(character, interactionName)) {
+                    case 'lockAct': doXFuncName = 'doAction'; break;
+                    case 'lockMove': doXFuncName = 'doMove'; break;
+                    case 'lockFree': doXFuncName = 'doFree'; break;
+                }
+                
+                if (!character[doXFuncName](TYPE_INTERACT_WITH_FIXTURE, {fixtureId:fixtureId, interactionName:interactionName})) {
+                    gameMap.animateEntity(character.getId());
+                    gamePanel.appendToChatLog('<i>You can\'t perform an action right now.</i>');
+                }
             }
         },
         

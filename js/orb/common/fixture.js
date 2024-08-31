@@ -24,6 +24,7 @@
         STATE_LOCKED = 'locked',
         STATE_FACING = 'facing',
         STATE_MATERIAL = 'material',
+        STATE_DESTINATION = 'destination',
         
         INTERACTION_OPEN = 'open',
         INTERACTION_CLOSE = 'close',
@@ -31,6 +32,7 @@
         INTERACTION_UNLOCK = 'unlock',
         INTERACTION_ROTATE_CLOCKWISE = 'rotate clockwise',
         INTERACTION_ROTATE_COUNTER_CLOCKWISE = 'rotate counter clockwise',
+        INTERACTION_ENTER = 'enter',
         
         WORD_AN = 'an',
         WORD_A = 'a',
@@ -83,11 +85,12 @@
             
             // Methods /////////////////////////////////////////////////////////
             getInteractions: (fixture, character, adjacent) => [],
+            getLockPropertyForInteraction: (fixture, character, interactionName) => 'lockAct',
             affectValue: (fixture, attrName, value) => value,
             
             // Server Only
             /** Optionally returns an error message. */
-            doInteraction: function(fixture, character, interactionId) {},
+            doInteraction: function(fixture, character, interactionName) {},
             
             // Client Only
             describe: function(fixture, character, isAppend) {
@@ -114,8 +117,8 @@
             describe: function(fixture, character, isAppend) {
                 return getPhraseWithArticle(fixture.getStateByName(STATE_OPEN) ? 'open' : 'closed', isAppend) + ' ' + this.callSuper(fixture, character, true);
             },
-            doInteraction: function(fixture, character, interactionId) {
-                switch (interactionId) {
+            doInteraction: function(fixture, character, interactionName) {
+                switch (interactionName) {
                     case INTERACTION_CLOSE:
                         if (fixture.getStateByName(STATE_OPEN)) {
                             fixture.setStateByName(STATE_OPEN, false);
@@ -135,7 +138,7 @@
                         }
                         return;
                 }
-                return this.callSuper(fixture, character, interactionId);
+                return this.callSuper(fixture, character, interactionName);
             }
         }),
         
@@ -155,8 +158,8 @@
             describe: function(fixture, character, isAppend) {
                 return getPhraseWithArticle(fixture.getStateByName(STATE_LOCKED) ? 'locked' : 'unlocked', isAppend) + ' ' + this.callSuper(fixture, character, true);
             },
-            doInteraction: function(fixture, character, interactionId) {
-                switch (interactionId) {
+            doInteraction: function(fixture, character, interactionName) {
+                switch (interactionName) {
                     case INTERACTION_UNLOCK:
                         if (fixture.getStateByName(STATE_LOCKED)) {
                             fixture.setStateByName(STATE_LOCKED, false);
@@ -172,7 +175,7 @@
                         }
                         return;
                 }
-                return this.callSuper(fixture, character, interactionId);
+                return this.callSuper(fixture, character, interactionName);
             }
         }),
         
@@ -199,8 +202,8 @@
                 if (!adjacent) retval.push(INTERACTION_ROTATE_CLOCKWISE, INTERACTION_ROTATE_COUNTER_CLOCKWISE);
                 return retval;
             },
-            doInteraction: function(fixture, character, interactionId) {
-                switch (interactionId) {
+            doInteraction: function(fixture, character, interactionName) {
+                switch (interactionName) {
                     case INTERACTION_ROTATE_CLOCKWISE:
                         switch (fixture.getStateByName(STATE_FACING)) {
                             case NORTH: fixture.setStateByName(STATE_FACING, EAST); break;
@@ -218,13 +221,13 @@
                         }
                         return;
                 }
-                return this.callSuper(fixture, character, interactionId);
+                return this.callSuper(fixture, character, interactionName);
             }
         }),
         
         
         // Materials for statues: alabaster, marble, limestone, sandstone, soapstone, granite, 
-        StatueFixture = new JSClass('StatueFixture', FixtureTemplate, {
+        StatueFixtureTemplate = new JSClass('StatueFixtureTemplate', FixtureTemplate, {
             include:[RotatableFixture],
             
             init: function(attrs) {
@@ -264,6 +267,33 @@
             }
         }),
         
+        PortalFixtureTemplate = new JSClass('PortalFixtureTemplate', FixtureTemplate, {
+            init: function(attrs) {
+                attrs.states ??= [];
+                attrs.states[STATE_DESTINATION] = 'string';
+                
+                this.callSuper(attrs);
+            },
+            
+            // Methods /////////////////////////////////////////////////////////
+            getInteractions: function(fixture, character, adjacent) {
+                const retval = this.callSuper(fixture, character);
+                if (!adjacent) retval.push(INTERACTION_ENTER);
+                return retval;
+            },
+            getLockPropertyForInteraction: (fixture, character, interactionName) => 'lockMove',
+            doInteraction: function(fixture, character, interactionName) {
+                switch (interactionName) {
+                    case INTERACTION_ENTER:
+                        character.doMove(fixture.getStateByName(STATE_DESTINATION));
+                        return;
+                }
+                return this.callSuper(fixture, character, interactionName);
+            },
+            
+            getUrl: (fixture, character) => IMAGE_PREFIX + 'portal.png'
+        }),
+        
         EXPORT = {
             templates:{
                 d1:new DoorFixtureTemplate({
@@ -282,7 +312,8 @@
                     }
                 }]),
                 
-                s1:new StatueFixture(),
+                s1:new StatueFixtureTemplate(),
+                p1:new PortalFixtureTemplate({name:'swirling silver portal'}),
                 
                 crate_1:new FixtureTemplate({name:'wooden crate'})
             }
