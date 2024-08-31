@@ -406,6 +406,9 @@
             setId: function(v) {this.set('id', v, true);},
             getId: function() {return this.id;},
             
+            setName: function(v) {this.set('name', v, true);},
+            getName: function() {return this.name;},
+            
             setSpirit: function(v) {this.set('spirit', v, true);},
             isSpirit: function() {return this.spirit;},
             setZombie: function(v) {this.set('zombie', v, true);},
@@ -426,8 +429,6 @@
         CommonCharacterModelMixin = new JSModule('CommonCharacterModelMixin', {
             setUid: function(v) {this.set('uid', v, true);},
             getUserId: function() {return this.uid;},
-            setName: function(v) {this.set('name', v, true);},
-            getName: function() {return this.name;},
             isSpirit: function() {
                 // Creators are treated like spirits.
                 return this.callSuper() || this.hasPermission(PERM_CREATOR);

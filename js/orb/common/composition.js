@@ -76,7 +76,7 @@
                 // Void
                 v1:new CompositionTemplate({
                     name:'fathomless void',
-                    mapColor:'#0ff9',
+                    mapColor:'#0f99',
                     tileUrl:IMAGE_PREFIX + 'void.png',
                     solidity:-1,
                     opacity:0.5,
@@ -92,7 +92,7 @@
                 }),
                 v3:new CompositionTemplate({
                     name:'Æthoid',
-                    mapColor:'#9ff9',
+                    mapColor:'#9fc6',
                     tileUrl:IMAGE_PREFIX + 'aethoid.png',
                     solidity:0,
                     opacity:0.25,
@@ -100,7 +100,7 @@
                 }),
                 v4:new CompositionTemplate({
                     name:'Æthrull',
-                    mapColor:'#09f9',
+                    mapColor:'#9cf6',
                     tileUrl:IMAGE_PREFIX + 'aethrull.png',
                     solidity:0,
                     opacity:0.25,

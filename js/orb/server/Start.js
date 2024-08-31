@@ -1,5 +1,5 @@
 const ARGS = process.argv,
-    orb = require('./orb.js'),
+    orb = global.orb = require('./orb.js'),
     JSON5 = require('json5');
 
 // Load Config Files before anything else is required.

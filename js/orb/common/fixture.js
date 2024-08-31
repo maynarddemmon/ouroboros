@@ -1,7 +1,7 @@
 (() => {
     const IS_NODEJS = typeof module === 'object' && module.exports;
     
-    let tym, JS, facing;
+    let tym, JS, facing, orb;
     if (IS_NODEJS) {
         const imported = require('../../../lib/tym.js');
         JS = imported.JS;
@@ -308,10 +308,11 @@
                 return retval;
             },
             getLockPropertyForInteraction: (fixture, character, interactionName) => 'lockMove',
+            getSoundForInteraction: (fixture, character, interactionName) => '*whoosh*',
             doInteraction: function(fixture, character, interactionName) {
                 switch (interactionName) {
                     case INTERACTION_ENTER:
-                        character.doMove(fixture.getStateByName(STATE_DESTINATION));
+                        character.doMove(fixture.getStateByName(STATE_DESTINATION), null, 'teleport-leave', 'teleport-arrive');
                         return;
                 }
                 return this.callSuper(fixture, character, interactionName);

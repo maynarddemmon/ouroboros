@@ -170,7 +170,9 @@ const orb = require('./orb.js'),
             performAction(
                 event, 'lockMove', {direction:direction}, 
                 (username, character, now) => {
-                    let locArr = character.getLocArr(true);
+                    let locArr = character.getLocArr(true),
+                        moveSoundTypeBefore = null,
+                        moveSoundTypeAfter = 'move';
                     switch (direction) {
                         case NORTH: locArr[2] -= 1; break;
                         case SOUTH: locArr[2] += 1; break;
@@ -182,6 +184,8 @@ const orb = require('./orb.js'),
                             // Treat the direction as a locId
                             if (character.hasPermission(PERM_CREATOR)) {
                                 locArr = locIdToArr(direction);
+                                moveSoundTypeBefore = 'teleport-leave';
+                                moveSoundTypeAfter = 'teleport-arrive';
                                 if (!isValidLocArr(locArr)) {
                                     accountService.addMessageToUser(username, {type:TYPE_MOVE_FAILED, code:MOVE_ERROR_CODES.INVALID_LOCATION});
                                     return;
@@ -189,7 +193,7 @@ const orb = require('./orb.js'),
                             }
                     }
                     
-                    character.doMove(locArr, direction);
+                    character.doMove(locArr, direction, moveSoundTypeBefore, moveSoundTypeAfter);
                 }
             );
         },

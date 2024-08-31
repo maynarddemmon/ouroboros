@@ -29,6 +29,7 @@ const orb = require('./orb.js'),
         // Life Cycle //////////////////////////////////////////////////////////
         init: function(attrs) {
             attrs.id ??= null;
+            attrs.name ??= '';
             attrs.spirit ??= false;
             attrs.zombie ??= false;
             attrs.astral ??= false;
@@ -62,6 +63,7 @@ const orb = require('./orb.js'),
         getAsDataForCharacter: function(character) {
             return {
                 id: this.getId(),
+                name: this.getName(),
                 spirit: this.isSpirit(),
                 zombie: this.isZombie(),
                 astral: this.isAstralProjected(),
@@ -76,7 +78,7 @@ const orb = require('./orb.js'),
             }, true);
         },
         
-        doMove: function(locArrOrId, direction) {
+        doMove: function(locArrOrId, direction, moveSoundTypeBefore, moveSoundTypeAfter) {
             let locArr,
                 locId;
             if (typeof locArrOrId === 'string') {
@@ -91,6 +93,9 @@ const orb = require('./orb.js'),
             const cell = worldMap.getCell(locId, true),
                 username = this.isA(Character) ? this.getUserId() : null;
             if (cell.mayMoveInto(this, direction)) {
+                // Generate movement sound before
+                if (moveSoundTypeBefore) orb.rules.generateSoundForEntityAction(this, this.getCell(), moveSoundTypeBefore);
+                
                 this.setLoc(locArr);
                 
                 // Send movement change
@@ -100,12 +105,14 @@ const orb = require('./orb.js'),
                     }});
                 }
                 
-                // Generate movement sound
-                orb.rules.generateSoundForEntityAction(this, cell, 'move');
+                // Generate movement sound after
+                if (moveSoundTypeAfter) orb.rules.generateSoundForEntityAction(this, this.getCell(), moveSoundTypeAfter);
+                return true;
             } else {
                 if (username) {
                     accountService.addMessageToUser(username, {type:TYPE_MOVE_FAILED, code:MOVE_ERROR_CODES.LOCATION_NOT_ALLOWED});
                 }
+                return false;
             }
         }
     }),
@@ -121,7 +128,6 @@ const orb = require('./orb.js'),
             
             attrs.uid ??= null;
             attrs.perms ??= null;
-            attrs.name ??= '';
             attrs.inWorld ??= false;
             attrs.moveSpeed ??= 3;
             attrs.lockMove ??= 0;
@@ -195,7 +201,7 @@ const orb = require('./orb.js'),
             character. */
         getAsDataForCharacter: function(character) {
             const retval = this.callSuper(character);
-            for (const propName of ['name', 'inWorld']) {
+            for (const propName of ['inWorld']) {
                 retval[propName] = this.get(propName);
             }
             return retval;

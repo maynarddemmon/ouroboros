@@ -396,6 +396,7 @@
                     gameMap.setCharacter();
                     myLocInfo.setText();
                     mapInfo.setText();
+                    msgLog.setText();
                 }
             }
         },

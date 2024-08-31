@@ -246,6 +246,14 @@ const path = require('path'),
                 let soundEffect = 'sound',
                     volume = 1<<1;
                 switch (actionType) {
+                    case 'teleport-arrive':
+                        soundEffect = 'pop';
+                        volume = 1<<5;
+                        break;
+                    case 'teleport-leave':
+                        soundEffect = 'pip';
+                        volume = 1<<5;
+                        break;
                     case 'move':
                         soundEffect = 'footsteps';
                         volume = 1<<5;
