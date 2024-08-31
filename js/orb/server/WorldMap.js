@@ -1,6 +1,6 @@
 let isReady = false;
 
-const orb = require('./orb.js'),
+const orb = global.orb,
     
     objectKeys = Object.keys,
     

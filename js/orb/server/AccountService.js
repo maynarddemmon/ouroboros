@@ -3,7 +3,7 @@ let accessLog,
     accountUnlockerIntervalId = null;
 
 const {scryptSync} = require('crypto'),
-    orb = require('./orb.js'),
+    orb = global.orb,
     {salt, authFailLimit, accountUnlockerInterval} = orb,
     
     {TYPE_NOW} = require('../common/SocketProtocol.js'),

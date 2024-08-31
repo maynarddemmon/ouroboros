@@ -1,4 +1,4 @@
-const orb = require('./orb.js'),
+const orb = global.orb,
     
     {
         tym:{getRandom}

@@ -3,10 +3,10 @@ let now,
     Interval,
     eventLog;
 
-const orb = require('./orb.js'),
+const orb = global.orb,
     {getEventLog} = require('./LoggingService.js'),
     worldEventHandler = require('./WorldEventHandler.js'),
-    accountService = require('./AccountService.js'),
+    {drainOutgoingMessages} = require('./AccountService.js'),
     {ATTR_TIME} = require('../common/SocketProtocol.js'),
     
     FILENAME_WORLD_CLOCK = 'world_clock',
@@ -36,7 +36,17 @@ const orb = require('./orb.js'),
     },
     
     getQueue = tickTime => queues[tickTime],
-    getQueueLazy = tickTime => queues[tickTime] ?? (queues[tickTime] = []),
+    getQueueLazy = tickTime => queues[tickTime] ??= [],
+    
+    doEventAt = (when, event) => {
+        if (event) {
+            const tickTime = getTickTime(when);
+            if (tickTime >= 0) {
+                event[ATTR_TIME] = tickTime;
+                getQueueLazy(tickTime).push(event);
+            }
+        }
+    },
     
     doTick = () => {
         const start = Date.now(); // DEBUG
@@ -65,7 +75,7 @@ const orb = require('./orb.js'),
         }
         
         // Send outgoing messages
-        accountService.drainOutgoingMessages(now);
+        drainOutgoingMessages(now);
         
         // Move time forward
         console.log('tick', now, queueLen, Date.now() - start); // DEBUG
@@ -94,47 +104,34 @@ const orb = require('./orb.js'),
         console.log('Save World Clock');
         orb.saveDataToFile(FILENAME_WORLD_CLOCK, {now:now});
         resolve();
+    };
+    
+module.exports = {
+    lifeCycle: isBirth => new Promise((resolve, reject) => {
+        if (isBirth) {
+            live(resolve, reject);
+        } else {
+            die(resolve, reject);
+        }
+    }),
+    
+    getTick: () => tick,
+    getNow: () => now,
+    
+    startClock: () => {
+        // Initialize the tick to the configured worldClockTick
+        tick = orb.worldClockTick;
+        
+        Interval = setInterval(doTick, tick);
+        console.log('World Clock started ticking at ' + tick + ' millis');
     },
     
-    worldClock = module.exports = {
-        lifeCycle: isBirth => new Promise((resolve, reject) => {
-            if (isBirth) {
-                live(resolve, reject);
-            } else {
-                die(resolve, reject);
-            }
-        }),
-        
-        getTick: () => tick,
-        getNow: () => now,
-        
-        startClock: () => {
-            // Initialize the tick to the configured worldClockTick
-            tick = orb.worldClockTick;
-            
-            Interval = setInterval(doTick, tick);
-            console.log('World Clock started ticking at ' + tick + ' millis');
-        },
-        
-        stopClock: () => {
-            clearInterval(Interval);
-            console.log('World Clock stopped ticking!');
-        },
-        
-        // Event Queue //
-        doEventNow: event => {
-            worldClock.doEventAt(NOW, event);
-        },
-        doEventNext: event => {
-            worldClock.doEventAt(NEXT, event);
-        },
-        doEventAt: (when, event) => {
-            if (event) {
-                const tickTime = getTickTime(when);
-                if (tickTime >= 0) {
-                    event[ATTR_TIME] = tickTime;
-                    getQueueLazy(tickTime).push(event);
-                }
-            }
-        }
-    };
+    stopClock: () => {
+        clearInterval(Interval);
+        console.log('World Clock stopped ticking!');
+    },
+    
+    // Event Queue //
+    doEventNow: event => {doEventAt(NOW, event);},
+    doEventNext: event => {doEventAt(NEXT, event);}
+};
