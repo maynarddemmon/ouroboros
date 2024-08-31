@@ -71,7 +71,7 @@
             },
             
             setName: function(v) {this.set('name', v, true);},
-            getName: function(fixture) {return this.name;},
+            getName: function(fixture, character) {return this.name;},
             
             setStates: function(v) {this.set('states', v, true);},
             getStates: function() {return this.states;},
@@ -86,15 +86,16 @@
             // Methods /////////////////////////////////////////////////////////
             getInteractions: (fixture, character, adjacent) => [],
             getLockPropertyForInteraction: (fixture, character, interactionName) => 'lockAct',
+            getSoundForInteraction: (fixture, character, interactionName) => null,
             affectValue: (fixture, attrName, value) => value,
             
             // Server Only
             /** Optionally returns an error message. */
-            doInteraction: function(fixture, character, interactionName) {},
+            doInteraction: (fixture, character, interactionName) => {},
             
             // Client Only
             describe: function(fixture, character, isAppend) {
-                return isAppend ? this.getName(fixture) : getPhraseWithArticle(this.getName(fixture));
+                return isAppend ? this.getName(fixture, character) : getPhraseWithArticle(this.getName(fixture, character));
             },
             getUrl: (fixture, character) => IMAGE_PREFIX + 'box.png'
         }),
@@ -123,15 +124,15 @@
                         if (fixture.getStateByName(STATE_OPEN)) {
                             fixture.setStateByName(STATE_OPEN, false);
                         } else {
-                            return 'Can\'t close the ' + this.getName(fixture) + ' because it\'s already closed.';
+                            return 'Can\'t close the ' + this.getName(fixture, character) + ' because it\'s already closed.';
                         }
                         return;
                     case INTERACTION_OPEN:
                         if (fixture.getStateByName(STATE_OPEN)) {
-                            return 'Can\'t open the ' + this.getName(fixture) + ' because it\'s already open.';
+                            return 'Can\'t open the ' + this.getName(fixture, character) + ' because it\'s already open.';
                         } else {
                             if (fixture.getStateByName(STATE_LOCKED)) {
-                                return 'Can\'t open the ' + this.getName(fixture) + ' because it appears to be locked.';
+                                return 'Can\'t open the ' + this.getName(fixture, character) + ' because it appears to be locked.';
                             } else {
                                 fixture.setStateByName(STATE_OPEN, true);
                             }
@@ -164,12 +165,12 @@
                         if (fixture.getStateByName(STATE_LOCKED)) {
                             fixture.setStateByName(STATE_LOCKED, false);
                         } else {
-                            return 'Can\'t unlock the ' + this.getName(fixture) + ' because it\'s already unlocked.';
+                            return 'Can\'t unlock the ' + this.getName(fixture, character) + ' because it\'s already unlocked.';
                         }
                         return;
                     case INTERACTION_LOCK:
                         if (fixture.getStateByName(STATE_LOCKED)) {
-                            return 'Can\'t lock the ' + this.getName(fixture) + ' because it\'s already locked.';
+                            return 'Can\'t lock the ' + this.getName(fixture, character) + ' because it\'s already locked.';
                         } else {
                             fixture.setStateByName(STATE_LOCKED, true);
                         }
@@ -239,7 +240,16 @@
                 this.callSuper(attrs);
             },
             
-            getName: function(fixture) {return fixture.getStateByName(STATE_MATERIAL) + ' ' + this.callSuper();},
+            getName: function(fixture, character) {return fixture.getStateByName(STATE_MATERIAL) + ' ' + this.callSuper();},
+            
+            getSoundForInteraction: (fixture, character, interactionName) => {
+                return [
+                    // threshold in ascending order, sound, volume
+                    [0.6, '*grinding*', 5],  // 60% chance
+                    [0.9, '*scraping*', 4],  // 30% chance
+                    [1.0, '*scratching*', 2] // 10% chance
+                ];
+            },
             
             getUrl: (fixture, character) => IMAGE_PREFIX + 'statue.png'
         }),
@@ -264,6 +274,22 @@
                     case 'damping': value *= (open ? 1 : 0.15); break;
                 }
                 return value;
+            },
+            
+            getSoundForInteraction: (fixture, character, interactionName) => {
+                switch (interactionName) {
+                    case INTERACTION_CLOSE:
+                        return [
+                            [0.25, '*soft thud*', 2],
+                            [1, '*creak*', 3]
+                        ];
+                    case INTERACTION_OPEN:
+                        return [[1, '*creak*', 3]];
+                    case INTERACTION_UNLOCK:
+                        return [[1, '*click*', 1]];
+                    case INTERACTION_LOCK:
+                        return [[1, '*click*', 1]];
+                }
             }
         }),
         

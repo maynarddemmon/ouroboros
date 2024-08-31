@@ -159,6 +159,10 @@
             },
             getCell: function() {return this.cell;},
             
+            getParentCell: function() {
+                return this.cell ?? this.face.getCell();
+            },
+            
             setTemplate: function(v) {this.set('template', v, true);},
             getTemplate: function() {return this.template;},
             getTemplateObject: function() {return fixtureTemplatesById[this.getTemplate()];},
@@ -175,13 +179,12 @@
                 return this.getTemplateObject().describe(this, character);
             },
             
-            getLockPropertyForInteraction: function(character, interactionName) {
-                return this.getTemplateObject().getLockPropertyForInteraction?.(this, character, interactionName);
+            getNameForCharacter: function(character) {
+                return this.getTemplateObject().getName(this, character);
             },
             
-            /** Server side only. */
-            doInteractionForCharacter: function(character, interactionName) {
-                return this.getTemplateObject().doInteraction?.(this, character, interactionName);
+            getLockPropertyForInteraction: function(character, interactionName) {
+                return this.getTemplateObject().getLockPropertyForInteraction?.(this, character, interactionName);
             }
         }),
         

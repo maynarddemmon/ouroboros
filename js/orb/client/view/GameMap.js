@@ -487,7 +487,8 @@
         propogateValue: (startLocId, value, threshold, endLocId) => {
             // Succeed Fast when the value originates in the same Cell.
             if (startLocId === endLocId) {
-                return value * model.getCell(startLocId).getAffectedValue('damping');
+                // No damping when in the same cell.
+                return value;
             }
             
             const startCell = model.getCell(startLocId),
@@ -543,28 +544,33 @@
             const {locId, from, type, volume, message} = socketMsg,
                 AUDIBLE_THRESHOLD = 0.5,
                 effectiveVolume = gameMap.propogateValue(locId, volume, AUDIBLE_THRESHOLD, locArrToId(character.getLocArr()));
-            
             if (effectiveVolume <= AUDIBLE_THRESHOLD) {
                 // Sound to low to hear.
                 return;
             }
             
-            const isGarbled = effectiveVolume < 1,
-                entity = model.getEntityById(from);
-            let entityName = '',
+            const isFixtureSource = type === 'fixture',
+                isGarbled = effectiveVolume < 1,
+                soundSource = isFixtureSource ? model.getFixtureById(from) : model.getEntityById(from);
+            let soundSourceName = '',
                 isMyCharacter = false;
-            if (entity) {
-                if (entity === character) {
-                    isMyCharacter = true;
-                    entityName = 'You';
+            if (soundSource) {
+                if (isFixtureSource) {
+                    soundSourceName = soundSource.getNameForCharacter(character);
                 } else {
-                    if (!isGarbled) entityName = entity.name ?? '<i>Entity ' + from + '</i>';
+                    if (soundSource === character) {
+                        isMyCharacter = true;
+                        soundSourceName = 'You';
+                    } else {
+                        if (!isGarbled) soundSourceName = soundSource.getName() ?? '<i>Entity ' + from + '</i>';
+                    }
                 }
             }
             
             let actionLabel = '',
                 msgHeard = message;
             switch (type) {
+                case 'fixture': // FIXME: garbled fixture sounds?
                 case 'move':
                     if (isGarbled) {
                         msgHeard = '*' + getRandomArrayValue(QUIET_ADVERBS) + ' ' + getRandomArrayValue(MOVEMENT_SOUND_VERBS) + '*';
@@ -586,12 +592,12 @@
                     break;
             }
             
-            let chatMsg = entityName + actionLabel;
+            let chatMsg = soundSourceName + actionLabel;
             chatMsg += (chatMsg ? ': ' : '') + msgHeard;
             
             pkg.gamePanel.appendToChatLog(chatMsg);
-            if (entity) {
-                chatBubblePool.getInstance().configure(chatMsg, type, entity, locId);
+            if (soundSource) {
+                chatBubblePool.getInstance().configure(chatMsg, type, soundSource, locId);
             }
         },
         

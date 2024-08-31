@@ -6,7 +6,7 @@ const orb = require('./orb.js'),
     
     {
         JS:{Class:JSClass}, 
-        tym:{Eventable, getRandomInt}
+        tym:{Eventable, getRandom, getRandomInt}
     } = require('../../../lib/tym.js'),
     
     {
@@ -16,7 +16,7 @@ const orb = require('./orb.js'),
         locIdToArr, locArrToId, locArrToMapId, locIdToMapId
     } = require('../common/common.js'),
     {cellOffsetsByDistance} = require('../common/cellOffsets.js'),
-    {TYPE_CELL_DATA} = require('../common/SocketProtocol.js'),
+    {TYPE_CELL_DATA, TYPE_SOUND} = require('../common/SocketProtocol.js'),
     accountService = require('./AccountService.js'),
     
     FILENAME_MAPS = 'maps',
@@ -92,6 +92,41 @@ const orb = require('./orb.js'),
                 cell?.notifyAllVisualChangeListenersThatCellChanged();
             }
         },
+        
+        doInteractionForCharacter: function(character, interactionName) {
+            const template = this.getTemplateObject(),
+                failureMsg = template.doInteraction(this, character, interactionName);
+            
+            // Make sound if successful
+            if (!failureMsg) {
+                const randomSounds = template.getSoundForInteraction(this, character, interactionName);
+                if (randomSounds) {
+                    let message,
+                        volume;
+                    if (Array.isArray(randomSounds)) {
+                        const rand = getRandom();
+                        for (const entry of randomSounds) {
+                            if (rand < entry[0]) {
+                                message = entry[1];
+                                volume = entry[2];
+                                break;
+                            }
+                        }
+                    } else {
+                        // Simple sound was generated
+                        message = randomSounds;
+                    }
+                    
+                    if (message) {
+                        this.getParentCell()?.notifyAllAuditoryChangeListeners(TYPE_SOUND, {
+                            from:this.getId(), type:'fixture', volume:volume ?? 2, message:message
+                        }, true);
+                    }
+                }
+            }
+            
+            return failureMsg;
+        }
     }),
     
     FaceModel = new JSClass('FaceModel', CommonFaceModel, {
