@@ -78,7 +78,7 @@ const orb = global.orb,
             }, true);
         },
         
-        doMove: function(locArrOrId, direction, moveSoundTypeBefore, moveSoundTypeAfter) {
+        doMove: function(locArrOrId, direction, moveSoundTypeBefore, moveSoundTypeAfter, callbackBefore) {
             let locArr,
                 locId;
             if (typeof locArrOrId === 'string') {
@@ -95,6 +95,8 @@ const orb = global.orb,
             if (cell.mayMoveInto(this, direction)) {
                 // Generate movement sound before
                 if (moveSoundTypeBefore) orb.rules.generateSoundForEntityAction(this, this.getCell(), moveSoundTypeBefore);
+                
+                callbackBefore?.();
                 
                 this.setLoc(locArr);
                 
@@ -114,6 +116,10 @@ const orb = global.orb,
                 }
                 return false;
             }
+        },
+        
+        sendExposition: function(message, medium) {
+            worldMap.sendExpositionToCharacter(this, message, medium);
         }
     }),
     

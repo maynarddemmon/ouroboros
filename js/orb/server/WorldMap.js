@@ -16,8 +16,16 @@ const orb = global.orb,
         locIdToArr, locArrToId, locArrToMapId, locIdToMapId
     } = require('../common/common.js'),
     {cellOffsetsByDistance} = require('../common/cellOffsets.js'),
-    {TYPE_CELL_DATA, TYPE_SOUND} = require('../common/SocketProtocol.js'),
-    accountService = require('./AccountService.js'),
+    {TYPE_CELL_DATA, TYPE_SOUND, TYPE_EXPOSITION} = require('../common/SocketProtocol.js'),
+    {addMessageToUser} = require('./AccountService.js'),
+    
+    sendMsgToCharacter = (character, type, msg) => {
+        addMessageToUser(character.getUserId(), {type:type, msg:msg});
+    },
+    
+    sendCellDataMsgToCharacter = (character, msgAccum) => {
+        if (objectKeys(msgAccum).length > 0) sendMsgToCharacter(character, TYPE_CELL_DATA, msgAccum);
+    },
     
     FILENAME_MAPS = 'maps',
     FILENAME_CELLS = 'cells',
@@ -280,17 +288,19 @@ const orb = global.orb,
         
         notifyAllVisualChangeListenersThatCellChanged: function() {
             if (isReady) {
-                const self = this;
+                const self = this,
+                    locId = self.locId;
                 for (const character of self.getVisualChangeListeners()) {
-                    sendCellDataMessageToUser(character, {[self.locId]:self.getAsDataForCharacter(character)});
+                    sendCellDataMsgToCharacter(character, {[locId]:self.getAsDataForCharacter(character)});
                 }
             }
         },
         notifyAllAuditoryChangeListenersThatCellChanged: function() {
             if (isReady) {
-                const self = this;
+                const self = this,
+                    locId = self.locId;
                 for (const character of self.getAuditoryChangeListeners()) {
-                    sendCellDataMessageToUser(character, {[self.locId]:self.getAsDataForCharacter(character)});
+                    sendCellDataMsgToCharacter(character, {[locId]:self.getAsDataForCharacter(character)});
                 }
             }
         },
@@ -299,7 +309,7 @@ const orb = global.orb,
             if (isReady) {
                 if (includeLocId) msg.locId = this.locId;
                 for (const character of this.getVisualChangeListeners()) {
-                    accountService.addMessageToUser(character.getUserId(), {type:type, msg:msg});
+                    sendMsgToCharacter(character, type, msg);
                 }
             }
         },
@@ -307,7 +317,7 @@ const orb = global.orb,
             if (isReady) {
                 if (includeLocId) msg.locId = this.locId;
                 for (const character of this.getAuditoryChangeListeners()) {
-                    accountService.addMessageToUser(character.getUserId(), {type:type, msg:msg});
+                    sendMsgToCharacter(character, type, msg);
                 }
             }
         }
@@ -453,12 +463,6 @@ const orb = global.orb,
         character.setAuditoryObservedCells([...inBoth, ...inBOnly]);
     },
     
-    sendCellDataMessageToUser = (character, msgAccum) => {
-        if (Object.keys(msgAccum).length > 0) {
-            accountService.addMessageToUser(character.getUserId(), {type:TYPE_CELL_DATA, msg:msgAccum});
-        }
-    },
-    
     live = (resolve, reject) => {
         console.log('Restoring World Maps...');
         
@@ -537,28 +541,66 @@ const orb = global.orb,
             const msgAccum = {};
             _updateVisualListenersForCharacter(character, null, msgAccum);
             _updateAuditoryListenersForCharacter(character, null, msgAccum);
-            sendCellDataMessageToUser(character, msgAccum);
+            sendCellDataMsgToCharacter(character, msgAccum);
         },
         
         updateListenersForCharacter: (character, newCell) => {
             const msgAccum = {};
             _updateVisualListenersForCharacter(character, newCell, msgAccum);
             _updateAuditoryListenersForCharacter(character, newCell, msgAccum);
-            sendCellDataMessageToUser(character, msgAccum);
+            sendCellDataMsgToCharacter(character, msgAccum);
         },
         
         updateVisualListenersForCharacter: (character, newCell) => {
             const msgAccum = {};
             _updateVisualListenersForCharacter(character, newCell, msgAccum);
-            sendCellDataMessageToUser(character, msgAccum);
+            sendCellDataMsgToCharacter(character, msgAccum);
         },
         
         updateAuditoryListenersForCharacter: (character, newCell) => {
             const msgAccum = {};
             _updateAuditoryListenersForCharacter(character, newCell, msgAccum);
-            sendCellDataMessageToUser(character, msgAccum);
-        }
+            sendCellDataMsgToCharacter(character, msgAccum);
+        },
         // End:Listener Management
+        
+        // Start:expository messages
+        sendExpositionToCharacter: (character, message, medium) => {
+            medium ??= 'narrative';
+            const msg = {msg:message, medium:medium};
+            switch (medium) {
+                case 'narrative':
+                case 'mental':
+                case 'visual':
+                case 'auditory':
+                    // All mediums are sent the same way for direct exposition to a character.
+                    sendMsgToCharacter(character, TYPE_EXPOSITION, msg);
+            }
+        },
+        /*sendExpositionToCell: (cell, message, medium) => {
+            medium ??= 'narrative';
+            const msg = {msg:message, medium:medium};
+            switch (medium) {
+                case 'narrative':
+                case 'mental':
+                    // Only characters in the cell will receive the exposition.
+                    sendMsgToCharacter(character, TYPE_EXPOSITION, msg);
+                    break;
+                case 'visual':
+                    // The exposition emanates from the cell visually.
+                    cell.notifyAllVisualChangeListeners(TYPE_EXPOSITION, msg, true);
+                    break;
+                case 'auditory':
+                    // The exposition emanates from the cell aurally.
+                    cell.notifyAllAuditoryChangeListeners(TYPE_EXPOSITION, msg, true);
+                    break;
+            }
+        },*/
+        /* FIXME: implement when needed.
+        sendExpositionToMap: (map, msg, medium) => {},
+        sendExpositionToEveryone: (msg, medium) => {}
+        */
+        // End:expository messages
     };
 
 CommonCellModel.FACE_MODEL_CLASS = FaceModel;

@@ -31,6 +31,9 @@
             
             TYPE_SOUND:'sound',
             
+            // Send exposition to a character, cell, map, everyone.
+            TYPE_EXPOSITION:'expo',
+            
             // Movement
             TYPE_MOVE:'move',
             TYPE_MOVE_FAILED:'moveFailed',

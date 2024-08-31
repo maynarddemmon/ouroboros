@@ -1,7 +1,7 @@
 (() => {
     const IS_NODEJS = typeof module === 'object' && module.exports;
     
-    let tym, JS, facing, orb;
+    let tym, JS, facing;
     if (IS_NODEJS) {
         const imported = require('../../../lib/tym.js');
         JS = imported.JS;
@@ -312,7 +312,13 @@
             doInteraction: function(fixture, character, interactionName) {
                 switch (interactionName) {
                     case INTERACTION_ENTER:
-                        character.doMove(fixture.getStateByName(STATE_DESTINATION), null, 'teleport-leave', 'teleport-arrive');
+                        character.doMove(
+                            fixture.getStateByName(STATE_DESTINATION), null, 
+                            'teleport-leave', 'teleport-arrive', 
+                            () => {
+                                character.sendExposition('You enter the portal and your essence is torn apart. You are transported through higher dimensions for what seems an eternity. Until finally...', 'narrative');
+                            }
+                        );
                         return;
                 }
                 return this.callSuper(fixture, character, interactionName);
