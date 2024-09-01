@@ -5,7 +5,6 @@
         leftOverlay,
         rightOverlay,
         leftPanel,
-        rightPanel,
         characterTab,
         
         msgLog,
@@ -50,12 +49,12 @@
             model,
             TextBtn, TranslucentSquareBtn, componentUtil, FormInputText,
             theme:{padding, spacing, cornerRadius, colorBgF},
-            cfg:{cellSize, entitySizeM}
+            cfg:{mapRangeOffset, cellSize, entitySizeM}
         } = pkg,
         
         overlayMargin = 4,
         overlaySize = cellSize - overlayMargin,
-        tabSliderBtnHeight = cellSize,
+        tabSliderBtnHeight = 32,
         
         getMapInfo = cell => {
             const locArr = cell.getLocArr(),
@@ -107,15 +106,14 @@
             const accum = [],
                 comp = cell.getCompositionObject(),
                 interactionsAccum = cell.getInteractions(character),
-                fixtureIds = interactionsAccum.cell;
+                fixtureIds = interactionsAccum.cell,
+                facing = character.getFacing();
             
-            let cellEntry = 'All about you is ' + comp.getName();
+            let cellEntry = 'You are facing ' + I18N('facing-' + facing) + 
+                '. All about you is ' + comp.getName();
             if (fixtureIds) cellEntry += '. This location contains ' + getFixtureClause(character, fixtureIds);
             cellEntry += '.<br><br>';
             accum.push(cellEntry);
-            
-            const facing = character.getFacing();
-            accum.push('You are facing ' + I18N('facing-' + facing) + '.<br><br>');
             
             
             const directionWords = getDirectionWordsByFacing(facing);
@@ -260,13 +258,11 @@
         
         updateWidth = () => {
             const w = gamePanel.width,
-                mapWidth = cellSize * 19,
+                mapWidth = cellSize * (2*mapRangeOffset + 1),
                 overlayWidth = mapWidth - 2*overlayMargin,
-                leftWidth = (w - mapWidth) / 2,
-                rightWidth = leftWidth,
+                leftWidth = w - mapWidth,
                 mapX = leftWidth,
-                overlayX = mapX + overlayMargin,
-                rightPanelX = mapX + mapWidth;
+                overlayX = mapX + overlayMargin;
             
             leftPanel.setWidth(leftWidth);
             
@@ -274,15 +270,12 @@
             gameMap.setWidth(mapWidth);
             
             leftOverlay.setX(leftWidth + overlayMargin);
-            rightOverlay.setX(rightPanelX - rightOverlay.width - overlayMargin);
+            rightOverlay.setX(w - rightOverlay.width - overlayMargin);
             
             headerOverlay.setX(overlayX);
             headerOverlay.setWidth(overlayWidth);
             footerOverlay.setX(overlayX);
             footerOverlay.setWidth(overlayWidth);
-            
-            rightPanel.setX(rightPanelX);
-            rightPanel.setWidth(rightWidth);
         },
         
         updateHeight = () => {
@@ -290,7 +283,6 @@
                 overlayHeight = h - 2*(2*overlayMargin + overlaySize);
             leftPanel.setHeight(h);
             gameMap.setHeight(h);
-            rightPanel.setHeight(h);
             
             headerOverlay.setY(overlayMargin);
             footerOverlay.setY(h - footerOverlay.height - overlayMargin);
@@ -469,7 +461,6 @@
                 }
             }]);
             gamePanel.buildOverlays();
-            gamePanel.buildRightPanel();
             
             // Highlight Views
             const cellHV = buildCellHighlightView(gamePanel),
@@ -553,6 +544,62 @@
             
             new ResizeLayout(chatTab, {axis:'y', spacing:spacing, outset:spacing});
             
+            // Character Tab
+            characterTab = new LocalTabSlider(leftPanel, {
+                tabId:'character', text:pkg.FA_CHARACTER + ' Character'
+            });
+            
+            // Alter Cell
+            alterCellBtn = new TextBtn(characterTab, {text:'Alter', visible:false, layoutHint:'break'}, [{
+                doActivated: () => {
+                    if (!character.doFree(TYPE_ALTER_CELL, {
+                        direction:'here', prop:alterCellTargetSelector.value, value:alterCellCompositionSelector.value
+                    })) {
+                        notifyCanNotAct(character);
+                    }
+                }
+            }]);
+            alterCellTargetSelector = new InputSelect(characterTab, {
+                visible:false, height:28, options:[
+                    {label:'cell',        value:SELF},
+                    {label:'north face',  value:NORTH},
+                    {label:'south face',  value:SOUTH},
+                    {label:'east face',   value:EAST},
+                    {label:'west face',   value:WEST},
+                    {label:'top face',    value:UP},
+                    {label:'bottom face', value:DOWN}
+                ]
+            });
+            const options = [];
+            for (const key in templates) {
+                options.push({label:templates[key].name, value:key});
+            }
+            alterCellCompositionSelector = new InputSelect(characterTab, {
+                visible:false, height:28, options:options
+            });
+            
+            // Teleport
+            teleportBtn = new TextBtn(characterTab, {text:'Teleport', visible:false, layoutHint:'break'}, [{
+                doActivated: () => {
+                    const value = teleportLocField.value;
+                    if (value && value.length >= 7) doMoveCharacter(value);
+                }
+            }]);
+            teleportLocField = new FormInputText(characterTab, {
+                width:100, visible:false, maxLength:24, allowedChars:'-,0123456789',
+                acceleratorScope:'root'
+            },[{doAccept:teleportBtn.doActivated}]);
+            
+            new M.WrappingLayout(characterTab, {
+                inset:padding, spacing:spacing, outset:padding, 
+                lineInset:padding, lineSpacing:spacing, lineOutset:padding
+            });
+            
+            // Inventory Tab
+            const inventoryTab = new LocalTabSlider(leftPanel, {
+                tabId:'inventory', text:pkg.FA_INVENTORY + ' Inventory'
+            });
+            
             leftPanel.restoreState(['location', 'chat']);
         },
         
@@ -634,67 +681,6 @@
             
             // Right Overlay
             rightOverlay = new VerticalOverlay(gamePanel);
-        },
-        
-        buildRightPanel: () => {
-            rightPanel = new LocalTabSliderContainer(gamePanel, {persistenceId:'orb.GamePanel.rightTabIds'});
-            
-            characterTab = new LocalTabSlider(rightPanel, {
-                tabId:'character', text:pkg.FA_CHARACTER + ' Character'
-            });
-            
-            const inventoryTab = new LocalTabSlider(rightPanel, {
-                tabId:'inventory', text:pkg.FA_INVENTORY + ' Inventory'
-            });
-            
-            // Character Tab
-            // Alter Cell
-            alterCellBtn = new TextBtn(characterTab, {text:'Alter', visible:false, layoutHint:'break'}, [{
-                doActivated: () => {
-                    if (!character.doFree(TYPE_ALTER_CELL, {
-                        direction:'here', prop:alterCellTargetSelector.value, value:alterCellCompositionSelector.value
-                    })) {
-                        notifyCanNotAct(character);
-                    }
-                }
-            }]);
-            alterCellTargetSelector = new InputSelect(characterTab, {
-                visible:false, height:28, options:[
-                    {label:'cell',        value:SELF},
-                    {label:'north face',  value:NORTH},
-                    {label:'south face',  value:SOUTH},
-                    {label:'east face',   value:EAST},
-                    {label:'west face',   value:WEST},
-                    {label:'top face',    value:UP},
-                    {label:'bottom face', value:DOWN}
-                ]
-            });
-            const options = [];
-            for (const key in templates) {
-                options.push({label:templates[key].name, value:key});
-            }
-            alterCellCompositionSelector = new InputSelect(characterTab, {
-                visible:false, height:28, options:options
-            });
-            
-            // Teleport
-            teleportBtn = new TextBtn(characterTab, {text:'Teleport', visible:false, layoutHint:'break'}, [{
-                doActivated: () => {
-                    const value = teleportLocField.value;
-                    if (value && value.length >= 7) doMoveCharacter(value);
-                }
-            }]);
-            teleportLocField = new FormInputText(characterTab, {
-                width:100, visible:false, maxLength:24, allowedChars:'-,0123456789',
-                acceleratorScope:'root'
-            },[{doAccept:teleportBtn.doActivated}]);
-            
-            new M.WrappingLayout(characterTab, {
-                inset:padding, spacing:spacing, outset:padding, 
-                lineInset:padding, lineSpacing:spacing, lineOutset:padding
-            });
-            
-            rightPanel.restoreState(['character','inventory']);
         }
     });
 })(orb);
