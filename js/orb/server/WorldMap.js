@@ -262,9 +262,11 @@ const orb = global.orb,
             const retval = this.getAsData(),
                 entities = this.entities;
             if (entities?.size > 0) {
-                const accum = [];
+                const accum = [],
+                    characterId = character.getId();
+                
                 for (const entity of entities.values()) {
-                    accum.push(entity.getAsDataForCharacter(character));
+                    if (entity.getId() !== characterId) accum.push(entity.getAsDataForCharacter(character));
                 }
                 if (accum.length > 0) retval.ent = accum;
             }

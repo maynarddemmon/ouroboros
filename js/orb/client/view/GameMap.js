@@ -419,6 +419,9 @@
                     this._wFace.update(wFace);
                     
                     cellViewsByLocId.set(cell.locId, this);
+                    
+                    // Invert colors for spirit characters
+                    this._observedOverlay.setBgColor(character.isSpirit() ? '#fff8' : '#0008');
                 }
             },
             
@@ -464,7 +467,11 @@
             if (gameMap.inited) gameMap.refreshMap();
         },
         
-        setCharacter: v => character = v,
+        setCharacter: v => {
+            if (character) gameMap.detachFrom(character, 'updateMapForCharacterChange', 'spirit');
+            character = v;
+            if (character) gameMap.syncTo(character, 'updateMapForCharacterChange', 'spirit');
+        },
         
         
         // Methods /////////////////////////////////////////////////////////////
@@ -599,6 +606,11 @@
             if (soundSource) {
                 chatBubblePool.getInstance().configure(chatMsg, type, soundSource, locId);
             }
+        },
+        
+        updateMapForCharacterChange: event => {
+            // Invert colors for spirit characters
+            gameMap.getIDS().filter = 'invert(' + (character.isSpirit() ? 1 : 0) + ')';
         },
         
         refreshMap: debounce(event => {
@@ -805,11 +817,13 @@
                     
                     const entities = cell.getEntities(),
                         len = entities?.length;
-                    let posCount = len > 1 ? 1 : 0;
+                    let posCount = len > 0 ? 1 : 0;
                     if (x === 0 && y === 0) {
                         const characterView = entityPool.getInstance();
                         characterView.setEntity(character);
                         characterView.updatePosition(posCount++, cellView);
+                    } else {
+                        posCount--;
                     }
                     if (isSeen && len > 0) {
                         for (const entity of entities) {
