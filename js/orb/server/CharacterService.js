@@ -78,7 +78,7 @@ const orb = global.orb,
             }, true);
         },
         
-        doMove: function(locArrOrId, direction, moveSoundTypeBefore, moveSoundTypeAfter, callbackBefore) {
+        doMove: function(locArrOrId, direction, moveSoundTypeBefore, moveSoundTypeAfter, callbackBefore, callbackAfter) {
             let locArr,
                 locId;
             if (typeof locArrOrId === 'string') {
@@ -99,6 +99,8 @@ const orb = global.orb,
                 callbackBefore?.();
                 
                 this.setLoc(locArr);
+                
+                callbackAfter?.();
                 
                 // Send movement change
                 if (username) {

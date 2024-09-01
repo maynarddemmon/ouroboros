@@ -320,6 +320,10 @@ const orb = global.orb,
                     sendMsgToCharacter(character, type, msg);
                 }
             }
+        },
+        
+        sendExposition: function(message, medium) {
+            worldMap.sendExpositionToCell(this, message, medium);
         }
     }),
     
@@ -577,14 +581,14 @@ const orb = global.orb,
                     sendMsgToCharacter(character, TYPE_EXPOSITION, msg);
             }
         },
-        /*sendExpositionToCell: (cell, message, medium) => {
+        sendExpositionToCell: (cell, message, medium) => {
             medium ??= 'narrative';
             const msg = {msg:message, medium:medium};
             switch (medium) {
                 case 'narrative':
                 case 'mental':
                     // Only characters in the cell will receive the exposition.
-                    sendMsgToCharacter(character, TYPE_EXPOSITION, msg);
+                    //sendMsgToCharacter(character, TYPE_EXPOSITION, msg);
                     break;
                 case 'visual':
                     // The exposition emanates from the cell visually.
@@ -595,7 +599,7 @@ const orb = global.orb,
                     cell.notifyAllAuditoryChangeListeners(TYPE_EXPOSITION, msg, true);
                     break;
             }
-        },*/
+        },
         /* FIXME: implement when needed.
         sendExpositionToMap: (map, msg, medium) => {},
         sendExpositionToEveryone: (msg, medium) => {}

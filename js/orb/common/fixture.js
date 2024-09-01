@@ -25,6 +25,7 @@
         STATE_FACING = 'facing',
         STATE_MATERIAL = 'material',
         STATE_DESTINATION = 'destination',
+        STATE_STAIR_DIRECTION = 'direction',
         
         INTERACTION_OPEN = 'open',
         INTERACTION_CLOSE = 'close',
@@ -33,6 +34,8 @@
         INTERACTION_ROTATE_CLOCKWISE = 'rotate clockwise',
         INTERACTION_ROTATE_COUNTER_CLOCKWISE = 'rotate counter clockwise',
         INTERACTION_ENTER = 'enter',
+        INTERACTION_ASCEND = 'ascend',
+        INTERACTION_DESCEND = 'descend',
         
         WORD_AN = 'an',
         WORD_A = 'a',
@@ -327,6 +330,78 @@
             getUrl: (fixture, character) => IMAGE_PREFIX + 'portal.png'
         }),
         
+        StairFixtureTemplate = new JSClass('StairFixtureTemplate', FixtureTemplate, {
+            init: function(attrs) {
+                attrs.states ??= [];
+                attrs.states[STATE_STAIR_DIRECTION] = 'string'; // up, down, both
+                
+                this.callSuper(attrs);
+            },
+            
+            getName: function(fixture, character) {
+                let prefix = '';
+                switch (fixture.getStateByName(STATE_STAIR_DIRECTION)) {
+                    case 'up': prefix = 'ascending'; break;
+                    case 'down': prefix = 'descending'; break;
+                    case 'both': prefix = 'ascending and descending'; break;
+                }
+                return prefix + ' ' + this.callSuper();
+            },
+            
+            // Methods /////////////////////////////////////////////////////////
+            getInteractions: function(fixture, character, adjacent) {
+                const retval = this.callSuper(fixture, character);
+                if (!adjacent) {
+                    const direction = fixture.getStateByName(STATE_STAIR_DIRECTION);
+                    if (direction !== 'down') retval.push(INTERACTION_ASCEND);
+                    if (direction !== 'up') retval.push(INTERACTION_DESCEND);
+                }
+                return retval;
+            },
+            getLockPropertyForInteraction: (fixture, character, interactionName) => 'lockMove',
+            doInteraction: function(fixture, character, interactionName) {
+                const direction = fixture.getStateByName(STATE_STAIR_DIRECTION),
+                    originalCell = character.getCell(),
+                    locArr = character.getLocArr(true);
+                
+                switch (interactionName) {
+                    case INTERACTION_ASCEND:
+                        if (direction !== 'down') {
+                            locArr[3] += 1;
+                            character.doMove(
+                                locArr, null, 'move', 'move', 
+                                () => {
+                                    character.sendExposition('You ascend the spiral staircase.', 'narrative');
+                                },
+                                () => {
+                                    originalCell.sendExposition(character.getName() + ' ascend the spiral staircase.', 'visual');
+                                }
+                            );
+                        }
+                        return;
+                    case INTERACTION_DESCEND:
+                        if (direction !== 'up') {
+                            locArr[3] -= 1;
+                            character.doMove(
+                                locArr, null, 'move', 'move', 
+                                () => {
+                                    character.sendExposition('You descend the spiral staircase.', 'narrative');
+                                },
+                                () => {
+                                    originalCell.sendExposition(character.getName() + ' descend the spiral staircase.', 'visual');
+                                }
+                            );
+                        }
+                        return;
+                }
+                return this.callSuper(fixture, character, interactionName);
+            },
+            
+            getUrl: (fixture, character) => {
+                return IMAGE_PREFIX + 'spiral_stair_' + fixture.getStateByName(STATE_STAIR_DIRECTION) + '.png';
+            }
+        }),
+        
         EXPORT = {
             templates:{
                 d1:new DoorFixtureTemplate({
@@ -347,6 +422,8 @@
                 
                 s1:new StatueFixtureTemplate(),
                 p1:new PortalFixtureTemplate({name:'swirling silver portal'}),
+                
+                stair_1:new StairFixtureTemplate({name:'spiral staircase'}),
                 
                 crate_1:new FixtureTemplate({name:'wooden crate'})
             }
