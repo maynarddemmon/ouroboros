@@ -403,6 +403,19 @@
         }),
         
         CommonEntityModelMixin = new JSModule('CommonEntityModelMixin', {
+            init: function(attrs) {
+                attrs.spirit ??= false;
+                attrs.zombie ??= false;
+                attrs.astral ??= false;
+                
+                attrs.lockMove ??= 0;
+                attrs.lockAct ??= 0;
+                attrs.lockReact ??= 0;
+                attrs.lockFree ??= 0;
+                
+                this.callSuper(attrs);
+            },
+            
             setId: function(v) {this.set('id', v, true);},
             getId: function() {return this.id;},
             
@@ -417,30 +430,17 @@
             isAstralProjected: function() {return this.astral;},
             
             setLoc: function(v) {this.set('loc', v, true);},
-            getLocArr: function(asCopy) {
-                const locArr = this.loc;
-                return asCopy ? locArr.slice() : locArr;
-            },
+            getLocArr: function(asCopy) {return asCopy ? this.loc.slice() : this.loc;},
             
             setFacing: function(v) {this.set('facing', v, true);},
             getFacing: function() {return this.facing;},
-        }),
-        
-        CommonCharacterModelMixin = new JSModule('CommonCharacterModelMixin', {
-            setUid: function(v) {this.set('uid', v, true);},
-            getUserId: function() {return this.uid;},
-            isSpirit: function() {
-                // Creators are treated like spirits.
-                return this.callSuper() || this.hasPermission(PERM_CREATOR);
-            },
-            setInWorld: function(v) {this.set('inWorld', v, true);},
-            isInWorld: function() {return this.inWorld;},
             
             // Action Speeds
             setMoveSpeed: function(v) {this.set('moveSpeed', v, true);},
             getMoveSpeed: function(contextObj) {return this.moveSpeed;},
-            getFreeActionSpeed: function(contextObj) {return 1;},
-            getActionSpeed: function(contextObj) {return 3;},
+            getReactSpeed: function(contextObj) {return 0;},
+            getFreeSpeed: function(contextObj) {return 1;},
+            getActSpeed: function(contextObj) {return 3;},
             
             // Lock Times
             setLockMove: function(v) {this.set('lockMove', v, true);},
@@ -452,16 +452,36 @@
             setLockReact: function(v) {this.set('lockReact', v, true);},
             getLockReact: function() {return this.lockReact;},
             
-            setPerms: function(v) {this.set('perms', v, true);},
+            getWorldClockNow: () => {/* Subclasses must implement. */},
+            canMove: function() {return this.lockMove <= this.getWorldClockNow();},
+            canAct: function() {return this.lockAct <= this.getWorldClockNow();},
+            canReact: function() {return this.lockAct <= this.getWorldClockNow();},
+            canFree: function() {return this.lockFree <= this.getWorldClockNow();},
             
             getSightDistance: () => 3,
             getHearDistance: () => 9, // Maximum so sound propogation can handle things.
+        }),
+        
+        CommonCharacterModelMixin = new JSModule('CommonCharacterModelMixin', {
+            init: function(attrs) {
+                attrs.uid ??= null;
+                attrs.inWorld ??= false;
+                attrs.perms ??= null;
+                
+                this.callSuper(attrs);
+            },
             
+            setUid: function(v) {this.set('uid', v, true);},
+            getUserId: function() {return this.uid;},
+            setInWorld: function(v) {this.set('inWorld', v, true);},
+            isInWorld: function() {return this.inWorld;},
             
-            // Methods /////////////////////////////////////////////////////////
-            hasPermission: function(permId) {
-                const permissions = this.perms;
-                return permissions ? permissions.includes(permId) : false;
+            setPerms: function(v) {this.set('perms', v, true);},
+            hasPermission: function(permId) {return this.perms?.includes(permId) ?? false;},
+            
+            isSpirit: function() {
+                // Creators are treated like spirits.
+                return this.callSuper() || this.hasPermission(PERM_CREATOR);
             }
         }),
         

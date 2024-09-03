@@ -1,5 +1,5 @@
-let now,
-    tick,
+let now, // The current tick count of the world clock
+    tickLength, // The lenght of a tick of the world clock in millis.
     Interval,
     eventLog;
 
@@ -105,7 +105,7 @@ const orb = global.orb,
         orb.saveDataToFile(FILENAME_WORLD_CLOCK, {now:now});
         resolve();
     };
-    
+
 module.exports = {
     lifeCycle: isBirth => new Promise((resolve, reject) => {
         if (isBirth) {
@@ -115,15 +115,15 @@ module.exports = {
         }
     }),
     
-    getTick: () => tick,
+    getTick: () => tickLength,
     getNow: () => now,
     
     startClock: () => {
-        // Initialize the tick to the configured worldClockTick
-        tick = orb.worldClockTick;
+        // Initialize the tickLength to the configured worldClockTick
+        tickLength = orb.worldClockTick;
         
-        Interval = setInterval(doTick, tick);
-        console.log('World Clock started ticking at ' + tick + ' millis');
+        Interval = setInterval(doTick, tickLength);
+        console.log('World Clock started ticking at ' + tickLength + ' millis');
     },
     
     stopClock: () => {

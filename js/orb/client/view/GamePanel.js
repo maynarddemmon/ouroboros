@@ -12,6 +12,7 @@
         mapInfo,
         myLocInfo,
         
+        characterDetailsTxt,
         alterCellBtn,
         alterCellTargetSelector,
         alterCellCompositionSelector,
@@ -28,6 +29,7 @@
         {
             View, Text, PaddedText, InputSelect, SizeToParent,
             SpacedLayout, ResizeLayout, WrappingLayout,
+            debounce,
             global:{keys:GlobalKeys}
         } = M,
         
@@ -114,7 +116,6 @@
             if (fixtureIds) cellEntry += '. This location contains ' + getFixtureClause(character, fixtureIds);
             cellEntry += '.<br><br>';
             accum.push(cellEntry);
-            
             
             const directionWords = getDirectionWordsByFacing(facing);
             for (const faceDir of COMPASS_FIELDS) {
@@ -224,7 +225,8 @@
         
         buildCellHighlightView = parent => {
             let infoContainer,
-                infoTxt;
+                infoTxt,
+                outlineView;
             const borderWidth = 1,
                 bw2x = 2*borderWidth,
                 bw4x = 4*borderWidth,
@@ -238,21 +240,22 @@
                     update: function(isOver, cell, cellView) {
                         this.setVisible(isOver);
                         if (isOver) {
-                            this.setX(gameMap.x + cellView.x - bw2x);
-                            this.setY(cellView.y - bw2x);
                             infoTxt.setText(getLocInfo(cell));
-                            this.setWidth(infoTxt.x + infoTxt.width + padding);
-                            infoContainer.setWidth(this.width - infoContainer.x);
+                            infoContainer.setWidth(infoTxt.x + infoTxt.width + padding);
+                            outlineView.setX(infoContainer.width + borderWidth);
+                            this.setWidth(outlineView.x + outlineView.width + bw2x + borderWidth);
+                            this.setX(gameMap.x + cellView.x - bw2x - infoContainer.width);
+                            this.setY(cellView.y - bw2x);
                         }
                     }
                 }]);
-            new View(hv, {
-                x:borderWidth, y:borderWidth, width:size, height:size, 
+            infoContainer = new View(hv, {height:cellSize + bw4x, bgColor:color});
+            infoTxt = new Text(hv, {x:padding, valign:'middle', textColor:'#000'});
+            outlineView = new View(hv, {
+                y:borderWidth, width:size, height:size, 
                 outline:[borderWidth, 'solid', color], 
                 border:[borderWidth, 'solid', shadowColor]
             });
-            infoContainer = new View(hv, {x:cellSize + bw4x, height:cellSize + bw4x, bgColor:color});
-            infoTxt = new Text(hv, {x:cellSize + bw4x + spacing, valign:'middle', textColor:'#000'});
             return hv;
         },
         
@@ -381,8 +384,12 @@
                 
                 characterTab.setText(pkg.FA_CHARACTER + ' ' + character.getName());
                 
+                gamePanel.constrain('updateCharacterDetails', [
+                    character, 'exp', character, 'lvl', character, 'qui'
+                ]);
                 gamePanel.attachToDom(GlobalKeys, '_keyDown', 'keydown', true);
             } else {
+                gamePanel.releaseConstraint('updateCharacterDetails');
                 gamePanel.detachFromDom(GlobalKeys, '_keyDown', 'keydown', true);
                 if (gameMap) {
                     gameMap.setCharacter();
@@ -406,6 +413,14 @@
         
         // Methods /////////////////////////////////////////////////////////////
         appendToChatLog: msg => {if (msg) msgLog.appendMsg(msg);},
+        
+        updateCharacterDetails: debounce(() => {
+            characterDetailsTxt.setText(
+                'Experience: <b>' + character.exp.value + '</b><br>' + 
+                'Level: <b>' + character.lvl.value + '</b><br>' + 
+                'Quintessence: <b>' + character.qui.value + '</b><br>'
+            );
+        }, 50),
         
         doFixtureLink: (fixtureId, interactionName) => {
             const fixture = model.getFixtureById(fixtureId);
@@ -548,6 +563,8 @@
             characterTab = new LocalTabSlider(leftPanel, {
                 tabId:'character', text:pkg.FA_CHARACTER + ' Character'
             });
+            
+            characterDetailsTxt = new Text(characterTab);
             
             // Alter Cell
             alterCellBtn = new TextBtn(characterTab, {text:'Alter', visible:false, layoutHint:'break'}, [{

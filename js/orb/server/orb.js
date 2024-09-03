@@ -180,18 +180,17 @@ const path = require('path'),
             
             isCompositionVoid: cell => cell.getCompositionObject().getSolidity() === -1,
             
-            doOnSpiritualChangeForCharacter: (character, cell) => {
-                if (!cell) cell = character.getCell();
+            doOnSpiritualChangeForEntity: (entity, cell) => {
+                if (!cell) cell = entity.getCell();
                 if (orb.rules.isCompositionVoid(cell)) {
-                    if (character.isSpirit()) {
+                    if (entity.isSpirit()) {
                         cell.setComposition('v3');
-                    } else if (character.isAstralProjected()) {
+                    } else if (entity.isAstralProjected()) {
                         cell.setComposition('v4');
                     }
                 } else if (orb.rules.isCompositionAether(cell)) {
-                    // Corporeal characters can change to astral cord but not
-                    // Vice versa.
-                    if (character.isAstralProjected()) {
+                    // Corporeal entities will change to astral composition but not vice versa.
+                    if (entity.isAstralProjected()) {
                         cell.setComposition('v4');
                     }
                 }

@@ -1,11 +1,12 @@
+let characterService;
+
 const orb = global.orb,
     
     {
         tym:{getRandom}
     } = require('../../../lib/tym.js'),
     
-    accountService = require('./AccountService.js'),
-    characterService = require('./CharacterService.js'),
+    {addMessageToUser, getAccountByUsername} = require('./AccountService.js'),
     worldMap = require('./WorldMap.js'),
     {
         ATTR_TIME, ATTR_DIRECTION,
@@ -25,23 +26,25 @@ const orb = global.orb,
         locArrToId, locIdToArr, isValidLocArr
     } = require('../common/common.js'),
     
+    getCharacterService = () => characterService ??= require('./CharacterService.js'),
+    
     warningMessageToUser = (username, msg, extraInfo) => {
         console.warn(msg, extraInfo);
-        accountService.addMessageToUser(username, {type:TYPE_WARNING, msg:msg});
+        addMessageToUser(username, {type:TYPE_WARNING, msg:msg});
     },
     
     errorMessageToUser = (username, msg) => {
         console.warn(msg);
-        accountService.addMessageToUser(username, {type:TYPE_ERROR, msg:msg});
+        addMessageToUser(username, {type:TYPE_ERROR, msg:msg});
     },
     
     infoMessageToUser = (username, msg) => {
-        accountService.addMessageToUser(username, {type:TYPE_SERVERINFO, msg:msg});
+        addMessageToUser(username, {type:TYPE_SERVERINFO, msg:msg});
     },
     
     verifyUserIdHasAccount = event => {
         const userId = event._uid,
-            account = accountService.getAccountByUsername(userId);
+            account = getAccountByUsername(userId);
         if (account) {
             return userId;
         } else {
@@ -54,23 +57,22 @@ const orb = global.orb,
         const username = verifyUserIdHasAccount(event);
         if (username) {
             const characterId = event.msg.id,
-                character = characterService.getCharacterById(characterId);
+                character = getCharacterService().getCharacterById(characterId);
             if (character) {
                 if (character.getUserId() === username) {
-                    const now = event[ATTR_TIME];
-                    
                     // lockProperty can be a function. If so, invoke it to determine the kind of lock.
-                    lockProperty = typeof lockProperty === 'function' ? lockProperty(username, character, now) : lockProperty;
+                    lockProperty = typeof lockProperty === 'function' ? lockProperty(username, character) : lockProperty;
                     if (!lockProperty) return;
                     
                     let curLockValue = character.get(lockProperty);
+                    const now = event[ATTR_TIME];
                     if (now >= curLockValue) {
                         let cooldownFuncName;
                         switch (lockProperty) {
-                            case 'lockAct': cooldownFuncName = 'getActionSpeed'; break;
+                            case 'lockAct': cooldownFuncName = 'getActSpeed'; break;
                             case 'lockMove': cooldownFuncName = 'getMoveSpeed'; break;
                             case 'lockReact': cooldownFuncName = 'getReactSpeed'; break;
-                            case 'lockFree': cooldownFuncName = 'getFreeActionSpeed'; break;
+                            case 'lockFree': cooldownFuncName = 'getFreeSpeed'; break;
                         }
                         
                         const cooldownAmount = character[cooldownFuncName](cooldownContext),
@@ -79,12 +81,12 @@ const orb = global.orb,
                             randomAmount = (randomChance > 0 && getRandom() < randomChance) ? 1 : 0;
                         curLockValue = now + fixedAmount + randomAmount;
                         character.set(lockProperty, curLockValue);
-                        actionFunc(username, character, now);
+                        actionFunc(username, character);
                     }
                     
                     // Always send the cooldown to the user since it has either
                     // been updated or the value the client had was stale.
-                    accountService.addMessageToUser(username, {type:TYPE_ALTER_CHARACTER, msg:{
+                    addMessageToUser(username, {type:TYPE_ALTER_CHARACTER, msg:{
                         id:characterId, p:lockProperty, v:curLockValue
                     }});
                 } else {
@@ -103,7 +105,7 @@ const orb = global.orb,
             const username = verifyUserIdHasAccount(event);
             if (username) {
                 const characterId = event.msg.id,
-                    usersCharacters = characterService.getCharactersByUserId(username);
+                    usersCharacters = getCharacterService().getCharactersByUserId(username);
                 let character,
                     i = usersCharacters.length;
                 while (i) {
@@ -121,8 +123,8 @@ const orb = global.orb,
                 }
                 
                 if (character) {
-                    accountService.addMessageToUser(username, {type:TYPE_ENTER_WORLD, msg:{character:character.getAsData()}});
-                    accountService.addMessageToUser(username, {type:TYPE_MAP_DATA, msg:worldMap.getMapDataForCharacter(character)});
+                    addMessageToUser(username, {type:TYPE_ENTER_WORLD, msg:{character:character.getAsData()}});
+                    addMessageToUser(username, {type:TYPE_MAP_DATA, msg:worldMap.getMapDataForCharacter(character)});
                     
                     worldMap.clearListenersForCharacter(character);
                     const newCell = worldMap.getCellByLocArr(character.getLocArr());
@@ -141,7 +143,8 @@ const orb = global.orb,
         [TYPE_EXIT_WORLD]:event => {
             const username = verifyUserIdHasAccount(event);
             if (username) {
-                const characterId = event.msg.id,
+                const characterService = getCharacterService(),
+                    characterId = event.msg.id,
                     usersCharacters = characterService.getCharactersByUserId(username);
                 let character,
                     i = usersCharacters.length;
@@ -158,7 +161,7 @@ const orb = global.orb,
                 
                 if (character) {
                     worldMap.clearListenersForCharacter(character);
-                    accountService.addMessageToUser(username, {type:TYPE_EXIT_WORLD, msg:{character:character.getAsData()}});
+                    addMessageToUser(username, {type:TYPE_EXIT_WORLD});
                 } else {
                     warningMessageToUser(username, 'Character not found for ' + characterId);
                 }
@@ -169,7 +172,7 @@ const orb = global.orb,
             const direction = event.msg.direction;
             performAction(
                 event, 'lockMove', {direction:direction}, 
-                (username, character, now) => {
+                (username, character) => {
                     let locArr = character.getLocArr(true),
                         moveSoundTypeBefore = null,
                         moveSoundTypeAfter = 'move';
@@ -187,7 +190,7 @@ const orb = global.orb,
                                 moveSoundTypeBefore = 'teleport-leave';
                                 moveSoundTypeAfter = 'teleport-arrive';
                                 if (!isValidLocArr(locArr)) {
-                                    accountService.addMessageToUser(username, {type:TYPE_MOVE_FAILED, code:MOVE_ERROR_CODES.INVALID_LOCATION});
+                                    addMessageToUser(username, {type:TYPE_MOVE_FAILED, code:MOVE_ERROR_CODES.INVALID_LOCATION});
                                     return;
                                 }
                             }
@@ -201,7 +204,7 @@ const orb = global.orb,
         [TYPE_ALTER_CELL]:event => {
             performAction(
                 event, 'lockFree', null, 
-                (username, character, now) => {
+                (username, character) => {
                     if (character.hasPermission(PERM_CREATOR)) {
                         const locArr = character.getLocArr(true),
                             {prop, value/*, direction*/} = event.msg,
@@ -227,7 +230,7 @@ const orb = global.orb,
                                 break;
                         }
                     } else {
-                        accountService.addMessageToUser(username, {type:TYPE_FREE_FAILED, code:FREE_ERROR_CODES.FREE_NOT_ALLOWED});
+                        addMessageToUser(username, {type:TYPE_FREE_FAILED, code:FREE_ERROR_CODES.FREE_NOT_ALLOWED});
                     }
                 }
             );
@@ -236,12 +239,12 @@ const orb = global.orb,
         [TYPE_CHANGE_FACING]:event => {
             performAction(
                 event, 'lockFree', null, 
-                (username, character, now) => {
+                (username, character) => {
                     const compassDirection = event.msg[ATTR_DIRECTION];
                     if (compassDirection) {
                         character.setFacing(compassDirection);
                     } else {
-                        accountService.addMessageToUser(username, {type:TYPE_FREE_FAILED, code:FREE_ERROR_CODES.INVALID_VALUE});
+                        addMessageToUser(username, {type:TYPE_FREE_FAILED, code:FREE_ERROR_CODES.INVALID_VALUE});
                     }
                 }
             );
@@ -250,12 +253,12 @@ const orb = global.orb,
         [TYPE_VOCALIZE]:event => {
             performAction(
                 event, 'lockFree', null, 
-                (username, character, now) => {
+                (username, character) => {
                     const {volume, message} = event.msg;
                     if (volume && message) {
                         character.doVocalize(volume, message);
                     } else {
-                        accountService.addMessageToUser(username, {type:TYPE_FREE_FAILED, code:FREE_ERROR_CODES.INVALID_VALUE});
+                        addMessageToUser(username, {type:TYPE_FREE_FAILED, code:FREE_ERROR_CODES.INVALID_VALUE});
                     }
                 }
             );
@@ -267,7 +270,7 @@ const orb = global.orb,
                 matchedInteractionName;
             performAction(
                 event, 
-                (username, character, now) => {
+                (username, character) => {
                     if (fixtureId && interactionName) {
                         // Get the interactions on the server side and lookup the requested
                         // fixtureId and interactionName within it.
@@ -292,16 +295,16 @@ const orb = global.orb,
                         if (fixture && matchedInteractionName) {
                             return fixture.getLockPropertyForInteraction(character, interactionName) ?? 'lockAct';
                         } else {
-                            accountService.addMessageToUser(username, {type:TYPE_ACTION_FAILED, code:ACTION_ERROR_CODES.ACTION_NOT_ALLOWED});
+                            addMessageToUser(username, {type:TYPE_ACTION_FAILED, code:ACTION_ERROR_CODES.ACTION_NOT_ALLOWED});
                         }
                     } else {
-                        accountService.addMessageToUser(username, {type:TYPE_ACTION_FAILED, code:ACTION_ERROR_CODES.INVALID_VALUE});
+                        addMessageToUser(username, {type:TYPE_ACTION_FAILED, code:ACTION_ERROR_CODES.INVALID_VALUE});
                     }
                 }, 
                 null, 
-                (username, character, now) => {
+                (username, character) => {
                     const failureMsg = fixture.doInteractionForCharacter(character, interactionName);
-                    if (failureMsg) accountService.addMessageToUser(username, {type:TYPE_ACTION_FAILED, msg:failureMsg});
+                    if (failureMsg) addMessageToUser(username, {type:TYPE_ACTION_FAILED, msg:failureMsg});
                 }
             );
         },

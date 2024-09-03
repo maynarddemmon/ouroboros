@@ -14,9 +14,7 @@ const {scryptSync} = require('crypto'),
         }
     } = require('../common/common.js'),
     
-    getCharacterService = () => {
-        return characterService ??= require('./CharacterService.js');
-    },
+    getCharacterService = () => characterService ??= require('./CharacterService.js'),
     
     FILENAME_ACCOUNTS = 'accounts',
     

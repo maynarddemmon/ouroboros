@@ -423,16 +423,10 @@
             }, greek.TYPE_ENTER_WORLD);
             
             websocket.registerListener(response => {
-                const {character:characterDatum} = response.msg;
-                if (characterDatum) {
-                    if (model.updateCharacterFromData(characterDatum)) {
-                        model.setCharacterInPlay();
-                        model.cleanupOnExitWorld();
-                        pkg.app.selectPanel(pkg.PANEL_ID_LOBBY);
-                    } else {
-                        growl('failure', 'Character Not Found', 'The chracter sent back by the server was not found locally.');
-                    }
-                }
+                model.setCharacterInPlay();
+                model.cleanupOnExitWorld();
+                pkg.app.selectPanel(pkg.PANEL_ID_LOBBY);
+                
                 pkg.app.unlockUI();
             }, greek.TYPE_EXIT_WORLD);
             

@@ -91,6 +91,8 @@
         EntityModel = new JSClass('EntityModel', Eventable, {
             include:[CommonEntityModelMixin],
             
+            
+            // Accessors ///////////////////////////////////////////////////////
             set: function(attrName, v, skipSetter) {
                 const curValue = this[attrName],
                     retval = this.callSuper(attrName, v, skipSetter),
@@ -99,7 +101,10 @@
                     model?.fireEvent('entityChanged', {entity:this, attr:attrName, value:newValue});
                 }
                 return retval;
-            }
+            },
+            
+            /** @overrides */
+            getWorldClockNow: () => model.worldClockTime,
         }),
         
         CharacterModel = new JSClass('CharacterModel', EntityModel, {
@@ -107,10 +112,6 @@
             
             
             // Methods /////////////////////////////////////////////////////////
-            canMove: function() {
-                return this.lockMove == null || this.lockMove <= model.worldClockTime;
-            },
-            
             doBasicMove: function(direction) {
                 return this.doMove(TYPE_MOVE, {direction:direction});
             },
@@ -127,10 +128,6 @@
                 return false;
             },
             
-            canAct: function() {
-                return this.lockAct == null || this.lockAct <= model.worldClockTime;
-            },
-            
             doAction: function(type, params) {
                 if (this.canAct()) {
                     // Pre-emptive indefinite lock. Will be updated once the
@@ -141,10 +138,6 @@
                     return true;
                 }
                 return false;
-            },
-            
-            canFree: function() {
-                return this.lockFree == null || this.lockFree <= model.worldClockTime;
             },
             
             doFree: function(type, params) {
