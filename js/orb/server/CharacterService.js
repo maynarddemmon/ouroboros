@@ -11,9 +11,7 @@ const orb = global.orb,
     {getNow, addToRecQueue} = require('./WorldClock.js'),
     {
         CommonEntityModelMixin, CommonCharacterModelMixin,
-        facings:{NORTH},
-        permissions:{PERM_CREATOR},
-        isValidLocArr, locArrToId, locIdToArr
+        facings:{NORTH}
     } = require('../common/common.js'),
     {
         TYPE_ALTER_ENTITY, TYPE_SOUND,
@@ -397,7 +395,7 @@ const orb = global.orb,
         },
         
         setLoc: function(v) {
-            if (isValidLocArr(v)) {
+            if (urob.isValidLocArr(v)) {
                 const curCell = this.getCell(),
                     newCell = getWorldMap().getCellByLocArr(v, true);
                 
@@ -605,9 +603,9 @@ const orb = global.orb,
                 locId;
             if (typeof locArrOrId === 'string') {
                 locId = locArrOrId;
-                locArr = locIdToArr(locArrOrId);
+                locArr = urob.locIdToArr(locArrOrId);
             } else {
-                locId = locArrToId(locArrOrId);
+                locId = urob.locArrToId(locArrOrId);
                 locArr = locArrOrId;
             }
             

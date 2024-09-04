@@ -43,8 +43,7 @@
                 getOppositeCompassFacing,
                 NORTH, SOUTH, EAST, WEST, UP, DOWN, SELF, COMPASS_FIELDS
             },
-            composition:{templates},
-            locIdToArr, concatenateList
+            composition:{templates}
         } = common,
         
         {
@@ -101,7 +100,7 @@
                 }
                 accum.push(fixtureEntry);
             }
-            return concatenateList(accum);
+            return urob.concatenateList(accum);
         },
         
         getFullLocInfo = (character, cell) => {

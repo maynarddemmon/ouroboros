@@ -8,11 +8,9 @@ const {scryptSync} = require('crypto'),
     
     {TYPE_NOW} = require('../common/SocketProtocol.js'),
     {
-        account:{
-            FIELD_USERNAME, FIELD_PASSWORD, FIELD_LAST_LOGIN, FIELD_AUTH_FAIL_COUNT,
-            FIELD_AUTHENTICATED, FIELD_WEBSOCKET, FIELD_SOCKET_TOKEN
-        }
-    } = require('../common/common.js'),
+        FIELD_USERNAME, FIELD_PASSWORD, FIELD_LAST_LOGIN, FIELD_AUTH_FAIL_COUNT,
+        FIELD_AUTHENTICATED, FIELD_WEBSOCKET, FIELD_SOCKET_TOKEN
+    } = urob.account,
     
     getCharacterService = () => characterService ??= require('./CharacterService.js'),
     

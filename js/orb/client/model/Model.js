@@ -16,11 +16,7 @@
             CommonFixtureTemplateModelMixin, CommonFixtureModel,
             greek:{TYPE_MOVE},
             fixture:{templates:fixtureTemplates},
-            permissions:{
-                PERM_CREATOR
-            },
-            facings:{COMPASS_FIELDS},
-            locArrToId, locIdToArr,
+            facings:{COMPASS_FIELDS}
         } = common,
         
         getMapData = () => mapData ??= {},
@@ -241,7 +237,7 @@
             // Cell:start
             makeUnknownCell: locId => new CellModel({locId:locId, c:'unk'}),
             getCell: locId => cellData[locId],
-            getCellByLocArr: locArr => cellData[locArrToId(locArr)],
+            getCellByLocArr: locArr => cellData[urob.locArrToId(locArr)],
             storeCellData: data => {
                 const cellData = getCellData();
                 for (const locId in data) {

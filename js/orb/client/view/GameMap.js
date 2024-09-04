@@ -11,6 +11,8 @@
         
         {min:mathMin, ceil:mathCeil} = Math,
         
+        {locArrToId} = urob,
+        
         {
             View, PaddedText, ImageSupport, Reusable, MouseOverAndDown, TrackActivesPool, 
             Animator, TransformSupport,
@@ -19,7 +21,6 @@
         
         {
             cellOffsetsByDistance, getVisibilityPath, getComposition, getFixtureTemplate,
-            locArrToId, locIdToArr,
             facings:{NORTH, SOUTH, EAST, WEST, SELF, getOppositeDirection}
         } = common,
         

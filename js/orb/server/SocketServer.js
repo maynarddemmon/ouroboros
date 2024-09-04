@@ -8,7 +8,6 @@ const
             characterService = require('./CharacterService.js'),
             {doEventNext, doEventNow, getTick, getNow} = require('./WorldClock.js'),
             accessLog = require('./LoggingService.js').getAccessLog(),
-            FIELD_WEBSOCKET = require('../common/common.js').account.FIELD_WEBSOCKET,
             SocketProtocol = require('../common/SocketProtocol.js'),
             ATTR_TIME = SocketProtocol.ATTR_TIME,
             
@@ -93,7 +92,7 @@ const
                     if (socketToken) {
                         const account = accountService.getAccountBySocketToken(socketToken);
                         if (account) {
-                            account[FIELD_WEBSOCKET] = websocket;
+                            account[urob.account.FIELD_WEBSOCKET] = websocket;
                             
                             const handler = HANDLERS[type];
                             if (handler) {

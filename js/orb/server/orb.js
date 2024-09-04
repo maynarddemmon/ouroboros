@@ -7,7 +7,6 @@ const path = require('path'),
     {JS, tym} = require(PATH_PREFIX + 'lib/tym.js'),
     {getRandomInt} = tym,
     
-    {isTraversableSolidityForCorporeal} = require('../common/common.js'),
     {TYPE_SOUND} = require('../common/SocketProtocol.js'),
     
     FILENAME_PACKAGE_STATE = 'pkg_state',
@@ -205,11 +204,11 @@ const path = require('path'),
                 }
                 
                 const face = cell.getFaceForDirection(compassDirection);
-                if (face && !isTraversableSolidityForCorporeal(face.getAffectedValue('solidity'))) {
+                if (face && !urob.isTraversableSolidityForCorporeal(face.getAffectedValue('solidity'))) {
                     return false;
                 }
                 
-                if (!isTraversableSolidityForCorporeal(cell.getAffectedValue('solidity'))) {
+                if (!urob.isTraversableSolidityForCorporeal(cell.getAffectedValue('solidity'))) {
                     return false;
                 }
                 
@@ -229,11 +228,11 @@ const path = require('path'),
                 }
                 
                 const face = cell.getFaceForOppositeDirection(compassDirection);
-                if (face && !isTraversableSolidityForCorporeal(face.getAffectedValue('solidity'))) {
+                if (face && !urob.isTraversableSolidityForCorporeal(face.getAffectedValue('solidity'))) {
                     return false;
                 }
                 
-                if (!isTraversableSolidityForCorporeal(cell.getAffectedValue('solidity'))) {
+                if (!urob.isTraversableSolidityForCorporeal(cell.getAffectedValue('solidity'))) {
                     return false;
                 }
                 

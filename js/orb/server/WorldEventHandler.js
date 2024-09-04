@@ -21,10 +21,10 @@ const orb = global.orb,
         TYPE_INTERACT_WITH_FIXTURE
     } = require('../common/SocketProtocol.js'),
     {
-        facings:{NORTH, SOUTH, EAST, WEST, UP, DOWN, SELF},
-        permissions:{PERM_CREATOR},
-        locArrToId, locIdToArr, isValidLocArr
+        facings:{NORTH, SOUTH, EAST, WEST, UP, DOWN, SELF}
     } = require('../common/common.js'),
+    
+    PERM_CREATOR = urob.permission.PERM_CREATOR,
     
     getCharacterService = () => characterService ??= require('./CharacterService.js'),
     
@@ -186,10 +186,10 @@ const orb = global.orb,
                         default:
                             // Treat the direction as a locId
                             if (character.hasPermission(PERM_CREATOR)) {
-                                locArr = locIdToArr(direction);
+                                locArr = urob.locIdToArr(direction);
                                 moveSoundTypeBefore = 'teleport-leave';
                                 moveSoundTypeAfter = 'teleport-arrive';
-                                if (!isValidLocArr(locArr)) {
+                                if (!urob.isValidLocArr(locArr)) {
                                     addMessageToUser(username, {type:TYPE_MOVE_FAILED, code:MOVE_ERROR_CODES.INVALID_LOCATION});
                                     return;
                                 }
@@ -208,7 +208,7 @@ const orb = global.orb,
                     if (character.hasPermission(PERM_CREATOR)) {
                         const locArr = character.getLocArr(true),
                             {prop, value/*, direction*/} = event.msg,
-                            cell = worldMap.getCell(locArrToId(locArr), true);
+                            cell = worldMap.getCell(urob.locArrToId(locArr), true);
                         switch (prop) {
                             case SELF: 
                                 cell.setC(value);

@@ -14,10 +14,6 @@ const fs = require('fs'),
         makePath, readDataFile, saveDataToFile
     } = global.orb,
     
-    {
-        account:{FIELD_USERNAME, FIELD_SOCKET_TOKEN}
-    } = require('../common/common.js'),
-    
     accountService = require('./AccountService.js'),
     
     FILENAME_SESSIONS = 'sessions',
@@ -78,9 +74,10 @@ const fs = require('fs'),
             }
             
             // Escape values for injection into the HTML.
-            const username = req.session[FIELD_USERNAME],
+            const pkgAccount = urob.account,
+                username = req.session[pkgAccount.FIELD_USERNAME],
                 userAccount = accountService.getAccountByUsername(username),
-                socketToken = userAccount ? userAccount[FIELD_SOCKET_TOKEN] : null,
+                socketToken = userAccount ? userAccount[pkgAccount.FIELD_SOCKET_TOKEN] : null,
                 responseData = rootFile.replaceAll(
                         '{{USERNAME}}', escapeStringForResponse(username)
                     ).replaceAll(

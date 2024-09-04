@@ -12,6 +12,7 @@ orb.IS_PROD = ARGS[2] ?? false;
 orb.CACHE_BUST = ARGS[3] ?? '';
 
 // Startup
+require('../common/urob.js');
 let inputWatcher;
 const loggingService = require('./LoggingService.js'),
     socketServer = require('./SocketServer.js'),

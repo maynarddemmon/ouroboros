@@ -4,6 +4,8 @@ const orb = global.orb,
     
     objectKeys = Object.keys,
     
+    {locArrToId} = global.urob,
+    
     {
         JS:{Class:JSClass}, 
         tym:{Eventable, getRandom, getRandomInt}
@@ -12,8 +14,7 @@ const orb = global.orb,
     {
         CommonMapModel, CommonFaceModel, CommonCellModel, CommonFixtureModel,
         composition:{MEL_LOOKUP},
-        facings:{NORTH, SOUTH, EAST, WEST},
-        locIdToArr, locArrToId, locArrToMapId, locIdToMapId
+        facings:{NORTH, SOUTH, EAST, WEST}
     } = require('../common/common.js'),
     {cellOffsetsByDistance} = require('../common/cellOffsets.js'),
     {TYPE_CELL_DATA, TYPE_SOUND, TYPE_EXPOSITION} = require('../common/SocketProtocol.js'),
@@ -346,7 +347,7 @@ const orb = global.orb,
     makeAndSetCell = (locArrOrId, params) => setCell(coerceToLocId(locArrOrId), makeCell(params)),
     makeAndSetMissingCell = locId => {
         let comp;
-        const map = getMap(locIdToMapId(locId));
+        const map = getMap(urob.locIdToMapId(locId));
         if (map) {
             comp = map.getMissingCellComposition();
         } else {

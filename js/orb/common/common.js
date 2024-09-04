@@ -24,26 +24,6 @@
         compositionTemplatesById = composition.templates,
         fixtureTemplatesById = fixture.templates,
         
-        PERM_CREATOR = 'creator',
-        
-        locArrToId = locArr => locArr.join(),
-        
-        locIdToArr = locId => {
-            let locArr;
-            if (locId) {
-                locArr = locId.split(',');
-                const len = locArr.length;
-                for (let i = 0; i < len; i++) {
-                    locArr[i] = parseInt(locArr[i]);
-                }
-            } else {
-                locArr = [];
-            }
-            return locArr;
-        },
-        
-        isTraversableSolidityForCorporeal = solidity => solidity >= 0 && solidity < 1,
-        
         CommonMapModel = new JSClass('CommonMapModel', Eventable, {
             setName: function(v) {this.set('name', v, true);},
             getName: function() {return this.name;},
@@ -284,7 +264,7 @@
                 }
             },
             getLocArr: function(asCopy) {
-                const locArr = this.locArr ??= locIdToArr(this.locId);
+                const locArr = this.locArr ??= urob.locIdToArr(this.locId);
                 return asCopy ? locArr.slice() : locArr;
             },
             
@@ -373,7 +353,7 @@
                     case facing.UP: ++locArr[3]; break;
                     case facing.DOWN: --locArr[3]; break;
                 }
-                return this.getAnotherCell(locArrToId(locArr));
+                return this.getAnotherCell(urob.locArrToId(locArr));
             },
             
             getInteractions: function(character) {
@@ -387,7 +367,7 @@
                     }
                     
                     // Adjacent interactions from adjacent cells
-                    if (isTraversableSolidityForCorporeal(solidity)) {
+                    if (urob.isTraversableSolidityForCorporeal(solidity)) {
                         const adjacentCell = this.getAdjacentCell(faceDir);
                         if (adjacentCell) {
                             const adjFaceDir = facing.getOppositeCompassFacing(faceDir);
@@ -481,39 +461,11 @@
             
             isSpirit: function() {
                 // Creators are treated like spirits.
-                return this.callSuper() || this.hasPermission(PERM_CREATOR);
+                return this.callSuper() || this.hasPermission(urob.permission.PERM_CREATOR);
             }
         }),
         
         EXPORT = {
-            isTraversableSolidityForCorporeal:isTraversableSolidityForCorporeal,
-            
-            // Start: loc
-            locIdToArr:locIdToArr,
-            locArrToId:locArrToId,
-            locIdToMapId: locId => locId ? locId.split(',')[0] : null,
-            locArrToMapId: locArr => '' + locArr[0],
-            isValidLocArr: locArr => {
-                if (locArr.length === 4) {
-                    for (const entry of locArr) {
-                        if (!Number.isInteger(entry)) return false;
-                    }
-                    return true;
-                }
-                return false;
-            },
-            /*areLocArrEqual: (locArrA, locArrB) => {
-                if (locArrA !== locArrB) {
-                    if (locArrA == null || locArrB == null) return false;
-                    if (locArrA[1] !== locArrB[1]) return false;
-                    if (locArrA[2] !== locArrB[2]) return false;
-                    if (locArrA[3] !== locArrB[3]) return false;
-                    if (locArrA[0] !== locArrB[0]) return false;
-                }
-                return true;
-            },*/
-            // End: loc
-            
             getComposition: compId => compositionTemplatesById[compId],
             getFixtureTemplate: id => fixtureTemplatesById[id],
             
@@ -524,46 +476,9 @@
             CommonEntityModelMixin:CommonEntityModelMixin,
             CommonCharacterModelMixin:CommonCharacterModelMixin,
             
-            
-            permissions:{
-                PERM_CREATOR:PERM_CREATOR
-            },
-            
-            account:{
-                FIELD_USERNAME:'username', // Also used to store username in the HTTP session.
-                FIELD_PASSWORD:'password',
-                FIELD_LAST_LOGIN:'lastLogin',
-                FIELD_AUTH_FAIL_COUNT:'authFailCount',
-                FIELD_AUTHENTICATED:'authenticated',
-                FIELD_WEBSOCKET:'websocket',
-                FIELD_SOCKET_TOKEN:'socketToken'
-            },
-            
             composition:composition,
             fixture:fixture,
-            facings:facing,
-            
-            // String Manipulation
-            concatenateList: (list, isOr) => {
-                let txt = '';
-                if (list) {
-                    for (let i = 0, len = list.length; len > i; i++) {
-                        txt += list[i] + EXPORT.getConcatenator(i, len, isOr);
-                    }
-                }
-                return txt;
-            },
-            
-            getConcatenator: (i, len, isOr) => {
-                if (i === len - 1) {
-                    // No concatenator for last item
-                } else if (i === len - 2) {
-                    return isOr ? ' or ' : ' and ';
-                } else if (len > 1) {
-                    return ', ';
-                }
-                return '';
-            }
+            facings:facing
         };
     
     if (IS_NODEJS) {
