@@ -21,10 +21,9 @@ const orb = global.orb,
         TYPE_INTERACT_WITH_FIXTURE
     } = require('../common/SocketProtocol.js'),
     {
-        facings:{NORTH, SOUTH, EAST, WEST, UP, DOWN, SELF}
-    } = require('../common/common.js'),
-    
-    PERM_CREATOR = urob.permission.PERM_CREATOR,
+        permission:{PERM_CREATOR},
+        facing:{NORTH, SOUTH, EAST, WEST, UP, DOWN, SELF}
+    } = global.urob,
     
     getCharacterService = () => characterService ??= require('./CharacterService.js'),
     

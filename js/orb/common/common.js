@@ -1,25 +1,28 @@
 (() => {
     const IS_NODEJS = typeof module === 'object' && module.exports;
     
-    let tym, JS, composition, fixture, facing;
+    let tym, JS, composition, fixture;
     if (IS_NODEJS) {
         const imported = require('../../../lib/tym.js');
         JS = imported.JS;
         tym = imported.tym;
         composition = require('./composition.js');
         fixture = require('./fixture.js');
-        facing = require('./facing.js');
     } else {
         JS = global.JS;
         tym = global.myt;
         composition = global.composition;
         fixture = global.fixture;
-        facing = global.facing;
     }
     
     const
         {Eventable} = tym,
         {Module:JSModule, Class:JSClass} = JS,
+        
+        {
+            NORTH, SOUTH, EAST, WEST, UP, DOWN, COMPASS_FIELDS,
+            isValidCompassFacing, getOppositeCompassFacing
+        } = global.urob.facing,
         
         compositionTemplatesById = composition.templates,
         fixtureTemplatesById = fixture.templates,
@@ -275,9 +278,9 @@
                 } else {
                     this.getN()?.destroy();
                 }
-                this.set(facing.NORTH, v, true);
+                this.set(NORTH, v, true);
             },
-            getN: function(v) {return this[facing.NORTH];},
+            getN: function(v) {return this[NORTH];},
             
             setS: function(v) {
                 if (v) {
@@ -286,9 +289,9 @@
                 } else {
                     this.getS()?.destroy();
                 }
-                this.set(facing.SOUTH, v, true);
+                this.set(SOUTH, v, true);
             },
-            getS: function(v) {return this[facing.SOUTH];},
+            getS: function(v) {return this[SOUTH];},
             
             setE: function(v) {
                 if (v) {
@@ -297,9 +300,9 @@
                 } else {
                     this.getE()?.destroy();
                 }
-                this.set(facing.EAST, v, true);
+                this.set(EAST, v, true);
             },
-            getE: function(v) {return this[facing.EAST];},
+            getE: function(v) {return this[EAST];},
             
             setW: function(v) {
                 if (v) {
@@ -308,9 +311,9 @@
                 } else {
                     this.getW()?.destroy();
                 }
-                this.set(facing.WEST, v, true);
+                this.set(WEST, v, true);
             },
-            getW: function(v) {return this[facing.WEST];},
+            getW: function(v) {return this[WEST];},
             
             setT: function(v) {
                 if (v) {
@@ -319,9 +322,9 @@
                 } else {
                     this.getT()?.destroy();
                 }
-                this.set(facing.UP, v, true);
+                this.set(UP, v, true);
             },
-            getT: function(v) {return this[facing.UP];},
+            getT: function(v) {return this[UP];},
             
             setB: function(v) {
                 if (v) {
@@ -330,35 +333,35 @@
                 } else {
                     this.getB()?.destroy();
                 }
-                this.set(facing.DOWN, v, true);
+                this.set(DOWN, v, true);
             },
-            getB: function(v) {return this[facing.DOWN];},
+            getB: function(v) {return this[DOWN];},
             
             getFaceForDirection: function(compassDirection) {
-                if (facing.isValidCompassFacing(compassDirection)) return this.get(compassDirection);
+                if (isValidCompassFacing(compassDirection)) return this.get(compassDirection);
             },
             
             getFaceForOppositeDirection: function(compassDirection) {
-                return this.getFaceForDirection(facing.getOppositeCompassFacing(compassDirection));
+                return this.getFaceForDirection(getOppositeCompassFacing(compassDirection));
             },
             
             getAnotherCell: locId => {/* Subclasses must implement. */},
             getAdjacentCell: function(compassDirection) {
                 const locArr = this.getLocArr(true);
                 switch (compassDirection) {
-                    case facing.NORTH: --locArr[2]; break;
-                    case facing.SOUTH: ++locArr[2]; break;
-                    case facing.EAST: ++locArr[1]; break;
-                    case facing.WEST: --locArr[1]; break;
-                    case facing.UP: ++locArr[3]; break;
-                    case facing.DOWN: --locArr[3]; break;
+                    case NORTH: --locArr[2]; break;
+                    case SOUTH: ++locArr[2]; break;
+                    case EAST: ++locArr[1]; break;
+                    case WEST: --locArr[1]; break;
+                    case UP: ++locArr[3]; break;
+                    case DOWN: --locArr[3]; break;
                 }
                 return this.getAnotherCell(urob.locArrToId(locArr));
             },
             
             getInteractions: function(character) {
                 const accum = {};
-                for (const faceDir of facing.COMPASS_FIELDS) {
+                for (const faceDir of COMPASS_FIELDS) {
                     let face = this[faceDir],
                         solidity = 0;
                     if (face) {
@@ -370,7 +373,7 @@
                     if (urob.isTraversableSolidityForCorporeal(solidity)) {
                         const adjacentCell = this.getAdjacentCell(faceDir);
                         if (adjacentCell) {
-                            const adjFaceDir = facing.getOppositeCompassFacing(faceDir);
+                            const adjFaceDir = getOppositeCompassFacing(faceDir);
                             face = adjacentCell[adjFaceDir];
                             if (face) accum['adj_' + adjFaceDir] = face.getFixtureInteractions(character, true);
                         }
@@ -477,8 +480,7 @@
             CommonCharacterModelMixin:CommonCharacterModelMixin,
             
             composition:composition,
-            fixture:fixture,
-            facings:facing
+            fixture:fixture
         };
     
     if (IS_NODEJS) {

@@ -1,22 +1,20 @@
 (() => {
     const IS_NODEJS = typeof module === 'object' && module.exports;
     
-    let tym, JS, facing;
+    let tym, JS;
     if (IS_NODEJS) {
         const imported = require('../../../lib/tym.js');
         JS = imported.JS;
         tym = imported.tym;
-        facing = require('./facing.js');
     } else {
         JS = global.JS;
         tym = global.myt;
-        facing = global.facing;
     }
     
     const {I18N:{get:I18N}, Eventable} = tym,
         {Module:JSModule, Class:JSClass} = JS,
         
-        {NORTH, SOUTH, EAST, WEST} = facing,
+        {NORTH, SOUTH, EAST, WEST} = global.urob.facing,
         
         IMAGE_PREFIX = '/img/fixture/',
         

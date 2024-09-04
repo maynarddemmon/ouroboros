@@ -15,9 +15,10 @@
             CommonEntityModelMixin, CommonCharacterModelMixin,
             CommonFixtureTemplateModelMixin, CommonFixtureModel,
             greek:{TYPE_MOVE},
-            fixture:{templates:fixtureTemplates},
-            facings:{COMPASS_FIELDS}
+            fixture:{templates:fixtureTemplates}
         } = common,
+        
+        COMPASS_FIELDS = urob.facing.COMPASS_FIELDS,
         
         getMapData = () => mapData ??= {},
         getCellData = () => cellData ??= {},

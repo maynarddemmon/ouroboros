@@ -34,14 +34,17 @@
         } = M,
         
         {
+            concatenateList,
+            facing:{
+                getOppositeCompassFacing,
+                NORTH, SOUTH, EAST, WEST, UP, DOWN, SELF, COMPASS_FIELDS
+            }
+        } = global.urob,
+        {
             greek:{
                 ATTR_DIRECTION,
                 TYPE_EXIT_WORLD, TYPE_ALTER_CELL, TYPE_CHANGE_FACING, TYPE_VOCALIZE,
                 TYPE_INTERACT_WITH_FIXTURE
-            },
-            facings:{
-                getOppositeCompassFacing,
-                NORTH, SOUTH, EAST, WEST, UP, DOWN, SELF, COMPASS_FIELDS
             },
             composition:{templates}
         } = common,
@@ -100,7 +103,7 @@
                 }
                 accum.push(fixtureEntry);
             }
-            return urob.concatenateList(accum);
+            return concatenateList(accum);
         },
         
         getFullLocInfo = (character, cell) => {

@@ -11,7 +11,6 @@ const orb = global.orb,
     {getNow, addToRecQueue} = require('./WorldClock.js'),
     {
         CommonEntityModelMixin, CommonCharacterModelMixin,
-        facings:{NORTH}
     } = require('../common/common.js'),
     {
         TYPE_ALTER_ENTITY, TYPE_SOUND,
@@ -331,7 +330,7 @@ const orb = global.orb,
             attrs.id ??= null;
             attrs.name ??= '';
             attrs.loc ??= [0,0,0,0];
-            attrs.facing ??= NORTH;
+            attrs.facing ??= urob.facing.NORTH;
             attrs.moveSpeed ??= 3;
             
             for (const attrName of CORE_STAT_NAMES) {

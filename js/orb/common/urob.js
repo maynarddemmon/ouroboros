@@ -16,6 +16,7 @@
         //                  time: required from time.js
         //               account: required from account.js
         //            permission: required from account.js
+        //                facing: required from facing.js
         // cellOffsetsByDistance: required from cellOffsets.js
         //     getVisibilityPath: required from cellOffsets.js
         
@@ -89,5 +90,6 @@
         require('./urob/time.js');
         require('./urob/account.js');
         require('./urob/cellOffsets.js');
+        require('./urob/facing.js');
     }
 })();
