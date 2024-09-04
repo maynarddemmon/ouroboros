@@ -11,10 +11,22 @@ const orb = global.orb,
     
     FILENAME_WORLD_CLOCK = 'world_clock',
     
+    END_RECOVERY_FREQ = 23,
+    HP_RECOVERY_FREQ = 293,
+    MAGOS_RECOVERY_FREQ = 59,
+    PSYCHE_RECOVERY_FREQ = 109,
+    
     NOW = -1, // Constant indicating the "now" queue.
     NEXT = -2, // Constant indicating the "next" queue.
     
     queues = {}, // Stores event queues by tick time.
+    
+    recQueues = {
+        end:new Set(),
+        hp:new Set(),
+        magos:new Set(),
+        psyche:new Set()
+    },
     
     getTickTime = when => {
         let tickTime;
@@ -74,6 +86,12 @@ const orb = global.orb,
             delete queues[now];
         }
         
+        // Handle Entity Recovery
+        if (now % END_RECOVERY_FREQ === 0) processRecQueue('end');
+        if (now % MAGOS_RECOVERY_FREQ === 0) processRecQueue('magos');
+        if (now % PSYCHE_RECOVERY_FREQ === 0) processRecQueue('psyche');
+        if (now % HP_RECOVERY_FREQ === 0) processRecQueue('hp');
+        
         // Send outgoing messages
         drainOutgoingMessages(now);
         
@@ -81,6 +99,14 @@ const orb = global.orb,
         console.log('tick', now, queueLen, Date.now() - start); // DEBUG
         
         now++;
+    },
+    
+    processRecQueue = statNameForRecovery => {
+        const queue = recQueues[statNameForRecovery];
+        console.log('  process recovery queue:', statNameForRecovery, queue.size); // DEBUG
+        for (const entity of queue) {
+            if (entity.doStatRecovery(statNameForRecovery)) queue.delete(entity);
+        }
     },
     
     live = (resolve, reject) => {
@@ -133,5 +159,13 @@ module.exports = {
     
     // Event Queue //
     doEventNow: event => {doEventAt(NOW, event);},
-    doEventNext: event => {doEventAt(NEXT, event);}
+    doEventNext: event => {doEventAt(NEXT, event);},
+    
+    // Recovery Queues //
+    addToRecQueue: (entity, statName) => {
+        recQueues[statName]?.add(entity);
+    },
+    removeFromRecQueue: (entity, statName) => {
+        recQueues[statName]?.delete(entity);
+    },
 };

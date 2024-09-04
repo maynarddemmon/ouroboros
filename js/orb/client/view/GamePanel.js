@@ -384,9 +384,11 @@
                 
                 characterTab.setText(pkg.FA_CHARACTER + ' ' + character.getName());
                 
-                gamePanel.constrain('updateCharacterDetails', [
-                    character, 'exp', character, 'lvl', character, 'qui'
-                ]);
+                const constraintArray = [];
+                for (const statName of ['exp','lvl','qui','soma','end','endRec','hp','hpRec','pneuma','magos','magosRec','psyche','psycheRec']) {
+                    constraintArray.push(character, statName);
+                }
+                gamePanel.constrain('updateCharacterDetails', constraintArray);
                 gamePanel.attachToDom(GlobalKeys, '_keyDown', 'keydown', true);
             } else {
                 gamePanel.releaseConstraint('updateCharacterDetails');
@@ -416,9 +418,17 @@
         
         updateCharacterDetails: debounce(() => {
             characterDetailsTxt.setText(
-                'Experience: <b>' + character.exp.value + '</b><br>' + 
-                'Level: <b>' + character.lvl.value + '</b><br>' + 
-                'Quintessence: <b>' + character.qui.value + '</b><br>'
+                'Experience: <b>' + character.exp.value + '</b> ' + 
+                'Level: <b>' + character.lvl.value + '</b> ' + 
+                'Quintessence: <b>' + character.qui.value + '</b><br>' + 
+                
+                'Soma: <b>' + character.soma.value + '/' + character.soma.max + '</b> ' + 
+                'Endurance: <b>' + character.end.value + '/' + character.end.max +  '</b> ' + 
+                'Hit Points: <b>' + character.hp.value + '/' + character.hp.max +  '</b><br>' + 
+                
+                'Pneuma: <b>' + character.pneuma.value + '/' + character.pneuma.max +  '</b> ' + 
+                'Magos: <b>' + character.magos.value + '/' + character.magos.max +  '</b> ' + 
+                'Psyche: <b>' + character.psyche.value + '/' + character.psyche.max +  '</b><br>'
             );
         }, 50),
         

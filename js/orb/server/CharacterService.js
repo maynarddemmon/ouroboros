@@ -4,11 +4,11 @@ let accountService,
 const orb = global.orb,
     
     {
-        JS:{Class:JSClass}, 
+        JS:{Class:JSClass, Module:JSModule}, 
         tym:{Eventable}
     } = require('../../../lib/tym.js'),
     
-    {getNow} = require('./WorldClock.js'),
+    {getNow, addToRecQueue} = require('./WorldClock.js'),
     {
         CommonEntityModelMixin, CommonCharacterModelMixin,
         facings:{NORTH},
@@ -20,12 +20,15 @@ const orb = global.orb,
         TYPE_ALTER_CHARACTER, TYPE_MOVE_FAILED, MOVE_ERROR_CODES
     } = require('../common/SocketProtocol.js'),
     
-    {min:mathMin, max:mathMax, floor:mathFloor, sqrt:mathSqrt} = Math,
+    {min:mathMin, max:mathMax, floor:mathFloor, ceil:mathCeil, sqrt:mathSqrt} = Math,
     
     getAccountService = () => accountService ??= require('./AccountService.js'),
     getWorldMap = () => worldMap ??= require('./WorldMap.js'),
     
     FILENAME_CHARACTERS = 'characters',
+    
+    /* The amount of endurance needed by an entity to do a move action. */
+    END_MOVE_COST = -1,
     
     /** A stat on an object. Enforces min and max values and provides a way to temporarily
         adjust the effective value. */
@@ -108,6 +111,46 @@ const orb = global.orb,
         },
         getValue: function() {return this.value;},
         
+        adjValue: function(adj, cfg) {
+            if (adj === 0) return 0;
+            
+            const curValue = this.getValue();
+            if (adj > 0) {
+                const max = this.getMax(),
+                    allowedAdj = max - curValue;
+                if (adj <= allowedAdj) {
+                    this.setValue(curValue + adj);
+                    return adj;
+                } else {
+                    if (cfg?.allOrNothing) {
+                        // Change would exceed max so do not change.
+                        return 0;
+                    } else {
+                        this.setValue(curValue + allowedAdj);
+                        return allowedAdj;
+                    }
+                }
+            } else {
+                const min = this.getMin(),
+                    allowedAdj = min - curValue;
+                if (adj >= allowedAdj) {
+                    this.setValue(curValue + adj);
+                    return adj;
+                } else {
+                    if (cfg?.allOrNothing) {
+                        // Change would exceed max so do not change.
+                        return 0;
+                    } else {
+                        this.setValue(curValue + allowedAdj);
+                        return allowedAdj;
+                    }
+                }
+            }
+        },
+        
+        getValueToMax: function() {return this.getMax() - this.getValue();},
+        isAtMaxValue: function() {return this.getMax() === this.getValue();},
+        
         getAsData: function() {
             return {
                 min:this.min,
@@ -132,8 +175,36 @@ const orb = global.orb,
         }
     }),
     
-    /** A stat that gets its max value from other StatModels. */
+    /** A stat that gets its value from other StatModels. */
     DerivedStatModel = new JSClass('DerivedStatModel', StatModel, {
+        init: function(attrs) {
+            const watch = attrs.watch;
+            delete attrs.watch;
+            
+            this.callSuper(attrs);
+            
+            this.setValuesToWatch(watch);
+        },
+        
+        setValuesToWatch: function(observables) {
+            this.releaseConstraint('updateValue');
+            this.constrain('updateValue', observables);
+        },
+        
+        updateValue: function(ignoreEvent) {
+            this.setValue(this.calculateValue());
+        },
+        
+        calculateValue: () => {/* Subclasses must implement. */},
+        
+        setFromData: function(datum) {
+            this.setMin(datum?.min ?? this.absMin);
+            this.setMax(datum?.max ?? this.absMax);
+        }
+    }),
+    
+    /** A stat that gets its max value from other StatModels. */
+    DerivedMaxStatModel = new JSClass('DerivedMaxStatModel', StatModel, {
         init: function(attrs) {
             const watch = attrs.watch;
             delete attrs.watch;
@@ -154,15 +225,21 @@ const orb = global.orb,
         
         calculateMax: () => {/* Subclasses must implement. */},
         
-        getAsData: function() {
-            return {
-                min:this.min,
-                value:this.value
-            };
-        },
         setFromData: function(datum) {
             this.setMin(datum?.min ?? this.absMin);
             this.setValue(datum?.value ?? this.min);
+        }
+    }),
+    
+    RecoverableStatMixin = new JSModule('RecoverableStatMixin', {
+        setValue: function(v) {
+            const isChanged = this.callSuper(v);
+            if (this.inited && this.parentObj?.inited) this.registerForRecovery();
+            return isChanged;
+        },
+        
+        registerForRecovery: function() {
+            if (!this.isAtMaxValue()) addToRecQueue(this.parentObj, this.attrName);
         }
     }),
     
@@ -176,6 +253,9 @@ const orb = global.orb,
     CORE_STAT_NAMES = ['exp','lvl','qui'],
     ABILITY_NAMES = ['str','agl','dex','con','wil','per','wis','int'],
     DERIVED_STAT_NAMES = ['soma','end','endRec','hp','hpRec','pneuma','magos','magosRec','psyche','psycheRec'],
+    
+    averageValueFloor = (v1, v2) => mathFloor((v2 + v2)/2),
+    dividedValueCeil = (v, divisor) => mathCeil(v / divisor),
     
     EntityModel = new JSClass('EntityModel', Eventable, {
         include:[CommonEntityModelMixin],
@@ -198,55 +278,56 @@ const orb = global.orb,
             self.wis = new StatModel({parentObj:self, attrName:'wis', absMin:0, absMax:100});
             self.int = new StatModel({parentObj:self, attrName:'int', absMin:0, absMax:100});
             
-            self.soma = new DerivedStatModel({
-                parentObj:self, absMin:0, attrName:'soma', watch:[self.str, 'value', self.agl, 'value', self.con, 'value', self.dex, 'value']
+            self.soma = new DerivedMaxStatModel({
+                parentObj:self, attrName:'soma', absMin:0, watch:[self.str, 'value', self.agl, 'value', self.con, 'value', self.dex, 'value']
             }, [{
-                calculateMax: () => self.str.getValue() + self.agl.getValue() + self.con.getValue() + self.dex.getValue()
+                calculateMax: () => (self.str.getValue() + averageValueFloor(self.agl.getValue(), self.dex.getValue())) * self.con.getValue()
             }]);
-            self.end = new DerivedStatModel({
-                parentObj:self, absMin:0, attrName:'end', watch:[self.str, 'value', self.agl, 'value', self.con, 'value']
-            }, [{
-                calculateMax: () => self.con.getValue() + mathFloor((self.str.getValue() + self.agl.getValue()) / 2)
+            self.end = new DerivedMaxStatModel({
+                parentObj:self, attrName:'end', absMin:0, watch:[self.str, 'value', self.agl, 'value', self.con, 'value']
+            }, [RecoverableStatMixin, {
+                calculateMax: () => self.con.getValue() + averageValueFloor(self.str.getValue(), self.agl.getValue())
             }]);
             self.endRec = new DerivedStatModel({
-                parentObj:self, absMin:0, attrName:'endRec', watch:[self.con, 'value']
+                parentObj:self, attrName:'endRec', absMin:0, watch:[self.con, 'value']
             }, [{
-                calculateMax: () => self.con.getValue()
+                calculateValue: () => dividedValueCeil(self.con.getValue(), 4)
             }]);
-            self.hp = new DerivedStatModel({
-                parentObj:self, absMin:0, attrName:'hp', watch:[self.str, 'value', self.con, 'value']
-            }, [{
+            self.hp = new DerivedMaxStatModel({
+                parentObj:self, attrName:'hp', absMin:0, watch:[self.str, 'value', self.con, 'value']
+            }, [RecoverableStatMixin, {
                 calculateMax: () => self.str.getValue() + self.con.getValue()
             }]);
             self.hpRec = new DerivedStatModel({
-                parentObj:self, absMin:0, attrName:'hpRec', watch:[self.con, 'value']
+                parentObj:self, attrName:'hpRec', absMin:0, watch:[self.con, 'value']
             }, [{
-                calculateMax: () => self.con.getValue()
+                calculateValue: () => dividedValueCeil(self.con.getValue(), 8)
             }]);
-            self.pneuma = new DerivedStatModel({
-                parentObj:self, absMin:0, attrName:'pneuma', watch:[self.int, 'value', self.wis, 'value', self.wil, 'value', self.per, 'value']
+            
+            self.pneuma = new DerivedMaxStatModel({
+                parentObj:self, attrName:'pneuma', absMin:0, watch:[self.int, 'value', self.wis, 'value', self.wil, 'value', self.per, 'value']
             }, [{
-                calculateMax: () => self.int.getValue() + self.wis.getValue() + self.wil.getValue() + self.per.getValue()
+                calculateMax: () => (self.int.getValue() + averageValueFloor(self.wis.getValue(), self.per.getValue())) * self.wil.getValue()
             }]);
-            self.magos = new DerivedStatModel({
-                parentObj:self, absMin:0, attrName:'magos', watch:[self.int, 'value', self.wil, 'value']
-            }, [{
+            self.magos = new DerivedMaxStatModel({
+                parentObj:self, attrName:'magos', absMin:0, watch:[self.int, 'value', self.wil, 'value']
+            }, [RecoverableStatMixin, {
                 calculateMax: () => self.int.getValue() + self.wil.getValue()
             }]);
             self.magosRec = new DerivedStatModel({
-                parentObj:self, absMin:0, attrName:'magosRec', watch:[self.wil, 'value']
+                parentObj:self, attrName:'magosRec', absMin:0, watch:[self.wil, 'value']
             }, [{
-                calculateMax: () => self.wil.getValue()
+                calculateValue: () => dividedValueCeil(self.wil.getValue(), 8)
             }]);
-            self.psyche = new DerivedStatModel({
-                parentObj:self, absMin:0, attrName:'psyche', watch:[self.wis, 'value', self.wil, 'value']
-            }, [{
+            self.psyche = new DerivedMaxStatModel({
+                parentObj:self, attrName:'psyche', absMin:0, watch:[self.wis, 'value', self.wil, 'value']
+            }, [RecoverableStatMixin, {
                 calculateMax: () => self.wis.getValue() + self.wil.getValue()
             }]);
             self.psycheRec = new DerivedStatModel({
-                parentObj:self, absMin:0, attrName:'psycheRec', watch:[self.wil, 'value']
+                parentObj:self, attrName:'psycheRec', absMin:0, watch:[self.wil, 'value']
             }, [{
-                calculateMax: () => self.wil.getValue()
+                calculateValue: () => dividedValueCeil(self.wil.getValue(), 8)
             }]);
             
             attrs.id ??= null;
@@ -402,7 +483,15 @@ const orb = global.orb,
         getPsycheRec: function() {return this.psycheRec.getValue();},
         
         // Refresh Stats
-        refreshStats: function() {this.applyExperience();},
+        refreshStats: function() {
+            this.applyExperience();
+            
+            // Register Recoverable Stats
+            this.end.registerForRecovery();
+            this.hp.registerForRecovery();
+            this.magos.registerForRecovery();
+            this.psyche.registerForRecovery();
+        },
         applyExperience: function() {this.setLvl(experienceToLevel(this.getExp()));},
         applyLevel: function() {this.setQui(levelToQuintessence(this.getLvl()));},
         applyQuintessence: function() {
@@ -412,6 +501,13 @@ const orb = global.orb,
         
         
         // Methods /////////////////////////////////////////////////////////////
+        topUpStats: function() {
+            for (const statName of DERIVED_STAT_NAMES) {
+                const statObj = this[statName];
+                statObj.setValue(statObj.getMax());
+            }
+        },
+        
         getAsData: function() {
             return {
                 id:this.id,
@@ -469,6 +565,18 @@ const orb = global.orb,
             };
         },
         
+        
+        // Methods /////////////////////////////////////////////////////////////
+        doStatRecovery: function(statName) {
+            const stat = this[statName],
+                recStat = this[statName + 'Rec'];
+            if (stat && recStat && stat.getValueToMax() > 0) {
+                stat.adjValue(mathMax(0, recStat.getValue())); // No "bleeding".
+                if (!stat.isAtMaxValue()) return false;
+            }
+            return true;
+        },
+        
         doVocalize: function(volume, message) {
             const self = this;
             self.getCell()?.notifyAllAuditoryChangeListeners(TYPE_SOUND, {
@@ -490,7 +598,10 @@ const orb = global.orb,
             // Determine if the new location will allow the character
             const cell = getWorldMap().getCell(locId, true),
                 username = this.isA(Character) ? this.getUserId() : null;
-            if (cell.mayMoveInto(this, direction)) {
+            if (
+                cell.mayMoveInto(this, direction) &&
+                this.end.adjValue(END_MOVE_COST, {allOrNothing:true}) === END_MOVE_COST
+            ) {
                 // Generate movement sound before
                 if (moveSoundTypeBefore) orb.rules.generateSoundForEntityAction(this, this.getCell(), moveSoundTypeBefore);
                 
@@ -499,9 +610,6 @@ const orb = global.orb,
                 this.setLoc(locArr);
                 
                 callbackAfter?.();
-                
-// FIXME: remove after testing
-this.setExp(this.getExp() + 150);
                 
                 // Send movement change
                 if (username) {
@@ -721,6 +829,7 @@ this.setExp(this.getExp() + 150);
                     name:name,
                     loc:[0,2,2,0]
                 });
+                character.topUpStats();
                 
                 if (storeCharacterInRepo(character)) {
                     retval.message = 'Character created successfully.';
