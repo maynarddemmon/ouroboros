@@ -1,7 +1,5 @@
-(() => {
-    const IS_NODEJS = typeof module === 'object' && module.exports,
-        
-        mathAbs = Math.abs,
+(pkg => {
+    const mathAbs = Math.abs,
         
         /** The following are concentric rings of x,y offsets form an origin cell. The rings and
             circles can be used to find other cells relative to an origin cell.
@@ -131,8 +129,6 @@
         CIRCLE_8 = [...CIRCLE_7, ...RING_8],
         CIRCLE_9 = [...CIRCLE_8, ...RING_9],
         
-        cellOffsetsByDistance = [CIRCLE_0,CIRCLE_1,CIRCLE_2,CIRCLE_3,CIRCLE_4,CIRCLE_5,CIRCLE_6,CIRCLE_7,CIRCLE_8,CIRCLE_9],
-        
         /** These are "paths" to walk from an origin cell that correspond to what a character
             could see. They are used to determine if the character's view is blocked or not.
             The paths are for 1/8 of a circle so the will need to be flipped/translated to cover
@@ -201,69 +197,59 @@
                 ['zz', 'zz' ,'zz' ,'zz' ,'zz' ,'zz'],
                 ['zz' ,'up' ,'uo', 'uo', 'uo', 'zz' ,'zz'],
             ]
-        ],
+        ];
         
-        /** Get the visibility path to use based on the x,y offset of the cell to check
-            visiblit for relative to an origin cell. The various parameters are used to
-            transform the lookup for the appropraite 1/8 segment of the circle. */
-        getVisibilityPath = (x, y, isPosX, isPosY, isYgtX, isYgtNegX) => {
-            let lookupX,
-                lookupY;
-            if (x === y) {
-                // origin and diagonal
-                lookupX = lookupY = mathAbs(x);
-            } else if (x === 0) {
-                // horizontal
-                lookupX = 0;
-                lookupY = mathAbs(y);
-            } else if (y === 0) {
-                // vertical
-                lookupX = 0;
-                lookupY = mathAbs(x);
-            } else if (isPosX) {
-                if (isPosY) {
-                    if (isYgtX) {
-                        lookupX = x;
-                        lookupY = y;
-                    } else {
-                        lookupX = y;
-                        lookupY = x;
-                    }
-                } else if (isYgtNegX) {
-                    lookupX = -y;
-                    lookupY = x;
-                } else {
+    /** Get the visibility path to use based on the x,y offset of the cell to check
+        visiblit for relative to an origin cell. The various parameters are used to
+        transform the lookup for the appropraite 1/8 segment of the circle. */
+    pkg.getVisibilityPath = (x, y, isPosX, isPosY, isYgtX, isYgtNegX) => {
+        let lookupX,
+            lookupY;
+        if (x === y) {
+            // origin and diagonal
+            lookupX = lookupY = mathAbs(x);
+        } else if (x === 0) {
+            // horizontal
+            lookupX = 0;
+            lookupY = mathAbs(y);
+        } else if (y === 0) {
+            // vertical
+            lookupX = 0;
+            lookupY = mathAbs(x);
+        } else if (isPosX) {
+            if (isPosY) {
+                if (isYgtX) {
                     lookupX = x;
-                    lookupY = -y;
-                }
-            } else if (isPosY) {
-                if (isYgtNegX) {
-                    lookupX = -x;
                     lookupY = y;
                 } else {
                     lookupX = y;
-                    lookupY = -x;
+                    lookupY = x;
                 }
-            } else if (isYgtX) {
+            } else if (isYgtNegX) {
                 lookupX = -y;
-                lookupY = -x;
+                lookupY = x;
             } else {
-                lookupX = -x;
+                lookupX = x;
                 lookupY = -y;
             }
-            
-            return VISIBILITY_PATHS[lookupX][lookupY];
-        };
+        } else if (isPosY) {
+            if (isYgtNegX) {
+                lookupX = -x;
+                lookupY = y;
+            } else {
+                lookupX = y;
+                lookupY = -x;
+            }
+        } else if (isYgtX) {
+            lookupX = -y;
+            lookupY = -x;
+        } else {
+            lookupX = -x;
+            lookupY = -y;
+        }
+        
+        return VISIBILITY_PATHS[lookupX][lookupY];
+    };
     
-    if (IS_NODEJS) {
-        module.exports = {
-            cellOffsetsByDistance:cellOffsetsByDistance,
-            visibilityPaths:VISIBILITY_PATHS,
-            getVisibilityPath:getVisibilityPath
-        };
-    } else {
-        common.cellOffsetsByDistance = cellOffsetsByDistance;
-        common.visibilityPaths = VISIBILITY_PATHS;
-        common.getVisibilityPath = getVisibilityPath;
-    }
-})();
+    pkg.cellOffsetsByDistance = [CIRCLE_0,CIRCLE_1,CIRCLE_2,CIRCLE_3,CIRCLE_4,CIRCLE_5,CIRCLE_6,CIRCLE_7,CIRCLE_8,CIRCLE_9];
+})(global.urob);

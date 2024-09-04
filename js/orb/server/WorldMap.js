@@ -4,7 +4,7 @@ const orb = global.orb,
     
     objectKeys = Object.keys,
     
-    {locArrToId} = global.urob,
+    {locArrToId, cellOffsetsByDistance} = global.urob,
     
     {
         JS:{Class:JSClass}, 
@@ -16,7 +16,6 @@ const orb = global.orb,
         composition:{MEL_LOOKUP},
         facings:{NORTH, SOUTH, EAST, WEST}
     } = require('../common/common.js'),
-    {cellOffsetsByDistance} = require('../common/cellOffsets.js'),
     {TYPE_CELL_DATA, TYPE_SOUND, TYPE_EXPOSITION} = require('../common/SocketProtocol.js'),
     {addMessageToUser} = require('./AccountService.js'),
     

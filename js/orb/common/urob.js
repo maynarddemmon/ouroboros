@@ -13,9 +13,11 @@
     
     /* Define functions with no dependencies immediately inside global.urob. */
     const urob = global.urob = {
-        //       time: required from time.js
-        //    account: required from account.js
-        // permission: required from account.js
+        //                  time: required from time.js
+        //               account: required from account.js
+        //            permission: required from account.js
+        // cellOffsetsByDistance: required from cellOffsets.js
+        //     getVisibilityPath: required from cellOffsets.js
         
         isTraversableSolidityForCorporeal:solidity => solidity >= 0 && solidity < 1,
         
@@ -86,5 +88,6 @@
     if (IS_NODEJS) {
         require('./urob/time.js');
         require('./urob/account.js');
+        require('./urob/cellOffsets.js');
     }
 })();
