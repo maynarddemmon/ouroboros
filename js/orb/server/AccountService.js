@@ -6,11 +6,13 @@ const {scryptSync} = require('crypto'),
     orb = global.orb,
     {salt, authFailLimit, accountUnlockerInterval} = orb,
     
-    {TYPE_NOW} = require('../common/SocketProtocol.js'),
     {
-        FIELD_USERNAME, FIELD_PASSWORD, FIELD_LAST_LOGIN, FIELD_AUTH_FAIL_COUNT,
-        FIELD_AUTHENTICATED, FIELD_WEBSOCKET, FIELD_SOCKET_TOKEN
-    } = urob.account,
+        greek:{TYPE_NOW},
+        account:{
+            FIELD_USERNAME, FIELD_PASSWORD, FIELD_LAST_LOGIN, FIELD_AUTH_FAIL_COUNT,
+            FIELD_AUTHENTICATED, FIELD_WEBSOCKET, FIELD_SOCKET_TOKEN
+        }
+    } = urob,
     
     getCharacterService = () => characterService ??= require('./CharacterService.js'),
     

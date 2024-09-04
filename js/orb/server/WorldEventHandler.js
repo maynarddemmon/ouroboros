@@ -9,20 +9,21 @@ const orb = global.orb,
     {addMessageToUser, getAccountByUsername} = require('./AccountService.js'),
     worldMap = require('./WorldMap.js'),
     {
-        ATTR_TIME, ATTR_DIRECTION,
-        
-        TYPE_WARNING, TYPE_ERROR, TYPE_SERVERINFO, TYPE_ENTER_WORLD, TYPE_EXIT_WORLD,
-        TYPE_MAP_DATA,
-        TYPE_MOVE, TYPE_MOVE_FAILED, MOVE_ERROR_CODES,
-        TYPE_ACTION_FAILED, ACTION_ERROR_CODES,
-        TYPE_REACT_FAILED, REACT_ERROR_CODES,
-        TYPE_CHANGE_FACING, TYPE_VOCALIZE, TYPE_ALTER_CELL, TYPE_FREE_FAILED, FREE_ERROR_CODES,
-        TYPE_ALTER_CHARACTER,
-        TYPE_INTERACT_WITH_FIXTURE
-    } = require('../common/SocketProtocol.js'),
-    {
+        locIdToArr, isValidLocArr, locArrToId,
         permission:{PERM_CREATOR},
-        facing:{NORTH, SOUTH, EAST, WEST, UP, DOWN, SELF}
+        facing:{NORTH, SOUTH, EAST, WEST, UP, DOWN, SELF},
+        greek:{
+            ATTR_TIME, ATTR_DIRECTION,
+            
+            TYPE_WARNING, TYPE_ERROR, TYPE_SERVERINFO, TYPE_ENTER_WORLD, TYPE_EXIT_WORLD,
+            TYPE_MAP_DATA,
+            TYPE_MOVE, TYPE_MOVE_FAILED, MOVE_ERROR_CODES,
+            TYPE_ACTION_FAILED, ACTION_ERROR_CODES,
+            TYPE_REACT_FAILED, REACT_ERROR_CODES,
+            TYPE_CHANGE_FACING, TYPE_VOCALIZE, TYPE_ALTER_CELL, TYPE_FREE_FAILED, FREE_ERROR_CODES,
+            TYPE_ALTER_CHARACTER,
+            TYPE_INTERACT_WITH_FIXTURE
+        }
     } = global.urob,
     
     getCharacterService = () => characterService ??= require('./CharacterService.js'),
@@ -185,10 +186,10 @@ const orb = global.orb,
                         default:
                             // Treat the direction as a locId
                             if (character.hasPermission(PERM_CREATOR)) {
-                                locArr = urob.locIdToArr(direction);
+                                locArr = locIdToArr(direction);
                                 moveSoundTypeBefore = 'teleport-leave';
                                 moveSoundTypeAfter = 'teleport-arrive';
-                                if (!urob.isValidLocArr(locArr)) {
+                                if (!isValidLocArr(locArr)) {
                                     addMessageToUser(username, {type:TYPE_MOVE_FAILED, code:MOVE_ERROR_CODES.INVALID_LOCATION});
                                     return;
                                 }
@@ -207,7 +208,7 @@ const orb = global.orb,
                     if (character.hasPermission(PERM_CREATOR)) {
                         const locArr = character.getLocArr(true),
                             {prop, value/*, direction*/} = event.msg,
-                            cell = worldMap.getCell(urob.locArrToId(locArr), true);
+                            cell = worldMap.getCell(locArrToId(locArr), true);
                         switch (prop) {
                             case SELF: 
                                 cell.setC(value);

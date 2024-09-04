@@ -7,8 +7,6 @@ const path = require('path'),
     {JS, tym} = require(PATH_PREFIX + 'lib/tym.js'),
     {getRandomInt} = tym,
     
-    {TYPE_SOUND} = require('../common/SocketProtocol.js'),
-    
     FILENAME_PACKAGE_STATE = 'pkg_state',
     
     GUID_COUNTER = {},
@@ -258,7 +256,7 @@ const path = require('path'),
                         break;
                 }
                 
-                cell.notifyAllAuditoryChangeListeners(TYPE_SOUND, {
+                cell.notifyAllAuditoryChangeListeners(urob.greek.TYPE_SOUND, {
                     from:entity.getId(), type:actionType, volume:volume, message:'*' + soundEffect + '*'
                 }, true);
             }

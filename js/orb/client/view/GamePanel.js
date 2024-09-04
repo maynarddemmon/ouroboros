@@ -38,16 +38,15 @@
             facing:{
                 getOppositeCompassFacing,
                 NORTH, SOUTH, EAST, WEST, UP, DOWN, SELF, COMPASS_FIELDS
-            }
-        } = global.urob,
-        {
+            },
             greek:{
                 ATTR_DIRECTION,
                 TYPE_EXIT_WORLD, TYPE_ALTER_CELL, TYPE_CHANGE_FACING, TYPE_VOCALIZE,
                 TYPE_INTERACT_WITH_FIXTURE
-            },
-            composition:{templates}
-        } = common,
+            }
+        } = global.urob,
+        
+        {composition:{templates}} = common,
         
         {
             model,

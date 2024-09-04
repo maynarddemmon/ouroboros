@@ -5,20 +5,20 @@ const orb = global.orb,
     objectKeys = Object.keys,
     
     {
-        locArrToId, cellOffsetsByDistance,
-        facing:{NORTH, SOUTH, EAST, WEST}
-    } = global.urob,
-    
-    {
         JS:{Class:JSClass}, 
         tym:{Eventable, getRandom, getRandomInt}
     } = require('../../../lib/tym.js'),
     
     {
+        locArrToId, cellOffsetsByDistance, locIdToMapId,
+        facing:{NORTH, SOUTH, EAST, WEST},
+        greek:{TYPE_CELL_DATA, TYPE_SOUND, TYPE_EXPOSITION}
+    } = global.urob,
+    
+    {
         CommonMapModel, CommonFaceModel, CommonCellModel, CommonFixtureModel,
         composition:{MEL_LOOKUP}
     } = require('../common/common.js'),
-    {TYPE_CELL_DATA, TYPE_SOUND, TYPE_EXPOSITION} = require('../common/SocketProtocol.js'),
     {addMessageToUser} = require('./AccountService.js'),
     
     sendMsgToCharacter = (character, type, msg) => {
@@ -348,7 +348,7 @@ const orb = global.orb,
     makeAndSetCell = (locArrOrId, params) => setCell(coerceToLocId(locArrOrId), makeCell(params)),
     makeAndSetMissingCell = locId => {
         let comp;
-        const map = getMap(urob.locIdToMapId(locId));
+        const map = getMap(locIdToMapId(locId));
         if (map) {
             comp = map.getMissingCellComposition();
         } else {

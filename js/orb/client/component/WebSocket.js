@@ -3,7 +3,7 @@
         
         M = myt,
         
-        {greek} = common,
+        greek = urob.greek,
         {
             TYPE_LOBBY,
             ACTION_ERROR_CODES, MOVE_ERROR_CODES, REACT_ERROR_CODES, FREE_ERROR_CODES,

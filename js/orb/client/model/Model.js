@@ -14,11 +14,14 @@
             CommonMapModel, CommonFaceModel, CommonCellModel, 
             CommonEntityModelMixin, CommonCharacterModelMixin,
             CommonFixtureTemplateModelMixin, CommonFixtureModel,
-            greek:{TYPE_MOVE},
             fixture:{templates:fixtureTemplates}
         } = common,
         
-        COMPASS_FIELDS = urob.facing.COMPASS_FIELDS,
+        {
+            locArrToId,
+            facing:{COMPASS_FIELDS},
+            greek:{TYPE_MOVE}
+        } = urob,
         
         getMapData = () => mapData ??= {},
         getCellData = () => cellData ??= {},
@@ -238,7 +241,7 @@
             // Cell:start
             makeUnknownCell: locId => new CellModel({locId:locId, c:'unk'}),
             getCell: locId => cellData[locId],
-            getCellByLocArr: locArr => cellData[urob.locArrToId(locArr)],
+            getCellByLocArr: locArr => cellData[locArrToId(locArr)],
             storeCellData: data => {
                 const cellData = getCellData();
                 for (const locId in data) {

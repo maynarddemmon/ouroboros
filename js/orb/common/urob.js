@@ -13,6 +13,7 @@
     
     /* Define functions with no dependencies immediately inside global.urob. */
     const urob = global.urob = {
+        //                 greek: required from greek.js
         //                  time: required from time.js
         //               account: required from account.js
         //            permission: required from account.js
@@ -87,6 +88,7 @@
     
     /** These are handled in the client via manifest.js. */
     if (IS_NODEJS) {
+        require('./urob/greek.js');
         require('./urob/time.js');
         require('./urob/account.js');
         require('./urob/cellOffsets.js');

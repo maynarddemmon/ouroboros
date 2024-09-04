@@ -11,10 +11,8 @@
         } = M,
         
         {
-            greek:{
-                TYPE_ENTER_WORLD, TYPE_CREATE_CHARACTER, TYPE_DELETE_CHARACTER
-            }
-        } = common,
+            greek:{TYPE_ENTER_WORLD, TYPE_CREATE_CHARACTER, TYPE_DELETE_CHARACTER}
+        } = global.urob,
         
         {
             model,

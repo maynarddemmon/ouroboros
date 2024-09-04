@@ -23,8 +23,8 @@ const loggingService = require('./LoggingService.js'),
     worldMap = require('./WorldMap.js'),
     
     {
-        TYPE_WARNING, TYPE_SERVERINFO
-    } = require('../common/SocketProtocol.js'),
+        greek:{TYPE_WARNING, TYPE_SERVERINFO}
+    } = global.urob,
     
     msgAllAccounts = (msg, msgType=TYPE_WARNING, connectedOnly=true) => {
         accountService[connectedOnly ? 'addMessageToAllConnectedAccounts' : 'addMessageToAllAccounts']({type:msgType, msg:msg});

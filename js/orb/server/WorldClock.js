@@ -7,7 +7,8 @@ const orb = global.orb,
     {getEventLog} = require('./LoggingService.js'),
     worldEventHandler = require('./WorldEventHandler.js'),
     {drainOutgoingMessages} = require('./AccountService.js'),
-    {ATTR_TIME} = require('../common/SocketProtocol.js'),
+    
+    {greek:{ATTR_TIME}} = global.urob,
     
     FILENAME_WORLD_CLOCK = 'world_clock',
     

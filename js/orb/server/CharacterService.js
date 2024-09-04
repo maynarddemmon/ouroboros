@@ -8,14 +8,19 @@ const orb = global.orb,
         tym:{Eventable}
     } = require('../../../lib/tym.js'),
     
+    {
+        isValidLocArr, locIdToArr, locArrToId,
+        greek:{
+            TYPE_ALTER_ENTITY, TYPE_SOUND,
+            TYPE_ALTER_CHARACTER, TYPE_MOVE_FAILED, MOVE_ERROR_CODES
+        },
+        facing:{NORTH}
+    } = global.urob,
+    
     {getNow, addToRecQueue} = require('./WorldClock.js'),
     {
         CommonEntityModelMixin, CommonCharacterModelMixin,
     } = require('../common/common.js'),
-    {
-        TYPE_ALTER_ENTITY, TYPE_SOUND,
-        TYPE_ALTER_CHARACTER, TYPE_MOVE_FAILED, MOVE_ERROR_CODES
-    } = require('../common/SocketProtocol.js'),
     
     {min:mathMin, max:mathMax, floor:mathFloor, ceil:mathCeil, sqrt:mathSqrt} = Math,
     
@@ -330,7 +335,7 @@ const orb = global.orb,
             attrs.id ??= null;
             attrs.name ??= '';
             attrs.loc ??= [0,0,0,0];
-            attrs.facing ??= urob.facing.NORTH;
+            attrs.facing ??= NORTH;
             attrs.moveSpeed ??= 3;
             
             for (const attrName of CORE_STAT_NAMES) {
@@ -394,7 +399,7 @@ const orb = global.orb,
         },
         
         setLoc: function(v) {
-            if (urob.isValidLocArr(v)) {
+            if (isValidLocArr(v)) {
                 const curCell = this.getCell(),
                     newCell = getWorldMap().getCellByLocArr(v, true);
                 
@@ -602,9 +607,9 @@ const orb = global.orb,
                 locId;
             if (typeof locArrOrId === 'string') {
                 locId = locArrOrId;
-                locArr = urob.locIdToArr(locArrOrId);
+                locArr = locIdToArr(locArrOrId);
             } else {
-                locId = urob.locArrToId(locArrOrId);
+                locId = locArrToId(locArrOrId);
                 locArr = locArrOrId;
             }
             

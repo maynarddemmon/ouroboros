@@ -8,8 +8,12 @@ const
             characterService = require('./CharacterService.js'),
             {doEventNext, doEventNow, getTick, getNow} = require('./WorldClock.js'),
             accessLog = require('./LoggingService.js').getAccessLog(),
-            SocketProtocol = require('../common/SocketProtocol.js'),
-            ATTR_TIME = SocketProtocol.ATTR_TIME,
+            
+            {
+                greek,
+                account:{FIELD_WEBSOCKET}
+            } = global.urob,
+            ATTR_TIME = greek.ATTR_TIME,
             
             doEventNextHandler = (username, type, msg) => {
                 doEventNext({_uid:username, type:type, msg:msg});
@@ -20,7 +24,7 @@ const
             },
             
             HANDLERS = {
-                [SocketProtocol.TYPE_LOBBY]: (username, type, msg) => {
+                [greek.TYPE_LOBBY]: (username, type, msg) => {
                     return {
                         type:type, 
                         msg:{
@@ -32,28 +36,28 @@ const
                     };
                 },
                 
-                [SocketProtocol.TYPE_CREATE_CHARACTER]: (username, type, msg) => {
+                [greek.TYPE_CREATE_CHARACTER]: (username, type, msg) => {
                     const {success, message, character} = characterService.createCharacter(username, msg),
                         msgObj = {success:success, message:message};
                     if (success) msgObj.character = character.getAsData();
                     return {type:type, msg:msgObj, [ATTR_TIME]:getNow()};
                 },
                 
-                [SocketProtocol.TYPE_DELETE_CHARACTER]: (username, type, msg) => {
+                [greek.TYPE_DELETE_CHARACTER]: (username, type, msg) => {
                     const {success, message, id} = characterService.deleteCharacter(username, msg.id),
                         msgObj = {success:success, message:message};
                     if (success) msgObj.id = id;
                     return {type:type, msg:msgObj, [ATTR_TIME]:getNow()};
                 },
                 
-                [SocketProtocol.TYPE_ENTER_WORLD]:doEventNextHandler,
-                [SocketProtocol.TYPE_EXIT_WORLD]:doEventNextHandler,
+                [greek.TYPE_ENTER_WORLD]:doEventNextHandler,
+                [greek.TYPE_EXIT_WORLD]:doEventNextHandler,
                 
-                [SocketProtocol.TYPE_MOVE]:doEventNowHandler,
-                [SocketProtocol.TYPE_ALTER_CELL]:doEventNowHandler,
-                [SocketProtocol.TYPE_CHANGE_FACING]:doEventNowHandler,
-                [SocketProtocol.TYPE_VOCALIZE]:doEventNowHandler,
-                [SocketProtocol.TYPE_INTERACT_WITH_FIXTURE]:doEventNowHandler,
+                [greek.TYPE_MOVE]:doEventNowHandler,
+                [greek.TYPE_ALTER_CELL]:doEventNowHandler,
+                [greek.TYPE_CHANGE_FACING]:doEventNowHandler,
+                [greek.TYPE_VOCALIZE]:doEventNowHandler,
+                [greek.TYPE_INTERACT_WITH_FIXTURE]:doEventNowHandler,
             };
         
         console.log('Socket Server Starting Up...');
@@ -92,7 +96,7 @@ const
                     if (socketToken) {
                         const account = accountService.getAccountBySocketToken(socketToken);
                         if (account) {
-                            account[urob.account.FIELD_WEBSOCKET] = websocket;
+                            account[FIELD_WEBSOCKET] = websocket;
                             
                             const handler = HANDLERS[type];
                             if (handler) {
