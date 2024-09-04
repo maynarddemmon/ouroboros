@@ -570,9 +570,25 @@ const orb = global.orb,
         doStatRecovery: function(statName) {
             const stat = this[statName],
                 recStat = this[statName + 'Rec'];
-            if (stat && recStat && stat.getValueToMax() > 0) {
-                stat.adjValue(mathMax(0, recStat.getValue())); // No "bleeding".
-                if (!stat.isAtMaxValue()) return false;
+            if (stat && recStat) {
+                const valueToMax = stat.getValueToMax();
+                if (valueToMax > 0) {
+                    let coreStat;
+                    switch (statName) {
+                        case 'end': case 'hp': coreStat = this.soma; break;
+                        case 'magos': case 'psyche': coreStat = this.pneuma; break;
+                    }
+                    if (coreStat) {
+                        const recoveryAmount = mathMax(0, recStat.getValue()); // No "bleeding".
+                        if (recoveryAmount > 0) {
+                            // Use core state to recover "recoverable" stat.
+                            const coreStatUsed = coreStat.adjValue(-mathMin(recoveryAmount, valueToMax));
+                            stat.adjValue(-coreStatUsed);
+                        }
+                    }
+                    
+                    if (!stat.isAtMaxValue()) return false;
+                }
             }
             return true;
         },
