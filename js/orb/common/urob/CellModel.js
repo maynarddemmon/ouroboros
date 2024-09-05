@@ -1,9 +1,7 @@
-(() => {
-    const IS_NODEJS = typeof module === 'object' && module.exports;
-    
+(pkg => {
     let tym, JS;
-    if (IS_NODEJS) {
-        const imported = require('../../../lib/tym.js');
+    if (typeof module === 'object' && module.exports) {
+        const imported = require('../../../../lib/tym.js');
         JS = imported.JS;
         tym = imported.tym;
     } else {
@@ -11,41 +9,18 @@
         tym = global.myt;
     }
     
-    const
-        {Eventable} = tym,
+    const {Eventable} = tym,
         {Module:JSModule, Class:JSClass} = JS,
         
         {
-            getCompositionTemplate, getFixtureTemplate, locIdToArr, locArrToId, 
+            locIdToArr, locArrToId, 
             isTraversableSolidityForCorporeal,
-            permission:{PERM_CREATOR},
             facing:{
                 NORTH, SOUTH, EAST, WEST, UP, DOWN, COMPASS_FIELDS,
                 isValidCompassFacing, getOppositeCompassFacing
-            }
-        } = global.urob,
-        
-        ValueAffectorMixin = new JSModule('ValueAffectorMixin', {
-            affectValue: (attrName, value) => value,
-            
-            registerEffects: function(affectable) {
-                const effects = this.getTemplateObject()?.getEffects();
-                if (effects?.length > 0) {
-                    for (const effectedAttrName of effects) {
-                        affectable.registerValueAffector(effectedAttrName, this);
-                    }
-                }
             },
-            
-            unregisterEffects: function(affectable) {
-                const effects = this.getTemplateObject()?.getEffects();
-                if (effects?.length > 0) {
-                    for (const effectedAttrName of effects) {
-                        affectable.unregisterValueAffector(effectedAttrName, this);
-                    }
-                }
-            }
-        }),
+            composition:{CompositionTemplateProxyMixin}
+        } = pkg,
         
         AffectableValuesMixin = new JSModule('AffectableValuesMixin', {
             registerValueAffector: function(attrName, affector) {
@@ -72,91 +47,6 @@
                     }
                 }
                 return value;
-            }
-        }),
-        
-        CommonFixtureModel = new JSClass('CommonFixtureModel', Eventable, {
-            include:[ValueAffectorMixin],
-            
-            /** Fixtures will have either a face or a cell but not both. The cell for a face
-                can be accessed via the face. */
-            init: function(attrs) {
-                const face = attrs.face,
-                    cell = attrs.cell;
-                if (face) {
-                    this.setFace(face);
-                } else if (cell) {
-                    this.setCell(cell);
-                }
-                delete attrs.face;
-                delete attrs.cell;
-                
-                this.callSuper(attrs);
-                
-                if (this.face) {
-                    this.registerEffects(this.face);
-                } else if (this.cell) {
-                    this.registerEffects(this.cell);
-                }
-            },
-            
-            destroy: function() {
-                if (this.face) {
-                    this.unregisterEffects(this.face);
-                } else if (this.cell) {
-                    this.unregisterEffects(this.cell);
-                }
-                this.callSuper();
-            },
-            
-            affectValue: function(attrName, value) {
-                const template = this.getTemplateObject();
-                return template ? template.affectValue(this, attrName, value) : this.callSuper(value);
-            },
-            
-            setId: function(v) {this.set('id', v, true);},
-            getId: function() {return this.id;},
-            
-            setFace: function(v) {
-                if (this.inited && this.face) this.unregisterEffects(this.face);
-                this.set('face', v, true);
-                if (this.inited) this.registerEffects(this.face);
-            },
-            getFace: function() {return this.face;},
-            
-            setCell: function(v) {
-                if (this.inited && this.cell) this.unregisterEffects(this.cell);
-                this.set('cell', v, true);
-                if (this.inited) this.registerEffects(this.cell);
-            },
-            getCell: function() {return this.cell;},
-            
-            getParentCell: function() {
-                return this.cell ?? this.face.getCell();
-            },
-            
-            setTemplate: function(v) {this.set('template', v, true);},
-            getTemplate: function() {return this.template;},
-            getTemplateObject: function() {return getFixtureTemplate(this.getTemplate());},
-            
-            getStateObject: function() {return this.state ??= {};},
-            setStateByName: function(stateName, value) {this.getStateObject()[stateName] = value;},
-            getStateByName: function(stateName) {return this.getStateObject()[stateName];},
-            
-            getTemplateUrl: function(character) {
-                return this.getTemplateObject().getUrl(this, character);
-            },
-            
-            describeForCharacter: function(character) {
-                return this.getTemplateObject().describe(this, character);
-            },
-            
-            getNameForCharacter: function(character) {
-                return this.getTemplateObject().getName(this, character);
-            },
-            
-            getLockPropertyForInteraction: function(character, interactionName) {
-                return this.getTemplateObject().getLockPropertyForInteraction?.(this, character, interactionName);
             }
         }),
         
@@ -211,29 +101,6 @@
                 }
                 return retval;
             }
-        }),
-        
-        CompositionTemplateProxyMixin = new JSModule('CompositionTemplateProxyMixin', {
-            setC: function(v) {this.set('c', v, true);},
-            setComposition: function(v) {this.setC(v);},
-            getComposition: function() {return this.c;},
-            getCompositionObject: function() {return getCompositionTemplate(this.getComposition());},
-            
-            getSolidity: function() {return this.getCompositionObject()?.getSolidity();},
-            getOpacity: function() {return this.getCompositionObject()?.getOpacity();},
-            getDamping: function() {return this.getCompositionObject()?.getDamping();}
-        }),
-        
-        CommonFaceModel = new JSClass('CommonFaceModel', Eventable, {
-            include:[FixtureContainerMixin, CompositionTemplateProxyMixin],
-            
-            prepareFixtureDatum: function(datum, fixtureId) {
-                datum.face = this;
-                return this.callSuper(datum, fixtureId);
-            },
-            
-            setCell: function(v) {this.set('cell', v, true);},
-            getCell: function() {return this.cell;},
         }),
         
         CommonCellModel = new JSClass('CommonCellModel', Eventable, {
@@ -372,17 +239,21 @@
                 
                 return accum;
             }
+        });
+    
+    pkg.cell = {
+        CommonFaceModel: new JSClass('CommonFaceModel', Eventable, {
+            include:[FixtureContainerMixin, CompositionTemplateProxyMixin],
+            
+            prepareFixtureDatum: function(datum, fixtureId) {
+                datum.face = this;
+                return this.callSuper(datum, fixtureId);
+            },
+            
+            setCell: function(v) {this.set('cell', v, true);},
+            getCell: function() {return this.cell;},
         }),
         
-        EXPORT = {
-            CommonFixtureModel:CommonFixtureModel,
-            CommonFaceModel:CommonFaceModel,
-            CommonCellModel:CommonCellModel
-        };
-    
-    if (IS_NODEJS) {
-        module.exports = EXPORT;
-    } else {
-        global.common = EXPORT;
-    }
-})();
+        CommonCellModel:CommonCellModel
+    };
+})(global.urob);

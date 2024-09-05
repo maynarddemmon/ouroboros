@@ -168,9 +168,22 @@
                 opacity:1,
                 damping:0.13
             })
-        };
+        },
+        
+        getTemplate = compositionTemplateId => templates[compositionTemplateId];
     
     pkg.composition = {
+        CompositionTemplateProxyMixin: new JS.Module('CompositionTemplateProxyMixin', {
+            setC: function(v) {this.set('c', v, true);},
+            setComposition: function(v) {this.setC(v);},
+            getComposition: function() {return this.c;},
+            getCompositionObject: function() {return getTemplate(this.getComposition());},
+            
+            getSolidity: function() {return this.getCompositionObject()?.getSolidity();},
+            getOpacity: function() {return this.getCompositionObject()?.getOpacity();},
+            getDamping: function() {return this.getCompositionObject()?.getDamping();}
+        }),
+        
         // Matter, Energy, Light lookup table for missing Cells
         // FIXME: there are not enough composition types to fill this out correctly
         MEL_LOOKUP: [
@@ -202,6 +215,6 @@
         ],
         
         getTemplates: () => templates,
-        getTemplate: compositionTemplateId => templates[compositionTemplateId]
+        getTemplate: getTemplate
     };
 })(global.urob);

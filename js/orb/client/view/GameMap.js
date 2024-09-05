@@ -823,7 +823,7 @@
                         characterView.setEntity(character);
                         characterView.updatePosition(posCount++, cellView);
                     } else {
-                        posCount--;
+                        if (len === 1) posCount = 0;
                     }
                     if (isSeen && len > 0) {
                         for (const entity of entities) {

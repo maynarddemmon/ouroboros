@@ -17,14 +17,12 @@ JS.Packages(file => {
     file(ORB_ROOT + '../common/urob/fixture.js').provides('urob.fixture').requires('urob.facing');
     file(ORB_ROOT + '../common/urob/MapModel.js').provides('urob.map').requires('urob');
     file(ORB_ROOT + '../common/urob/EntityModel.js').provides('urob.entity').requires('urob');
-    
-    file(ORB_ROOT + '../common/common.js').provides('common').requires('myt.all');
+    file(ORB_ROOT + '../common/urob/CellModel.js').provides('urob.cell').requires('urob');
     
     // Package:orb
     file(ORB_ROOT + 'orb.js').provides('orb').requires(
         'urob.time','urob.account','urob.permission','urob.cellOffsetsByDistance', 'urob.greek',
-        'urob.composition','urob.fixture','urob.map','urob.entity',
-        'common'
+        'urob.composition','urob.fixture','urob.map','urob.entity','urob.cell'
     );
     
     file(COMPONENT_ROOT + 'WebSocket.js').provides('orb.MessageTypeWebSocket').requires('orb');

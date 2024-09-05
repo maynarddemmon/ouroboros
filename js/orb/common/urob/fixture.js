@@ -395,10 +395,119 @@
             stair_1:new StairFixtureTemplate({name:'spiral staircase'}),
             
             crate_1:new FixtureTemplate({name:'wooden crate'})
-        };
+        },
+        
+        getTemplate = fixtureTemplateId => templates[fixtureTemplateId],
+        
+        ValueAffectorMixin = new JSModule('ValueAffectorMixin', {
+            affectValue: (attrName, value) => value,
+            
+            registerEffects: function(affectable) {
+                const effects = this.getTemplateObject()?.getEffects();
+                if (effects?.length > 0) {
+                    for (const effectedAttrName of effects) {
+                        affectable.registerValueAffector(effectedAttrName, this);
+                    }
+                }
+            },
+            
+            unregisterEffects: function(affectable) {
+                const effects = this.getTemplateObject()?.getEffects();
+                if (effects?.length > 0) {
+                    for (const effectedAttrName of effects) {
+                        affectable.unregisterValueAffector(effectedAttrName, this);
+                    }
+                }
+            }
+        });
     
     pkg.fixture = {
+        CommonFixtureModel: new JSClass('CommonFixtureModel', Eventable, {
+            include:[ValueAffectorMixin],
+            
+            /** Fixtures will have either a face or a cell but not both. The cell for a face
+                can be accessed via the face. */
+            init: function(attrs) {
+                const face = attrs.face,
+                    cell = attrs.cell;
+                if (face) {
+                    this.setFace(face);
+                } else if (cell) {
+                    this.setCell(cell);
+                }
+                delete attrs.face;
+                delete attrs.cell;
+                
+                this.callSuper(attrs);
+                
+                if (this.face) {
+                    this.registerEffects(this.face);
+                } else if (this.cell) {
+                    this.registerEffects(this.cell);
+                }
+            },
+            
+            destroy: function() {
+                if (this.face) {
+                    this.unregisterEffects(this.face);
+                } else if (this.cell) {
+                    this.unregisterEffects(this.cell);
+                }
+                this.callSuper();
+            },
+            
+            affectValue: function(attrName, value) {
+                const template = this.getTemplateObject();
+                return template ? template.affectValue(this, attrName, value) : this.callSuper(value);
+            },
+            
+            setId: function(v) {this.set('id', v, true);},
+            getId: function() {return this.id;},
+            
+            setFace: function(v) {
+                if (this.inited && this.face) this.unregisterEffects(this.face);
+                this.set('face', v, true);
+                if (this.inited) this.registerEffects(this.face);
+            },
+            getFace: function() {return this.face;},
+            
+            setCell: function(v) {
+                if (this.inited && this.cell) this.unregisterEffects(this.cell);
+                this.set('cell', v, true);
+                if (this.inited) this.registerEffects(this.cell);
+            },
+            getCell: function() {return this.cell;},
+            
+            getParentCell: function() {
+                return this.cell ?? this.face.getCell();
+            },
+            
+            setTemplate: function(v) {this.set('template', v, true);},
+            getTemplate: function() {return this.template;},
+            getTemplateObject: function() {return getTemplate(this.getTemplate());},
+            
+            getStateObject: function() {return this.state ??= {};},
+            setStateByName: function(stateName, value) {this.getStateObject()[stateName] = value;},
+            getStateByName: function(stateName) {return this.getStateObject()[stateName];},
+            
+            getTemplateUrl: function(character) {
+                return this.getTemplateObject().getUrl(this, character);
+            },
+            
+            describeForCharacter: function(character) {
+                return this.getTemplateObject().describe(this, character);
+            },
+            
+            getNameForCharacter: function(character) {
+                return this.getTemplateObject().getName(this, character);
+            },
+            
+            getLockPropertyForInteraction: function(character, interactionName) {
+                return this.getTemplateObject().getLockPropertyForInteraction?.(this, character, interactionName);
+            }
+        }),
+        
         getTemplates: () => templates,
-        getTemplate: fixtureTemplateId => templates[fixtureTemplateId]
+        getTemplate: getTemplate
     };
 })(global.urob);

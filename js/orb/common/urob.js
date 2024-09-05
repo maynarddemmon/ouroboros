@@ -65,6 +65,7 @@
             //        getVisibilityPath: required from cellOffsets.js
             //                      map: required from MapModel.js
             //                   entity: required from EntityModel.js
+            //                     cell: required from CellModel.js
             
             isTraversableSolidityForCorporeal:solidity => solidity >= 0 && solidity < 1,
             
@@ -136,5 +137,6 @@
         require('./urob/fixture.js');
         require('./urob/MapModel.js');
         require('./urob/EntityModel.js');
+        require('./urob/CellModel.js');
     }
 })();
