@@ -202,6 +202,6 @@
         ],
         
         getTemplates: () => templates,
-        getTemplate: compId => templates[compId]
+        getTemplate: compositionTemplateId => templates[compositionTemplateId]
     };
 })(global.urob);

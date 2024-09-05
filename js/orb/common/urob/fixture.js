@@ -1,9 +1,7 @@
-(() => {
-    const IS_NODEJS = typeof module === 'object' && module.exports;
-    
+(pkg => {
     let tym, JS;
-    if (IS_NODEJS) {
-        const imported = require('../../../lib/tym.js');
+    if (typeof module === 'object' && module.exports) {
+        const imported = require('../../../../lib/tym.js');
         JS = imported.JS;
         tym = imported.tym;
     } else {
@@ -14,7 +12,10 @@
     const {I18N:{get:I18N}, Eventable} = tym,
         {Module:JSModule, Class:JSClass} = JS,
         
-        {NORTH, SOUTH, EAST, WEST} = global.urob.facing,
+        {
+            getPhraseWithArticle,
+            facing:{NORTH, SOUTH, EAST, WEST}
+        } = pkg,
         
         IMAGE_PREFIX = '/img/fixture/',
         
@@ -34,35 +35,6 @@
         INTERACTION_ENTER = 'enter',
         INTERACTION_ASCEND = 'ascend',
         INTERACTION_DESCEND = 'descend',
-        
-        WORD_AN = 'an',
-        WORD_A = 'a',
-        WORD_AND = 'and',
-        
-        getArticle = phrase => {
-            const match = /\w+/.exec(phrase);
-            if (!match) return WORD_AN;
-            
-            // Exceptional word starts that should be preceded by "an".
-            const word = match[0].toLowerCase();
-            for (const altCase of ['honest', 'hour', 'hono']) {
-                if (word.startsWith(altCase)) return WORD_AN;
-            }
-            
-            // Special cases where a word that begins with a vowel should be preceded by "a".
-            for (const regex of [/^e[uw]/, /^onc?e\b/, /^uni([^nmd]|mo)/, /^u[bcfhjkqrst][aeiou]/]) {
-                if (word.match(regex)) return WORD_A;
-            }
-            
-            // Words that begin with a vowel being preceded by "an".
-            if ('aeiou'.includes(word[0])) return WORD_AN;
-            
-            // Instances where y followed by specific letters is preceded by "an".
-            if (word.match(/^y(b[lor]|cl[ea]|fere|gg|p[ios]|rou|tt)/)) return WORD_AN;
-            
-            return WORD_A;
-        },
-        getPhraseWithArticle = (phrase, isAppend) => (isAppend ? WORD_AND : getArticle(phrase)) + ' ' + phrase,
         
         FixtureTemplate = new JSClass('FixtureTemplate', Eventable, {
             init: function(attrs) {
@@ -400,36 +372,33 @@
             }
         }),
         
-        EXPORT = {
-            templates:{
-                d1:new DoorFixtureTemplate({
-                    name:'wooden door'
-                },[{
-                    getUrl: (fixture, character) => {
-                        return IMAGE_PREFIX + (fixture.getStateByName(STATE_OPEN) ? 'wooden_door_open.png' : 'wooden_door_closed.png');
-                    }
-                }]),
-                
-                d2:new DoorFixtureTemplate({
-                    name:'lockable wooden door'
-                },[LockableFixture, {
-                    getUrl: (fixture, character) => {
-                        return IMAGE_PREFIX + (fixture.getStateByName(STATE_OPEN) ? 'wooden_door_open.png' : 'wooden_door_closed.png');
-                    }
-                }]),
-                
-                s1:new StatueFixtureTemplate(),
-                p1:new PortalFixtureTemplate({name:'swirling silver portal'}),
-                
-                stair_1:new StairFixtureTemplate({name:'spiral staircase'}),
-                
-                crate_1:new FixtureTemplate({name:'wooden crate'})
-            }
+        templates = {
+            d1:new DoorFixtureTemplate({
+                name:'wooden door'
+            },[{
+                getUrl: (fixture, character) => {
+                    return IMAGE_PREFIX + (fixture.getStateByName(STATE_OPEN) ? 'wooden_door_open.png' : 'wooden_door_closed.png');
+                }
+            }]),
+            
+            d2:new DoorFixtureTemplate({
+                name:'lockable wooden door'
+            },[LockableFixture, {
+                getUrl: (fixture, character) => {
+                    return IMAGE_PREFIX + (fixture.getStateByName(STATE_OPEN) ? 'wooden_door_open.png' : 'wooden_door_closed.png');
+                }
+            }]),
+            
+            s1:new StatueFixtureTemplate(),
+            p1:new PortalFixtureTemplate({name:'swirling silver portal'}),
+            
+            stair_1:new StairFixtureTemplate({name:'spiral staircase'}),
+            
+            crate_1:new FixtureTemplate({name:'wooden crate'})
         };
     
-    if (IS_NODEJS) {
-        module.exports = EXPORT;
-    } else {
-        global.fixture = EXPORT;
-    }
-})();
+    pkg.fixture = {
+        getTemplates: () => templates,
+        getTemplate: fixtureTemplateId => templates[fixtureTemplateId]
+    };
+})(global.urob);

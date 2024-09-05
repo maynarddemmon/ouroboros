@@ -1,16 +1,14 @@
 (() => {
     const IS_NODEJS = typeof module === 'object' && module.exports;
     
-    let tym, JS, fixture;
+    let tym, JS;
     if (IS_NODEJS) {
         const imported = require('../../../lib/tym.js');
         JS = imported.JS;
         tym = imported.tym;
-        fixture = require('./fixture.js');
     } else {
         JS = global.JS;
         tym = global.myt;
-        fixture = global.fixture;
     }
     
     const
@@ -18,7 +16,7 @@
         {Module:JSModule, Class:JSClass} = JS,
         
         {
-            getCompositionTemplate, locIdToArr, locArrToId, 
+            getCompositionTemplate, getFixtureTemplate, locIdToArr, locArrToId, 
             isTraversableSolidityForCorporeal,
             permission:{PERM_CREATOR},
             facing:{
@@ -26,8 +24,6 @@
                 isValidCompassFacing, getOppositeCompassFacing
             }
         } = global.urob,
-        
-        fixtureTemplatesById = fixture.templates,
         
         CommonMapModel = new JSClass('CommonMapModel', Eventable, {
             setName: function(v) {this.set('name', v, true);},
@@ -150,7 +146,7 @@
             
             setTemplate: function(v) {this.set('template', v, true);},
             getTemplate: function() {return this.template;},
-            getTemplateObject: function() {return fixtureTemplatesById[this.getTemplate()];},
+            getTemplateObject: function() {return getFixtureTemplate(this.getTemplate());},
             
             getStateObject: function() {return this.state ??= {};},
             setStateByName: function(stateName, value) {this.getStateObject()[stateName] = value;},
@@ -471,16 +467,12 @@
         }),
         
         EXPORT = {
-            getFixtureTemplate: id => fixtureTemplatesById[id],
-            
             CommonMapModel:CommonMapModel,
             CommonFixtureModel:CommonFixtureModel,
             CommonFaceModel:CommonFaceModel,
             CommonCellModel:CommonCellModel,
             CommonEntityModelMixin:CommonEntityModelMixin,
             CommonCharacterModelMixin:CommonCharacterModelMixin,
-            
-            fixture:fixture
         };
     
     if (IS_NODEJS) {

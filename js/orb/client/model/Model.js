@@ -5,16 +5,12 @@
         fixtureData;
     
     const JSClass = JS.Class,
-        {
-            Node, Eventable,
-            AccessorSupport:{generateSetterName}
-        } = myt,
+        {Node, Eventable} = myt,
         
         {
             CommonMapModel, CommonFaceModel, CommonCellModel, 
             CommonEntityModelMixin, CommonCharacterModelMixin,
-            CommonFixtureTemplateModelMixin, CommonFixtureModel,
-            fixture:{templates:fixtureTemplates}
+            CommonFixtureTemplateModelMixin, CommonFixtureModel
         } = common,
         
         {

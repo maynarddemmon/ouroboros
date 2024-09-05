@@ -13,7 +13,7 @@
         
         {
             locArrToId, getVisibilityPath, cellOffsetsByDistance,
-            getCompositionTemplate,
+            getCompositionTemplate, getFixtureTemplate,
             facing:{NORTH, SOUTH, EAST, WEST, SELF, getOppositeDirection}
         } = urob,
         
@@ -22,8 +22,6 @@
             Animator, TransformSupport,
             debounce, getRandomInt
         } = myt,
-        
-        {getFixtureTemplate} = common,
         
         {
             model,
