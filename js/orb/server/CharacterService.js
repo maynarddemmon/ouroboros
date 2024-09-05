@@ -14,13 +14,11 @@ const orb = global.orb,
             TYPE_ALTER_ENTITY, TYPE_SOUND,
             TYPE_ALTER_CHARACTER, TYPE_MOVE_FAILED, MOVE_ERROR_CODES
         },
-        facing:{NORTH}
+        facing:{NORTH},
+        entity:{CommonEntityModelMixin, CommonCharacterModelMixin}
     } = global.urob,
     
     {getNow, addToRecQueue} = require('./WorldClock.js'),
-    {
-        CommonEntityModelMixin, CommonCharacterModelMixin,
-    } = require('../common/common.js'),
     
     {min:mathMin, max:mathMax, floor:mathFloor, ceil:mathCeil, sqrt:mathSqrt} = Math,
     
