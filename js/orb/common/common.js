@@ -1,17 +1,15 @@
 (() => {
     const IS_NODEJS = typeof module === 'object' && module.exports;
     
-    let tym, JS, composition, fixture;
+    let tym, JS, fixture;
     if (IS_NODEJS) {
         const imported = require('../../../lib/tym.js');
         JS = imported.JS;
         tym = imported.tym;
-        composition = require('./composition.js');
         fixture = require('./fixture.js');
     } else {
         JS = global.JS;
         tym = global.myt;
-        composition = global.composition;
         fixture = global.fixture;
     }
     
@@ -20,11 +18,15 @@
         {Module:JSModule, Class:JSClass} = JS,
         
         {
-            NORTH, SOUTH, EAST, WEST, UP, DOWN, COMPASS_FIELDS,
-            isValidCompassFacing, getOppositeCompassFacing
-        } = global.urob.facing,
+            getCompositionTemplate, locIdToArr, locArrToId, 
+            isTraversableSolidityForCorporeal,
+            permission:{PERM_CREATOR},
+            facing:{
+                NORTH, SOUTH, EAST, WEST, UP, DOWN, COMPASS_FIELDS,
+                isValidCompassFacing, getOppositeCompassFacing
+            }
+        } = global.urob,
         
-        compositionTemplatesById = composition.templates,
         fixtureTemplatesById = fixture.templates,
         
         CommonMapModel = new JSClass('CommonMapModel', Eventable, {
@@ -228,7 +230,7 @@
             setC: function(v) {this.set('c', v, true);},
             setComposition: function(v) {this.setC(v);},
             getComposition: function() {return this.c;},
-            getCompositionObject: function() {return compositionTemplatesById[this.getComposition()];},
+            getCompositionObject: function() {return getCompositionTemplate(this.getComposition());},
             
             getSolidity: function() {return this.getCompositionObject()?.getSolidity();},
             getOpacity: function() {return this.getCompositionObject()?.getOpacity();},
@@ -267,7 +269,7 @@
                 }
             },
             getLocArr: function(asCopy) {
-                const locArr = this.locArr ??= urob.locIdToArr(this.locId);
+                const locArr = this.locArr ??= locIdToArr(this.locId);
                 return asCopy ? locArr.slice() : locArr;
             },
             
@@ -356,7 +358,7 @@
                     case UP: ++locArr[3]; break;
                     case DOWN: --locArr[3]; break;
                 }
-                return this.getAnotherCell(urob.locArrToId(locArr));
+                return this.getAnotherCell(locArrToId(locArr));
             },
             
             getInteractions: function(character) {
@@ -370,7 +372,7 @@
                     }
                     
                     // Adjacent interactions from adjacent cells
-                    if (urob.isTraversableSolidityForCorporeal(solidity)) {
+                    if (isTraversableSolidityForCorporeal(solidity)) {
                         const adjacentCell = this.getAdjacentCell(faceDir);
                         if (adjacentCell) {
                             const adjFaceDir = getOppositeCompassFacing(faceDir);
@@ -464,12 +466,11 @@
             
             isSpirit: function() {
                 // Creators are treated like spirits.
-                return this.callSuper() || this.hasPermission(urob.permission.PERM_CREATOR);
+                return this.callSuper() || this.hasPermission(PERM_CREATOR);
             }
         }),
         
         EXPORT = {
-            getComposition: compId => compositionTemplatesById[compId],
             getFixtureTemplate: id => fixtureTemplatesById[id],
             
             CommonMapModel:CommonMapModel,
@@ -479,7 +480,6 @@
             CommonEntityModelMixin:CommonEntityModelMixin,
             CommonCharacterModelMixin:CommonCharacterModelMixin,
             
-            composition:composition,
             fixture:fixture
         };
     

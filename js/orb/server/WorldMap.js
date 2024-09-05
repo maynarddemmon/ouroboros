@@ -12,12 +12,12 @@ const orb = global.orb,
     {
         locArrToId, cellOffsetsByDistance, locIdToMapId,
         facing:{NORTH, SOUTH, EAST, WEST},
+        composition:{MEL_LOOKUP},
         greek:{TYPE_CELL_DATA, TYPE_SOUND, TYPE_EXPOSITION}
     } = global.urob,
     
     {
-        CommonMapModel, CommonFaceModel, CommonCellModel, CommonFixtureModel,
-        composition:{MEL_LOOKUP}
+        CommonMapModel, CommonFaceModel, CommonCellModel, CommonFixtureModel
     } = require('../common/common.js'),
     {addMessageToUser} = require('./AccountService.js'),
     

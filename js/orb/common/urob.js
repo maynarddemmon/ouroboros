@@ -13,15 +13,18 @@
     
     /* Define functions with no dependencies immediately inside global.urob. */
     const urob = global.urob = {
-        //                 greek: required from greek.js
-        //                  time: required from time.js
-        //               account: required from account.js
-        //            permission: required from account.js
-        //                facing: required from facing.js
-        // cellOffsetsByDistance: required from cellOffsets.js
-        //     getVisibilityPath: required from cellOffsets.js
+        //                    greek: required from greek.js
+        //                     time: required from time.js
+        //                  account: required from account.js
+        //               permission: required from account.js
+        //                   facing: required from facing.js
+        //              composition: required from composition.js
+        //    cellOffsetsByDistance: required from cellOffsets.js
+        //        getVisibilityPath: required from cellOffsets.js
         
         isTraversableSolidityForCorporeal:solidity => solidity >= 0 && solidity < 1,
+        
+        getCompositionTemplate: compId => urob.composition.getTemplate(compId),
         
         // Start: loc
         locIdToArr: locId => {
@@ -93,5 +96,6 @@
         require('./urob/account.js');
         require('./urob/cellOffsets.js');
         require('./urob/facing.js');
+        require('./urob/composition.js');
     }
 })();

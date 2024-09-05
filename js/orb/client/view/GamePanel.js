@@ -34,7 +34,7 @@
         } = M,
         
         {
-            concatenateList,
+            concatenateList, getCompositionTemplate,
             facing:{
                 getOppositeCompassFacing,
                 NORTH, SOUTH, EAST, WEST, UP, DOWN, SELF, COMPASS_FIELDS
@@ -45,8 +45,6 @@
                 TYPE_INTERACT_WITH_FIXTURE
             }
         } = global.urob,
-        
-        {composition:{templates}} = common,
         
         {
             model,
@@ -68,7 +66,7 @@
         
         getLocInfo = cell => {
             const locArr = cell.getLocArr();
-            return templates[cell.selfOrPartHasBeenSeen(SELF) ? cell.getComposition() : 'unk'].name + ' / x:' + locArr[1] + ' / y:' + locArr[2];
+            return getCompositionTemplate(cell.selfOrPartHasBeenSeen(SELF) ? cell.getComposition() : 'unk').getName() + ' / x:' + locArr[1] + ' / y:' + locArr[2];
         },
         
         getDirectionWordsByFacing = facing => {
@@ -598,7 +596,8 @@
                     {label:'bottom face', value:DOWN}
                 ]
             });
-            const options = [];
+            const options = [],
+                templates = urob.composition.getTemplates();
             for (const key in templates) {
                 options.push({label:templates[key].name, value:key});
             }

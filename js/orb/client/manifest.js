@@ -6,22 +6,23 @@ JS.Packages(file => {
     
     file(ORB_ROOT + '../../../lib/myt.js').provides('myt.all');
     
-    // Common
+    // Package:urob
     file(ORB_ROOT + '../common/urob.js').provides('urob').requires('myt.all');
     file(ORB_ROOT + '../common/urob/time.js').provides('urob.time').requires('urob');
     file(ORB_ROOT + '../common/urob/account.js').provides('urob.account','urob.permission').requires('urob');
     file(ORB_ROOT + '../common/urob/cellOffsets.js').provides('urob.cellOffsetsByDistance').requires('urob');
     file(ORB_ROOT + '../common/urob/facing.js').provides('urob.facing').requires('urob');
     file(ORB_ROOT + '../common/urob/greek.js').provides('urob.greek').requires('urob');
+    file(ORB_ROOT + '../common/urob/composition.js').provides('urob.composition').requires('urob');
     
-    file(ORB_ROOT + '../common/composition.js').provides('composition').requires('myt.all');
     file(ORB_ROOT + '../common/fixture.js').provides('fixture').requires('urob.facing');
-    file(ORB_ROOT + '../common/common.js').provides('common').requires('fixture','composition');
     
+    file(ORB_ROOT + '../common/common.js').provides('common').requires('fixture');
     
     // Package:orb
     file(ORB_ROOT + 'orb.js').provides('orb').requires(
         'urob.time','urob.account','urob.permission','urob.cellOffsetsByDistance','urob.facing', 'urob.greek',
+        'urob.composition',
         'common'
     );
     

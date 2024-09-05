@@ -13,6 +13,7 @@
         
         {
             locArrToId, getVisibilityPath, cellOffsetsByDistance,
+            getCompositionTemplate,
             facing:{NORTH, SOUTH, EAST, WEST, SELF, getOppositeDirection}
         } = urob,
         
@@ -22,7 +23,7 @@
             debounce, getRandomInt
         } = myt,
         
-        {getComposition, getFixtureTemplate} = common,
+        {getFixtureTemplate} = common,
         
         {
             model,
@@ -408,9 +409,9 @@
                         }
                     }
                     
-                    const comp = getComposition(compId);
-                    this.setImageUrl(comp.getTileUrl());
-                    this.setBgColor(comp.getMapColor() ?? 'transparent');
+                    const compTemplate = getCompositionTemplate(compId);
+                    this.setImageUrl(compTemplate.getTileUrl());
+                    this.setBgColor(compTemplate.getMapColor() ?? 'transparent');
                     this._fixtures.update(fixtures);
                     
                     this._bFace.update(bFace);
