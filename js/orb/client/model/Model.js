@@ -8,7 +8,7 @@
         {Node, Eventable} = myt,
         
         {
-            CommonMapModel, CommonFaceModel, CommonCellModel, 
+            CommonFaceModel, CommonCellModel, 
             CommonEntityModelMixin, CommonCharacterModelMixin,
             CommonFixtureTemplateModelMixin, CommonFixtureModel
         } = common,
@@ -16,7 +16,8 @@
         {
             locArrToId,
             facing:{COMPASS_FIELDS},
-            greek:{TYPE_MOVE}
+            greek:{TYPE_MOVE},
+            map:{CommonMapModel}
         } = urob,
         
         getMapData = () => mapData ??= {},

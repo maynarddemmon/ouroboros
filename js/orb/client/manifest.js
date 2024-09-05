@@ -15,13 +15,14 @@ JS.Packages(file => {
     file(ORB_ROOT + '../common/urob/greek.js').provides('urob.greek').requires('urob');
     file(ORB_ROOT + '../common/urob/composition.js').provides('urob.composition').requires('urob');
     file(ORB_ROOT + '../common/urob/fixture.js').provides('urob.fixture').requires('urob.facing');
+    file(ORB_ROOT + '../common/urob/MapModel.js').provides('urob.map').requires('urob');
     
     file(ORB_ROOT + '../common/common.js').provides('common').requires('myt.all');
     
     // Package:orb
     file(ORB_ROOT + 'orb.js').provides('orb').requires(
-        'urob.time','urob.account','urob.permission','urob.cellOffsetsByDistance','urob.facing', 'urob.greek',
-        'urob.composition','urob.fixture',
+        'urob.time','urob.account','urob.permission','urob.cellOffsetsByDistance', 'urob.greek',
+        'urob.composition','urob.fixture','urob.map',
         'common'
     );
     

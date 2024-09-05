@@ -63,6 +63,7 @@
             //                  fixture: required from fixture.js
             //    cellOffsetsByDistance: required from cellOffsets.js
             //        getVisibilityPath: required from cellOffsets.js
+            //                      map: required from MapModel.js
             
             isTraversableSolidityForCorporeal:solidity => solidity >= 0 && solidity < 1,
             
@@ -111,9 +112,8 @@
             concatenateList: (list, isOr) => {
                 let txt = '';
                 if (list) {
-                    for (let i = 0, len = list.length; len > i; i++) {
-                        txt += list[i] + getConcatenator(i, len, isOr);
-                    }
+                    const len = list.length;
+                    for (let i = 0; len > i; i++) txt += list[i] + getConcatenator(i, len, isOr);
                 }
                 return txt;
             },
@@ -133,5 +133,6 @@
         require('./urob/facing.js');
         require('./urob/composition.js');
         require('./urob/fixture.js');
+        require('./urob/MapModel.js');
     }
 })();

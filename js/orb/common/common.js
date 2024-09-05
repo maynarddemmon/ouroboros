@@ -25,15 +25,6 @@
             }
         } = global.urob,
         
-        CommonMapModel = new JSClass('CommonMapModel', Eventable, {
-            setName: function(v) {this.set('name', v, true);},
-            getName: function() {return this.name;},
-            setDescription: function(v) {this.set('description', v, true);},
-            getDescription: function() {return this.description;},
-            setElements: function(v) {this.set('elements', v, true);},
-            getElements: function() {return this.elements;}
-        }),
-        
         ValueAffectorMixin = new JSModule('ValueAffectorMixin', {
             affectValue: (attrName, value) => value,
             
@@ -467,7 +458,6 @@
         }),
         
         EXPORT = {
-            CommonMapModel:CommonMapModel,
             CommonFixtureModel:CommonFixtureModel,
             CommonFaceModel:CommonFaceModel,
             CommonCellModel:CommonCellModel,
