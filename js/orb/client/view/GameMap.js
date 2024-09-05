@@ -13,7 +13,7 @@
         
         {
             locArrToId, getVisibilityPath, cellOffsetsByDistance,
-            getCompositionTemplate, getFixtureTemplate,
+            getCompositionTemplate,
             facing:{NORTH, SOUTH, EAST, WEST, SELF, getOppositeDirection}
         } = urob,
         

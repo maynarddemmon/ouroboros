@@ -70,7 +70,7 @@
             isTraversableSolidityForCorporeal:solidity => solidity >= 0 && solidity < 1,
             
             getCompositionTemplate: compositionTemplateId => urob.composition.getTemplate(compositionTemplateId),
-            getFixtureTemplate: fixtureTemplateId => urob.fixture.getTemplate(fixtureTemplateId),
+            //getFixtureTemplate: fixtureTemplateId => urob.fixture.getTemplate(fixtureTemplateId),
             
             // Start: loc
             locIdToArr: locId => {
@@ -110,7 +110,7 @@
             },*/
             // End: loc
             
-            // String Manipulation and Formatting //
+            // Start: String Manipulation and Formatting
             concatenateList: (list, isOr) => {
                 let txt = '';
                 if (list) {
@@ -124,6 +124,7 @@
             getPhraseWithArticle: (phrase, isAppend) => (isAppend ? WORD_AND : getArticle(phrase)) + ' ' + phrase,
             
             leftPadNumber: tym.leftPadNumber,
+            // End: String Manipulation and Formatting
         };
     
     /** These are handled in the client via manifest.js. */
