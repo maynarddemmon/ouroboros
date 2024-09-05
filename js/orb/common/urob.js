@@ -134,6 +134,7 @@
         require('./urob/account.js');
         require('./urob/cellOffsets.js');
         require('./urob/facing.js');
+        require('./urob/StatModel.js');
         require('./urob/composition.js');
         require('./urob/fixture.js');
         require('./urob/MapModel.js');

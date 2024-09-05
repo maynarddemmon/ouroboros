@@ -13,6 +13,7 @@ JS.Packages(file => {
     file(ORB_ROOT + '../common/urob/cellOffsets.js').provides('urob.cellOffsetsByDistance').requires('urob');
     file(ORB_ROOT + '../common/urob/facing.js').provides('urob.facing').requires('urob');
     file(ORB_ROOT + '../common/urob/greek.js').provides('urob.greek').requires('urob');
+    file(ORB_ROOT + '../common/urob/StatModel.js').provides('urob.stat').requires('urob');
     file(ORB_ROOT + '../common/urob/composition.js').provides('urob.composition').requires('urob');
     file(ORB_ROOT + '../common/urob/fixture.js').provides('urob.fixture').requires('urob.facing');
     file(ORB_ROOT + '../common/urob/MapModel.js').provides('urob.map').requires('urob');
@@ -21,8 +22,8 @@ JS.Packages(file => {
     
     // Package:orb
     file(ORB_ROOT + 'orb.js').provides('orb').requires(
-        'urob.time','urob.account','urob.permission','urob.cellOffsetsByDistance', 'urob.greek',
-        'urob.composition','urob.fixture','urob.map','urob.entity','urob.cell'
+        'urob.time','urob.account','urob.permission','urob.cellOffsetsByDistance','urob.greek',
+        'urob.stat','urob.composition','urob.fixture','urob.map','urob.entity','urob.cell'
     );
     
     file(COMPONENT_ROOT + 'WebSocket.js').provides('orb.MessageTypeWebSocket').requires('orb');

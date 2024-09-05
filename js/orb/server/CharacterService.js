@@ -15,10 +15,11 @@ const orb = global.orb,
             TYPE_ALTER_CHARACTER, TYPE_MOVE_FAILED, MOVE_ERROR_CODES
         },
         facing:{NORTH},
+        stat:{StatModel, DerivedStatModelMixin, DerivedMaxStatModelMixin, RecoverableStatMixin},
         entity:{CommonEntityModelMixin, CommonCharacterModelMixin}
     } = global.urob,
     
-    {getNow, addToRecQueue} = require('./WorldClock.js'),
+    {getNow} = require('./WorldClock.js'),
     
     {min:mathMin, max:mathMax, floor:mathFloor, ceil:mathCeil, sqrt:mathSqrt} = Math,
     
@@ -29,219 +30,6 @@ const orb = global.orb,
     
     /* The amount of endurance needed by an entity to do a move action. */
     END_MOVE_COST = -1,
-    
-    /** A stat on an object. Enforces min and max values and provides a way to temporarily
-        adjust the effective value. */
-    StatModel = new JSClass('StatModel', Eventable, {
-        // FIXME: adjustements to min, max, value
-        
-        init: function(attrs) {
-            const {parentObj, attrName, absMin, absMax, min, max, value} = attrs;
-            delete attrs.parentObj;
-            delete attrs.attrName;
-            delete attrs.absMin;
-            delete attrs.absMax;
-            delete attrs.min;
-            delete attrs.max;
-            delete attrs.value;
-            
-            // Need to set attrs in an exact order
-            this.parentObj = parentObj;
-            this.attrName = attrName;
-            
-            this.setAbsMin(absMin ?? Number. MIN_SAFE_INTEGER);
-            this.setAbsMax(absMax ?? Number. MAX_SAFE_INTEGER);
-            this.setMin(min ?? this.absMin);
-            this.setMax(max ?? this.absMax);
-            this.setValue(value ?? this.min);
-            
-            this.callSuper(attrs);
-        },
-        
-        /* The absolute minimum for the stat in the game. This value will never change once set. */
-        setAbsMin: function(v) {
-            if (this.absMin == null) this.set('absMin', v, true);
-        },
-        getAbsMin: function() {return this.absMin;},
-        
-        /* The absolute maximum for the stat in the game. This value will never change once set. */
-        setAbsMax: function(v) {
-            if (this.absMax == null) this.set('absMax', v, true);
-        },
-        getAbsMax: function() {return this.absMax;},
-        
-        /* The minimum value for the stat for the object it is attached to. */
-        setMin: function(v) {
-            const curMin = this.min,
-                newMin = mathMax(this.getAbsMin(), v);
-            if (curMin !== newMin) {
-                this.set('min', newMin, true);
-                if (this.value < this.min && this.setValue(this.min)) return true;
-                if (this.inited) this.notifyCharacter();
-                return true;
-            }
-            return false;
-        },
-        getMin: function() {return this.min;},
-        
-        /* The minimum value for the stat for the object it is attached to. */
-        setMax: function(v) {
-            const curMax = this.max,
-                newMax = mathMin(this.getAbsMax(), v);
-            if (curMax !== newMax) {
-                this.set('max', newMax, true);
-                if (this.value > this.max && this.setValue(this.max)) return true;
-                if (this.inited) this.notifyCharacter();
-                return true;
-            }
-            return false;
-        },
-        getMax: function() {return this.max;},
-        
-        /* The minimum value for the stat for the object it is attached to. */
-        setValue: function(v) {
-            const curValue = this.value,
-                newValue = mathMin(mathMax(v, this.getMin()), this.getMax());
-            if (curValue !== newValue) {
-                this.set('value', newValue, true);
-                if (this.inited) this.notifyCharacter();
-                return true;
-            }
-            return false;
-        },
-        getValue: function() {return this.value;},
-        
-        adjValue: function(adj, cfg) {
-            if (adj === 0) return 0;
-            
-            const curValue = this.getValue();
-            if (adj > 0) {
-                const max = this.getMax(),
-                    allowedAdj = max - curValue;
-                if (adj <= allowedAdj) {
-                    this.setValue(curValue + adj);
-                    return adj;
-                } else {
-                    if (cfg?.allOrNothing) {
-                        // Change would exceed max so do not change.
-                        return 0;
-                    } else {
-                        this.setValue(curValue + allowedAdj);
-                        return allowedAdj;
-                    }
-                }
-            } else {
-                const min = this.getMin(),
-                    allowedAdj = min - curValue;
-                if (adj >= allowedAdj) {
-                    this.setValue(curValue + adj);
-                    return adj;
-                } else {
-                    if (cfg?.allOrNothing) {
-                        // Change would exceed max so do not change.
-                        return 0;
-                    } else {
-                        this.setValue(curValue + allowedAdj);
-                        return allowedAdj;
-                    }
-                }
-            }
-        },
-        
-        getValueToMax: function() {return this.getMax() - this.getValue();},
-        isAtMaxValue: function() {return this.getMax() === this.getValue();},
-        
-        getAsData: function() {
-            return {
-                min:this.min,
-                max:this.max,
-                value:this.value
-            };
-        },
-        setFromData: function(datum) {
-            this.setMin(datum?.min ?? this.absMin);
-            this.setMax(datum?.max ?? this.absMax);
-            this.setValue(datum?.value ?? this.min);
-        },
-        
-        notifyCharacter: function() {
-            const character = this.parentObj,
-                userId = character.getUserId?.();
-            if (userId && character.isInWorld()) {
-                getAccountService().addMessageToUser(userId, {type:TYPE_ALTER_CHARACTER, msg:{
-                    id:character.getId(), p:this.attrName, v:this.getAsData()
-                }});
-            }
-        }
-    }),
-    
-    /** A stat that gets its value from other StatModels. */
-    DerivedStatModel = new JSClass('DerivedStatModel', StatModel, {
-        init: function(attrs) {
-            const watch = attrs.watch;
-            delete attrs.watch;
-            
-            this.callSuper(attrs);
-            
-            this.setValuesToWatch(watch);
-        },
-        
-        setValuesToWatch: function(observables) {
-            this.releaseConstraint('updateValue');
-            this.constrain('updateValue', observables);
-        },
-        
-        updateValue: function(ignoreEvent) {
-            this.setValue(this.calculateValue());
-        },
-        
-        calculateValue: () => {/* Subclasses must implement. */},
-        
-        setFromData: function(datum) {
-            this.setMin(datum?.min ?? this.absMin);
-            this.setMax(datum?.max ?? this.absMax);
-        }
-    }),
-    
-    /** A stat that gets its max value from other StatModels. */
-    DerivedMaxStatModel = new JSClass('DerivedMaxStatModel', StatModel, {
-        init: function(attrs) {
-            const watch = attrs.watch;
-            delete attrs.watch;
-            
-            this.callSuper(attrs);
-            
-            this.setValuesToWatch(watch);
-        },
-        
-        setValuesToWatch: function(observables) {
-            this.releaseConstraint('updateMax');
-            this.constrain('updateMax', observables);
-        },
-        
-        updateMax: function(ignoreEvent) {
-            this.setMax(this.calculateMax());
-        },
-        
-        calculateMax: () => {/* Subclasses must implement. */},
-        
-        setFromData: function(datum) {
-            this.setMin(datum?.min ?? this.absMin);
-            this.setValue(datum?.value ?? this.min);
-        }
-    }),
-    
-    RecoverableStatMixin = new JSModule('RecoverableStatMixin', {
-        setValue: function(v) {
-            const isChanged = this.callSuper(v);
-            if (this.inited && this.parentObj?.inited) this.registerForRecovery();
-            return isChanged;
-        },
-        
-        registerForRecovery: function() {
-            if (!this.isAtMaxValue()) addToRecQueue(this.parentObj, this.attrName);
-        }
-    }),
     
     ATTRS_TO_NOTIFY_FOR = ['facing','spirit','zombie','astral','inWorld'],
     
@@ -257,6 +45,20 @@ const orb = global.orb,
     averageValueFloor = (v1, v2) => mathFloor((v2 + v2)/2),
     dividedValueCeil = (v, divisor) => mathCeil(v / divisor),
     
+    EntityStatModel = new JSClass('EntityStatModel', StatModel, {
+        notifyForChange: function() {
+            const character = this.parentObj,
+                userId = character.getUserId?.();
+            if (userId && character.isInWorld()) {
+                getAccountService().addMessageToUser(userId, {type:TYPE_ALTER_CHARACTER, msg:{
+                    id:character.getId(), p:this.attrName, v:this.getAsData()
+                }});
+            }
+        }
+    });
+    DerivedEntityStatModel = new JSClass('DerivedEntityStatModel', EntityStatModel, [DerivedStatModelMixin]),
+    DerivedEntityMaxStatModel = new JSClass('DerivedEntityMaxStatModel', EntityStatModel, [DerivedMaxStatModelMixin]),
+    
     EntityModel = new JSClass('EntityModel', Eventable, {
         include:[CommonEntityModelMixin],
         
@@ -265,66 +67,66 @@ const orb = global.orb,
         init: function(attrs) {
             const self = this;
             
-            self.exp = new StatModel({parentObj:self, attrName:'exp', absMin:0});
-            self.lvl = new StatModel({parentObj:self, attrName:'lvl', absMin:0});
-            self.qui = new StatModel({parentObj:self, attrName:'qui', absMin:0});
+            self.exp = new EntityStatModel({parentObj:self, attrName:'exp', absMin:0});
+            self.lvl = new EntityStatModel({parentObj:self, attrName:'lvl', absMin:0});
+            self.qui = new EntityStatModel({parentObj:self, attrName:'qui', absMin:0});
             
-            self.str = new StatModel({parentObj:self, attrName:'str', absMin:0, absMax:100});
-            self.agl = new StatModel({parentObj:self, attrName:'agl', absMin:0, absMax:100});
-            self.dex = new StatModel({parentObj:self, attrName:'dex', absMin:0, absMax:100});
-            self.con = new StatModel({parentObj:self, attrName:'con', absMin:0, absMax:100});
-            self.wil = new StatModel({parentObj:self, attrName:'wil', absMin:0, absMax:100});
-            self.per = new StatModel({parentObj:self, attrName:'per', absMin:0, absMax:100});
-            self.wis = new StatModel({parentObj:self, attrName:'wis', absMin:0, absMax:100});
-            self.int = new StatModel({parentObj:self, attrName:'int', absMin:0, absMax:100});
+            self.str = new EntityStatModel({parentObj:self, attrName:'str', absMin:0, absMax:100});
+            self.agl = new EntityStatModel({parentObj:self, attrName:'agl', absMin:0, absMax:100});
+            self.dex = new EntityStatModel({parentObj:self, attrName:'dex', absMin:0, absMax:100});
+            self.con = new EntityStatModel({parentObj:self, attrName:'con', absMin:0, absMax:100});
+            self.wil = new EntityStatModel({parentObj:self, attrName:'wil', absMin:0, absMax:100});
+            self.per = new EntityStatModel({parentObj:self, attrName:'per', absMin:0, absMax:100});
+            self.wis = new EntityStatModel({parentObj:self, attrName:'wis', absMin:0, absMax:100});
+            self.int = new EntityStatModel({parentObj:self, attrName:'int', absMin:0, absMax:100});
             
-            self.soma = new DerivedMaxStatModel({
+            self.soma = new DerivedEntityMaxStatModel({
                 parentObj:self, attrName:'soma', absMin:0, watch:[self.str, 'value', self.agl, 'value', self.con, 'value', self.dex, 'value']
             }, [{
                 calculateMax: () => (self.str.getValue() + averageValueFloor(self.agl.getValue(), self.dex.getValue())) * self.con.getValue()
             }]);
-            self.end = new DerivedMaxStatModel({
+            self.end = new DerivedEntityMaxStatModel({
                 parentObj:self, attrName:'end', absMin:0, watch:[self.str, 'value', self.agl, 'value', self.con, 'value']
             }, [RecoverableStatMixin, {
                 calculateMax: () => self.con.getValue() + averageValueFloor(self.str.getValue(), self.agl.getValue())
             }]);
-            self.endRec = new DerivedStatModel({
+            self.endRec = new DerivedEntityStatModel({
                 parentObj:self, attrName:'endRec', absMin:0, watch:[self.con, 'value']
             }, [{
                 calculateValue: () => dividedValueCeil(self.con.getValue(), 4)
             }]);
-            self.hp = new DerivedMaxStatModel({
+            self.hp = new DerivedEntityMaxStatModel({
                 parentObj:self, attrName:'hp', absMin:0, watch:[self.str, 'value', self.con, 'value']
             }, [RecoverableStatMixin, {
                 calculateMax: () => self.str.getValue() + self.con.getValue()
             }]);
-            self.hpRec = new DerivedStatModel({
+            self.hpRec = new DerivedEntityStatModel({
                 parentObj:self, attrName:'hpRec', absMin:0, watch:[self.con, 'value']
             }, [{
                 calculateValue: () => dividedValueCeil(self.con.getValue(), 8)
             }]);
             
-            self.pneuma = new DerivedMaxStatModel({
+            self.pneuma = new DerivedEntityMaxStatModel({
                 parentObj:self, attrName:'pneuma', absMin:0, watch:[self.int, 'value', self.wis, 'value', self.wil, 'value', self.per, 'value']
             }, [{
                 calculateMax: () => (self.int.getValue() + averageValueFloor(self.wis.getValue(), self.per.getValue())) * self.wil.getValue()
             }]);
-            self.magos = new DerivedMaxStatModel({
+            self.magos = new DerivedEntityMaxStatModel({
                 parentObj:self, attrName:'magos', absMin:0, watch:[self.int, 'value', self.wil, 'value']
             }, [RecoverableStatMixin, {
                 calculateMax: () => self.int.getValue() + self.wil.getValue()
             }]);
-            self.magosRec = new DerivedStatModel({
+            self.magosRec = new DerivedEntityStatModel({
                 parentObj:self, attrName:'magosRec', absMin:0, watch:[self.wil, 'value']
             }, [{
                 calculateValue: () => dividedValueCeil(self.wil.getValue(), 8)
             }]);
-            self.psyche = new DerivedMaxStatModel({
+            self.psyche = new DerivedEntityMaxStatModel({
                 parentObj:self, attrName:'psyche', absMin:0, watch:[self.wis, 'value', self.wil, 'value']
             }, [RecoverableStatMixin, {
                 calculateMax: () => self.wis.getValue() + self.wil.getValue()
             }]);
-            self.psycheRec = new DerivedStatModel({
+            self.psycheRec = new DerivedEntityStatModel({
                 parentObj:self, attrName:'psycheRec', absMin:0, watch:[self.wil, 'value']
             }, [{
                 calculateValue: () => dividedValueCeil(self.wil.getValue(), 8)
