@@ -120,8 +120,44 @@
                 return txt;
             },
             
+            pluralize: (() => {
+                const vowels = 'aeiou',
+                    irregulars = {
+                        addendum:'addenda',aircraft:'aircraft',alumna:'alumnae',alumnus:'alumni',analysis:'analyses',antenna:'antennae',antithesis:'antitheses',apex:'apices',appendix:'appendices',axis:'axes',bacillus:'bacilli',bacterium:'bacteria',basis:'bases',beau:'beaux',bison:'bison',bureau:'bureaux',cactus:'cacti',child:'children',château:'châteaux',codex:'codices',concerto:'concerti',corpus:'corpora',crisis:'crises',criterion:'criteria',curriculum:'curricula',datum:'data',deer:'deer',diagnosis:'diagnoses',die:'dice',dwarf:'dwarves',ellipsis:'ellipses',erratum:'errata','faux pas':'faux pas',fez:'fezzes',fish:'fish',focus:'foci',foot:'feet',formula:'formulae',fungus:'fungi',genus:'genera',goose:'geese',graffito:'graffiti',grouse:'grouse',half:'halves',hoof:'hooves',hypothesis:'hypotheses',index:'indices',larva:'larvae',libretto:'libretti',loaf:'loaves',locus:'loci',louse:'lice',man:'men',matrix:'matrices',medium:'media',memorandum:'memoranda',minutia:'minutiae',moose:'moose',mouse:'mice',nebula:'nebulae',nucleus:'nuclei',oasis:'oases',offspring:'offspring',opus:'opera',ovum:'ova',ox:'oxen',parenthesis:'parentheses',person:'people',phenomenon:'phenomena',phylum:'phyla',quiz:'quizzes',radius:'radii',referendum:'referenda',salmon:'salmon',scarf:'scarves',self:'selves',series:'series',sheep:'sheep',shrimp:'shrimp',species:'species',stimulus:'stimuli',stratum:'strata',swine:'swine',syllabus:'syllabi',symposium:'symposia',synopsis:'synopses',tableau:'tableaux',thesis:'theses',thief:'thieves',tooth:'teeth',trout:'trout',tuna:'tuna',vertebra:'vertebrae',vertex:'vertices',vita:'vitae',vortex:'vortices',wharf:'wharves',wife:'wives',wolf:'wolves',woman:'women'
+                    };
+                return (value, word) => {
+                    if (value === 1) {
+                        return word;
+                    } else {
+                        const lcWord = word.toLowerCase();
+                        if (irregulars[lcWord]) return irregulars[lcWord];
+                        if (word.length >= 2 && vowels.includes(lcWord[lcWord.length - 2])) return word + 's';
+                        if (lcWord.endsWith('s') || lcWord.endsWith('sh') || lcWord.endsWith('ch') || lcWord.endsWith('x') || lcWord.endsWith('z')) return word + 'es';
+                        if (lcWord.endsWith('y')) return word.slice(0, -1) + 'ies';
+                        return word + 's';
+                    }
+                }
+            })(),
+            
             getArticle: getArticle,
             getPhraseWithArticle: (phrase, isAppend) => (isAppend ? WORD_AND : getArticle(phrase)) + ' ' + phrase,
+            
+            getOrdinalNumber: tym.memoize(num => {
+                if (num == null || typeof num !== 'number' || isNaN(num)) return '';
+                
+                const suffix = ['th','st','nd','rd'];
+                let v;
+                
+                if (num >= 0) {
+                    num = mathFloor(num);
+                    v = num % 100;
+                } else {
+                    num = mathCeil(num);
+                    v = mathAbs(num) % 100;
+                }
+                
+                return num + (suffix[(v - 20) % 10] || suffix[v] || suffix[0]);
+            }),
             
             leftPadNumber: tym.leftPadNumber,
             // End: String Manipulation and Formatting
