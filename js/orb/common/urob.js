@@ -85,6 +85,7 @@
             //                      map: required from MapModel.js
             //                   entity: required from EntityModel.js
             //                     cell: required from CellModel.js
+            //                inventory: required from Inventory.js
             
             isTraversableSolidityForCorporeal:solidity => solidity >= 0 && solidity < 1,
             
@@ -197,5 +198,6 @@
         require('./urob/MapModel.js');
         require('./urob/EntityModel.js');
         require('./urob/CellModel.js');
+        require('./urob/Inventory.js');
     }
 })();

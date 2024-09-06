@@ -126,6 +126,18 @@
             cellEntry += '.<br><br>';
             accum.push(cellEntry);
             
+            // Entities
+            const entities = cell.getEntities();
+            if (entities?.length > 0) {
+                let entitiesEntry = 'Here with you are:<ul>';
+                for (const entity of entities) {
+                    entitiesEntry += '<li>' + getEntityInfo(entity) + '</li>';
+                }
+                entitiesEntry += '</ul>';
+                accum.push(entitiesEntry);
+            }
+            
+            // Faces
             const directionWords = getDirectionWordsByFacing(facing);
             for (const faceDir of COMPASS_FIELDS) {
                 const face = cell[faceDir],

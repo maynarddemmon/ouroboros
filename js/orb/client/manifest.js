@@ -19,11 +19,13 @@ JS.Packages(file => {
     file(ORB_ROOT + '../common/urob/MapModel.js').provides('urob.map').requires('urob');
     file(ORB_ROOT + '../common/urob/EntityModel.js').provides('urob.entity').requires('urob');
     file(ORB_ROOT + '../common/urob/CellModel.js').provides('urob.cell').requires('urob');
+    file(ORB_ROOT + '../common/urob/Inventory.js').provides('urob.inventory').requires('urob');
     
     // Package:orb
     file(ORB_ROOT + 'orb.js').provides('orb').requires(
         'urob.time','urob.account','urob.permission','urob.cellOffsetsByDistance','urob.greek',
-        'urob.stat','urob.composition','urob.fixture','urob.map','urob.entity','urob.cell'
+        'urob.stat','urob.composition','urob.fixture','urob.map','urob.entity','urob.cell',
+        'urob.inventory'
     );
     
     file(COMPONENT_ROOT + 'WebSocket.js').provides('orb.MessageTypeWebSocket').requires('orb');
