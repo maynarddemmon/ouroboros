@@ -12,6 +12,14 @@
         mapInfo,
         myLocInfo,
         
+        levelGuage,
+        somaGuage,
+        hpGuage,
+        endGuage,
+        pneumaGuage,
+        magosGuage,
+        psycheGuage,
+        
         characterDetailsTxt,
         alterCellBtn,
         alterCellTargetSelector,
@@ -29,12 +37,12 @@
         {
             View, Text, PaddedText, InputSelect, SizeToParent,
             SpacedLayout, ResizeLayout, WrappingLayout,
-            debounce,
+            debounce, formatAsPercentage,
             global:{keys:GlobalKeys}
         } = M,
         
         {
-            concatenateList, getCompositionTemplate,
+            concatenateList, getCompositionTemplate, formatNumber,
             facing:{
                 getOppositeCompassFacing,
                 NORTH, SOUTH, EAST, WEST, UP, DOWN, SELF, COMPASS_FIELDS
@@ -43,12 +51,14 @@
                 ATTR_DIRECTION,
                 TYPE_EXIT_WORLD, TYPE_ALTER_CELL, TYPE_CHANGE_FACING, TYPE_VOCALIZE,
                 TYPE_INTERACT_WITH_FIXTURE
-            }
+            },
+            entity:{experienceByLevel, minExperienceForLevel}
         } = global.urob,
         
         {
             model,
             TextBtn, TranslucentSquareBtn, componentUtil, FormInputText,
+            BaseRadialGuage,
             theme:{padding, spacing, cornerRadius, colorBgF},
             cfg:{mapRangeOffset, cellSize, entitySizeM}
         } = pkg,
@@ -293,6 +303,47 @@
             rightOverlay.setHeight(overlayHeight);
         },
         
+        StatGuage = new JSClass('StatGuage', BaseRadialGuage, {
+            initNode: function(parent, attrs) {
+                this.characterAttr = attrs.characterAttr;
+                this.recoveryAttr = attrs.recoveryAttr;
+                delete attrs.characterAttr;
+                delete attrs.recoveryAttr;
+                
+                attrs.x ??= 1;
+                attrs.pointerEvents ??= 'auto';
+                attrs.radius ??= 16;
+                attrs.thickness ??= 1;
+                attrs.bgColor ??= '#0008';
+                
+                this.callSuper(parent, attrs);
+            },
+            
+            getTooltipByValue: function(value) {
+                if (!character) return;
+                
+                const {maxValue, recoveryAttr} = this,
+                    attrLabel = I18N('char-attr-' + this.characterAttr);
+                return 'Your ' + attrLabel + 
+                    ' is at ' + value + '/' + maxValue + 
+                    ' - ' + formatAsPercentage(value/maxValue) +
+                    (recoveryAttr ? ' Your ' + attrLabel + ' recovery is ' + character[recoveryAttr].value + '.' : '')
+            },
+            
+            setupConstraint: function() {
+                const constraintArray = [character, this.characterAttr];
+                if (this.recoveryAttr) constraintArray.push(character, this.recoveryAttr);
+                this.constrain('update', constraintArray);
+            },
+            teardownConstraint: function() {this.releaseConstraint('update');},
+            
+            update: function(ignoredEvent) {
+                const attr = character[this.characterAttr];
+                this.setMaxValue(attr.max);
+                this.setValue(attr.value);
+            }
+        }),
+        
         LocalTabSliderContainer = new JSClass('LocalTabSliderContainer', View, {
             include: [M.TabSliderContainer],
             
@@ -383,13 +434,11 @@
                 
                 characterTab.setText(pkg.FA_CHARACTER + ' ' + character.getName());
                 
-                const constraintArray = [];
-                for (const statName of ['exp','lvl','qui','soma','end','endRec','hp','hpRec','pneuma','magos','magosRec','psyche','psycheRec']) {
-                    constraintArray.push(character, statName);
-                }
-                gamePanel.constrain('updateCharacterDetails', constraintArray);
+                for (const guage of [levelGuage, somaGuage, hpGuage, endGuage, pneumaGuage, magosGuage, psycheGuage]) guage.setupConstraint();
+                gamePanel.constrain('updateCharacterDetails', [character, 'qui']);
                 gamePanel.attachToDom(GlobalKeys, '_keyDown', 'keydown', true);
             } else {
+                for (const guage of [levelGuage, somaGuage, hpGuage, endGuage, pneumaGuage, magosGuage, psycheGuage]) guage?.teardownConstraint();
                 gamePanel.releaseConstraint('updateCharacterDetails');
                 gamePanel.detachFromDom(GlobalKeys, '_keyDown', 'keydown', true);
                 if (gameMap) {
@@ -417,17 +466,7 @@
         
         updateCharacterDetails: debounce(() => {
             characterDetailsTxt.setText(
-                'Experience: <b>' + character.exp.value + '</b> ' + 
-                'Level: <b>' + character.lvl.value + '</b> ' + 
-                'Quintessence: <b>' + character.qui.value + '</b><br>' + 
-                
-                'Soma: <b>' + character.soma.value + '/' + character.soma.max + '</b> ' + 
-                'Endurance: <b>' + character.end.value + '/' + character.end.max +  '</b> ' + 
-                'Hit Points: <b>' + character.hp.value + '/' + character.hp.max +  '</b><br>' + 
-                
-                'Pneuma: <b>' + character.pneuma.value + '/' + character.pneuma.max +  '</b> ' + 
-                'Magos: <b>' + character.magos.value + '/' + character.magos.max +  '</b> ' + 
-                'Psyche: <b>' + character.psyche.value + '/' + character.psyche.max +  '</b><br>'
+                'Quintessence: <b>' + character.qui.value + '</b><br>'
             );
         }, 50),
         
@@ -694,6 +733,35 @@
             
             // Left Overlay
             leftOverlay = new VerticalOverlay(gamePanel, {insets:4});
+            
+            levelGuage = new BaseRadialGuage(leftOverlay, {
+                x:1, pointerEvents:'auto', radius:13, thickness:4,
+                color:'#090', borderColor:'#030', bgColor:'#0008'
+            }, [{
+                getTooltipByValue: function(value) {
+                    const maxValue = this.maxValue;
+                    return 'You are level ' + character?.lvl.value + ' with ' + formatNumber(character?.exp.value) + ' experience. You need ' + (maxValue - value) + ' experience to your next level.';
+                },
+                getTextByValue: value => character?.lvl.value,
+                setupConstraint: function() {this.constrain('update', [character, 'lvl', character, 'exp']);},
+                teardownConstraint: function() {this.releaseConstraint('update');},
+                update: function(ignoredEvent) {
+                    const lvl = character.lvl.value;
+                    this.setMaxValue(experienceByLevel(lvl));
+                    this.setValue(character.exp.value - minExperienceForLevel(lvl));
+                }
+            }]);
+            
+            new View(leftOverlay, {height:8}); // Spacer
+            hpGuage = new StatGuage(leftOverlay, {color:'#c00', borderColor:'#300', characterAttr:'hp', recoveryAttr:'hpRec'});
+            endGuage = new StatGuage(leftOverlay, {color:'#cc0', borderColor:'#330', characterAttr:'end', recoveryAttr:'endRec'});
+            somaGuage = new StatGuage(leftOverlay, {color:'#c93', borderColor:'#633', characterAttr:'soma'});
+            new View(leftOverlay, {height:4}); // Spacer
+            psycheGuage = new StatGuage(leftOverlay, {color:'#09f', borderColor:'#036', characterAttr:'psyche', recoveryAttr:'psycheRec'});
+            magosGuage = new StatGuage(leftOverlay, {color:'#c0c', borderColor:'#303', characterAttr:'magos', recoveryAttr:'magosRec'});
+            pneumaGuage = new StatGuage(leftOverlay, {color:'#93c', borderColor:'#336', characterAttr:'pneuma'});
+            
+            new View(leftOverlay, {height:4}); // Spacer
             
             const makeCooldown = (propTargetName, readyIcon) => {
                 new pkg.CharacterCooldownRadialGuage(leftOverlay, {

@@ -36,4 +36,10 @@ LOCALE_JSON = {
     'facing-t':'upward',
     'facing-b':'downward',
     'facing-c':'selfward',
+    'char-attr-soma':'Soma',
+    'char-attr-hp':'Health',
+    'char-attr-end':'Endurance',
+    'char-attr-pneuma':'Pneuma',
+    'char-attr-magos':'Magos',
+    'char-attr-psyche':'Psyche',
 };

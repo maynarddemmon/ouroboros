@@ -16,12 +16,12 @@ const orb = global.orb,
         },
         facing:{NORTH},
         stat:{StatModel, DerivedStatModelMixin, DerivedMaxStatModelMixin, RecoverableStatMixin},
-        entity:{CommonEntityModelMixin, CommonCharacterModelMixin}
+        entity:{CommonEntityModelMixin, CommonCharacterModelMixin, experienceToLevel}
     } = global.urob,
     
     {getNow} = require('./WorldClock.js'),
     
-    {min:mathMin, max:mathMax, floor:mathFloor, ceil:mathCeil, sqrt:mathSqrt} = Math,
+    {min:mathMin, max:mathMax, floor:mathFloor, ceil:mathCeil} = Math,
     
     getAccountService = () => accountService ??= require('./AccountService.js'),
     getWorldMap = () => worldMap ??= require('./WorldMap.js'),
@@ -33,8 +33,6 @@ const orb = global.orb,
     
     ATTRS_TO_NOTIFY_FOR = ['facing','spirit','zombie','astral','inWorld'],
     
-    BASE_EXP_PER_LVL = 1000,
-    experienceToLevel = exp => mathFloor((-1 + mathSqrt(1 + 8*exp/BASE_EXP_PER_LVL)) / 2),
     BASE_QUINTESSENCE = 5,
     levelToQuintessence = lvl => BASE_QUINTESSENCE + 3*lvl,
     

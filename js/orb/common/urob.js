@@ -53,6 +53,25 @@
             return WORD_A;
         },
         
+        formatNumberWithSeparator = (v, prefix, fixed, separator, radix) => {
+            if (v == null) return '';
+            
+            if (typeof v === 'string') v = Number(v);
+            
+            const txt = '' + (fixed >= 0 ? v.toFixed(fixed) : v);
+            let numPart, 
+                decimalPart = '', 
+                decimalLoc = txt.indexOf('.');
+            if (decimalLoc !== -1) {
+                numPart = txt.slice(0, decimalLoc);
+                decimalPart = (radix || '.') + txt.slice(decimalLoc + 1);
+            } else {
+                numPart = txt;
+            }
+            
+            return (prefix || '') + numPart.replace(/./g, (c, i, a) => i && !((a.length - i) % 3) ? (separator || ',') + c : c) + decimalPart;
+        },
+        
         urob = global.urob = {
             //                    greek: required from greek.js
             //                     time: required from time.js
@@ -160,6 +179,8 @@
             }),
             
             leftPadNumber: tym.leftPadNumber,
+            
+            formatNumber: num => formatNumberWithSeparator(num, '', -1, ',', '.'),
             // End: String Manipulation and Formatting
         };
     

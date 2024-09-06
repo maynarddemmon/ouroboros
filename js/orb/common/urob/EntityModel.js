@@ -10,9 +10,18 @@
     }
     
     const JSModule = JS.Module,
-        PERM_CREATOR = pkg.permission.PERM_CREATOR;
+        
+        {floor:mathFloor, ceil:mathCeil, sqrt:mathSqrt} = Math,
+        
+        PERM_CREATOR = pkg.permission.PERM_CREATOR,
+        
+        BASE_EXP_PER_LVL = 1000;
     
     pkg.entity = {
+        experienceByLevel: lvl => lvl * BASE_EXP_PER_LVL,
+        minExperienceForLevel: lvl => ((lvl * (lvl + 1)) / 2) * BASE_EXP_PER_LVL,
+        experienceToLevel: exp => mathFloor((-1 + mathSqrt(1 + 8*exp/BASE_EXP_PER_LVL)) / 2),
+        
         CommonEntityModelMixin: new JSModule('CommonEntityModelMixin', {
             init: function(attrs) {
                 attrs.spirit ??= false;
