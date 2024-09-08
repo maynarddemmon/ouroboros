@@ -19,7 +19,8 @@
                 NORTH, SOUTH, EAST, WEST, UP, DOWN, COMPASS_FIELDS,
                 isValidCompassFacing, getOppositeCompassFacing
             },
-            composition:{CompositionTemplateProxyMixin}
+            composition:{CompositionTemplateProxyMixin},
+            inventory:{InventoryContainer}
         } = pkg,
         
         AffectableValuesMixin = new JSModule('AffectableValuesMixin', {
@@ -53,18 +54,6 @@
         FixtureContainerMixin = new JSModule('FixtureContainerMixin', {
             include: [AffectableValuesMixin],
             
-            setFix: function(fixturesData) {
-                if (fixturesData) {
-                    for (const fixtureId in fixturesData) {
-                        this.addFixture(this.makeFixtureFromDatum(this.prepareFixtureDatum(fixturesData[fixtureId], fixtureId)));
-                    }
-                }
-            },
-            prepareFixtureDatum: (datum, fixtureId) => {
-                datum.id = fixtureId;
-                return datum;
-            },
-            makeFixtureFromDatum: datum => {/* Subclasses must implement. */},
             getFixturesMap: function() {return this.fixtures ??= new Map();},
             addFixture: function(fixture) {
                 this.getFixturesMap().set(fixture.getId(), fixture);
@@ -78,17 +67,6 @@
                     return removedFixture;
                 }
             },
-            getFixturesAsData: function() {
-                let retval = null;
-                const fixtures = this.fixtures;
-                if (fixtures?.size > 0) {
-                    retval = {};
-                    for (const [fixtureId, fixture] of fixtures) {
-                        retval[fixtureId] = fixture.getAsData();
-                    }
-                }
-                return retval;
-            },
             
             getFixtureInteractions: function(character, adjacent) {
                 let retval;
@@ -100,21 +78,60 @@
                     }
                 }
                 return retval;
+            },
+            
+            
+            // Persistence and Serialization ///////////////////////////////////
+            getAsData: function(character) {
+                const retval = this.callSuper?.(character) ?? {};
+                
+                let fixturesData;
+                const fixtures = this.fixtures;
+                if (fixtures?.size > 0) {
+                    fixturesData = {};
+                    for (const [fixtureId, fixture] of fixtures) {
+                        fixturesData[fixtureId] = fixture.getAsData(character);
+                    }
+                }
+                if (fixturesData) retval.fix = fixturesData;
+                
+                return retval;
+            },
+            
+            updateFromData: function(datum) {
+                this.callSuper?.(datum);
+                if (datum.fix != null) {
+                    const fixturesData = datum.fix;
+                    for (const fixtureId in fixturesData) {
+                        this.addFixture(this.makeFixtureFromDatum(this.prepareFixtureDatum(fixturesData[fixtureId], fixtureId)));
+                    }
+                }
+                return this;
+            },
+            makeFixtureFromDatum: datum => {/* Subclasses must implement. */},
+            prepareFixtureDatum: (datum, fixtureId) => {
+                datum.id = fixtureId;
+                return datum;
             }
         }),
         
+        makeFaceForCell = (cell, datum) => {
+            const face = new CommonCellModel.FACE_MODEL_CLASS();
+            face.setCell(cell);
+            face.updateFromData(datum);
+            return face;
+        },
+        
         CommonCellModel = new JSClass('CommonCellModel', Eventable, {
-            include:[FixtureContainerMixin, CompositionTemplateProxyMixin],
+            include:[FixtureContainerMixin, InventoryContainer, CompositionTemplateProxyMixin],
             
             extend: {
                 // Set by the client and server so the appropriate face class is instantated.
-                FACE_MODEL_CLASS:null
+                FACE_MODEL_CLASS:null,
+                INVENTORY_MODEL_CLASS:null
             },
             
-            prepareFixtureDatum: function(datum, fixtureId) {
-                datum.cell = this;
-                return this.callSuper(datum, fixtureId);
-            },
+            getInventoryClass: () => CommonCellModel.INVENTORY_MODEL_CLASS,
             
             setLocId: function(v) {
                 if (this.locId !== v) {
@@ -129,8 +146,7 @@
             
             setN: function(v) {
                 if (v) {
-                    v.cell = this;
-                    v = new CommonCellModel.FACE_MODEL_CLASS(v);
+                    v = makeFaceForCell(this, v);
                 } else {
                     this.getN()?.destroy();
                 }
@@ -140,8 +156,7 @@
             
             setS: function(v) {
                 if (v) {
-                    v.cell = this;
-                    v = new CommonCellModel.FACE_MODEL_CLASS(v);
+                    v = makeFaceForCell(this, v);
                 } else {
                     this.getS()?.destroy();
                 }
@@ -151,8 +166,7 @@
             
             setE: function(v) {
                 if (v) {
-                    v.cell = this;
-                    v = new CommonCellModel.FACE_MODEL_CLASS(v);
+                    v = makeFaceForCell(this, v);
                 } else {
                     this.getE()?.destroy();
                 }
@@ -162,8 +176,7 @@
             
             setW: function(v) {
                 if (v) {
-                    v.cell = this;
-                    v = new CommonCellModel.FACE_MODEL_CLASS(v);
+                    v = makeFaceForCell(this, v);
                 } else {
                     this.getW()?.destroy();
                 }
@@ -173,8 +186,7 @@
             
             setT: function(v) {
                 if (v) {
-                    v.cell = this;
-                    v = new CommonCellModel.FACE_MODEL_CLASS(v);
+                    v = makeFaceForCell(this, v);
                 } else {
                     this.getT()?.destroy();
                 }
@@ -184,8 +196,7 @@
             
             setB: function(v) {
                 if (v) {
-                    v.cell = this;
-                    v = new CommonCellModel.FACE_MODEL_CLASS(v);
+                    v = makeFaceForCell(this, v);
                 } else {
                     this.getB()?.destroy();
                 }
@@ -238,6 +249,47 @@
                 accum.cell = this.getFixtureInteractions(character, false);
                 
                 return accum;
+            },
+            
+            
+            // Persistence and Serialization ///////////////////////////////////
+            getAsData: function(character) {
+                const retval = this.callSuper?.(character) ?? {};
+                
+                for (const attrName of COMPASS_FIELDS) {
+                    const attr = this[attrName];
+                    if (attr != null) retval[attrName] = attr.getAsData(character);
+                }
+                
+                if (character) {
+                    const entities = this.entities;
+                    if (entities?.size > 0) {
+                        const accum = [],
+                            characterId = character.getId();
+                        for (const entity of entities.values()) {
+                            if (entity.getId() !== characterId) accum.push(entity.getAsData(character));
+                        }
+                        if (accum.length > 0) retval.ent = accum;
+                    }
+                }
+                
+                return retval;
+            },
+            
+            updateFromData: function(datum) {
+                this.callSuper?.(datum);
+                this.setN(datum.n);
+                this.setS(datum.s);
+                this.setE(datum.e);
+                this.setW(datum.w);
+                this.setT(datum.t);
+                this.setB(datum.b);
+                return this;
+            },
+            
+            prepareFixtureDatum: function(datum, fixtureId) {
+                datum.cell = this;
+                return this.callSuper(datum, fixtureId);
             }
         });
     
@@ -251,7 +303,7 @@
             },
             
             setCell: function(v) {this.set('cell', v, true);},
-            getCell: function() {return this.cell;},
+            getCell: function() {return this.cell;}
         }),
         
         CommonCellModel:CommonCellModel

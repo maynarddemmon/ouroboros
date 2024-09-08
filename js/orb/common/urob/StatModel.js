@@ -137,20 +137,25 @@
             getValueToMax: function() {return this.getMax() - this.getValue();},
             isAtMaxValue: function() {return this.getMax() === this.getValue();},
             
-            getAsData: function() {
+            
+            // Methods /////////////////////////////////////////////////////////
+            notifyForChange: () => {/** Subclasses must implement. */},
+            
+            
+            // Persistence and Serialization ///////////////////////////////////
+            getAsData: function(character) {
                 return {
                     min:this.min,
                     max:this.max,
                     value:this.value
                 };
             },
-            setFromData: function(datum) {
+            
+            updateFromData: function(datum) {
                 this.setMin(datum?.min ?? this.absMin);
                 this.setMax(datum?.max ?? this.absMax);
                 this.setValue(datum?.value ?? this.min);
-            },
-            
-            notifyForChange: () => {/** Subclasses must implement. */}
+            }
         });
     
     pkg.stat = {
@@ -178,7 +183,9 @@
             
             calculateValue: () => {/* Subclasses must implement. */},
             
-            setFromData: function(datum) {
+            
+            // Persistence and Serialization ///////////////////////////////////
+            updateFromData: function(datum) {
                 this.setMin(datum?.min ?? this.absMin);
                 this.setMax(datum?.max ?? this.absMax);
             }
@@ -206,7 +213,9 @@
             
             calculateMax: () => {/* Subclasses must implement. */},
             
-            setFromData: function(datum) {
+            
+            // Persistence and Serialization ///////////////////////////////////
+            updateFromData: function(datum) {
                 this.setMin(datum?.min ?? this.absMin);
                 this.setValue(datum?.value ?? this.min);
             }

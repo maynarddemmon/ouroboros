@@ -18,14 +18,13 @@ JS.Packages(file => {
     file(ORB_ROOT + '../common/urob/fixture.js').provides('urob.fixture').requires('urob.facing');
     file(ORB_ROOT + '../common/urob/MapModel.js').provides('urob.map').requires('urob');
     file(ORB_ROOT + '../common/urob/EntityModel.js').provides('urob.entity').requires('urob');
-    file(ORB_ROOT + '../common/urob/CellModel.js').provides('urob.cell').requires('urob');
     file(ORB_ROOT + '../common/urob/Inventory.js').provides('urob.inventory').requires('urob');
+    file(ORB_ROOT + '../common/urob/CellModel.js').provides('urob.cell').requires('urob.inventory');
     
     // Package:orb
     file(ORB_ROOT + 'orb.js').provides('orb').requires(
         'urob.time','urob.account','urob.permission','urob.cellOffsetsByDistance','urob.greek',
-        'urob.stat','urob.composition','urob.fixture','urob.map','urob.entity','urob.cell',
-        'urob.inventory'
+        'urob.stat','urob.composition','urob.fixture','urob.map','urob.entity','urob.cell'
     );
     
     file(COMPONENT_ROOT + 'WebSocket.js').provides('orb.MessageTypeWebSocket').requires('orb');
@@ -47,7 +46,7 @@ JS.Packages(file => {
     file(VIEW_ROOT + 'LobbyPanel.js').provides('orb.LobbyPanel').requires('orb.BaseStackablePanel','orb.FormInputText','orb.MessageTypeWebSocket');
     
     file(VIEW_ROOT + 'GameMap.js').provides('orb.GameMap').requires('orb');
-    file(VIEW_ROOT + 'GamePanel.js').provides('orb.GamePanel').requires('orb.BaseStackablePanel','orb.MessageTypeWebSocket','orb.GameMap');
+    file(VIEW_ROOT + 'GamePanel.js').provides('orb.GamePanel').requires('orb.BaseStackablePanel','orb.MessageTypeWebSocket','orb.GameMap','orb.FormInputText');
     
     file(ORB_ROOT + 'App.js').provides('orb.App').requires(
         'orb.model',

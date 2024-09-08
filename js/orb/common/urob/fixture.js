@@ -504,6 +504,15 @@
             
             getLockPropertyForInteraction: function(character, interactionName) {
                 return this.getTemplateObject().getLockPropertyForInteraction?.(this, character, interactionName);
+            },
+            
+            
+            // Persistence and Serialization ///////////////////////////////////
+            getAsData: function(character) {
+                const retval = this.callSuper?.(character) ?? {};
+                retval.template = this.template;
+                if (this.state != null) retval.state = this.state;
+                return retval;
             }
         }),
         

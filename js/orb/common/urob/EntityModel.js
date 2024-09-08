@@ -80,6 +80,50 @@
             
             getSightDistance: () => 3,
             getHearDistance: () => 9, // Maximum so sound propogation can handle things.
+            
+            
+            // Persistence and Serialization ///////////////////////////////////
+            getAsData: function(character) {
+                const retval = this.callSuper?.(character) ?? {};
+                
+                retval.id = this.id;
+                retval.name = this.name;
+                retval.spirit = this.spirit;
+                retval.zombie = this.zombie;
+                retval.astral = this.astral;
+                retval.facing = this.facing;
+                
+                if (!character) {
+                    retval.loc = this.loc;
+                    retval.moveSpeed = this.moveSpeed;
+                    retval.lockMove = this.lockMove;
+                    retval.lockAct = this.lockAct;
+                    retval.lockReact = this.lockReact;
+                    retval.lockFree = this.lockFree;
+                }
+                
+                return retval;
+            },
+            
+            updateFromData: function(datum) {
+                this.callSuper?.(datum) ?? {};
+                
+                if (datum.id != null) this.setId(datum.id);
+                if (datum.name != null) this.setName(datum.name);
+                if (datum.spirit != null) this.setSpirit(datum.spirit);
+                if (datum.zombie != null) this.setZombie(datum.zombie);
+                if (datum.astral != null) this.setAstral(datum.astral);
+                if (datum.facing != null) this.setFacing(datum.facing);
+                
+                if (datum.loc != null) this.setLoc(datum.loc);
+                if (datum.moveSpeed != null) this.setMoveSpeed(datum.moveSpeed);
+                if (datum.lockMove != null) this.setLockMove(datum.lockMove);
+                if (datum.lockAct != null) this.setLockAct(datum.lockAct);
+                if (datum.lockReact != null) this.setLockReact(datum.lockReact);
+                if (datum.lockFree != null) this.setLockFree(datum.lockFree);
+                
+                return this;
+            }
         }),
         
         CommonCharacterModelMixin: new JSModule('CommonCharacterModelMixin', {
@@ -102,6 +146,26 @@
             isSpirit: function() {
                 // Creators are treated like spirits.
                 return this.callSuper() || this.hasPermission(PERM_CREATOR);
+            },
+            
+            
+            // Persistence and Serialization ///////////////////////////////////
+            getAsData: function(character) {
+                const retval = this.callSuper(character);
+                retval.inWorld = this.inWorld;
+                if (!character) {
+                    retval.uid = this.uid;
+                    retval.perms = this.perms;
+                }
+                return retval;
+            },
+            
+            updateFromData: function(datum) {
+                this.callSuper(datum);
+                if (datum.inWorld != null) this.setInWorld(datum.inWorld);
+                if (datum.uid != null) this.setUid(datum.uid);
+                if (datum.perms != null) this.setPerms(datum.perms);
+                return this;
             }
         })
     };

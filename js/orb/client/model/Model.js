@@ -14,7 +14,8 @@
             greek:{TYPE_MOVE},
             map:{CommonMapModel},
             entity:{CommonEntityModelMixin, CommonCharacterModelMixin},
-            cell:{CommonFaceModel, CommonCellModel}
+            cell:{CommonFaceModel, CommonCellModel},
+            inventory:{Inventory}
         } = urob,
         
         getMapData = () => mapData ??= {},
@@ -34,13 +35,12 @@
         makeEntityFromData = entityDatum => {
             const entityId = entityDatum.id;
             let entity = model.getEntityById(entityId);
-            if (entity) {
-                // Update
-                entity.callSetters(entityDatum);
-            } else {
+            if (!entity) {
                 // Create
-                entity = setEntity(entityId, new EntityModel(entityDatum));
+                entity = setEntity(entityId, new EntityModel());
             }
+            entity.updateFromData(entityDatum);
+            
             return entity;
         },
         setEntity = (entityId, entity) => entityData[entityId] = entity,
@@ -51,6 +51,10 @@
         
         FaceModel = new JSClass('FaceModel', CommonFaceModel, {
             makeFixtureFromDatum:makeFixtureFromDatum,
+        }),
+        
+        InventoryModel = new JSClass('InventoryModel', Inventory, {
+            
         }),
         
         CellModel = new JSClass('CellModel', CommonCellModel, {
@@ -79,7 +83,15 @@
             },
             
             // Fixtures //
-            makeFixtureFromDatum:makeFixtureFromDatum
+            makeFixtureFromDatum:makeFixtureFromDatum,
+            
+            
+            // Persistence and Serialization ///////////////////////////////////
+            updateFromData: function(datum) {
+                this.callSuper?.(datum);
+                if (datum.ent) this.setEnt(datum.ent);
+                return this;
+            }
         }),
         
         EntityModel = new JSClass('EntityModel', Eventable, {
@@ -227,13 +239,15 @@
             getMap: mapId => mapData[mapId],
             storeMapData: data => {
                 const mapData = getMapData();
-                for (const mapId in data) mapData[mapId] = new CommonMapModel(data[mapId]);
+                for (const mapId in data) {
+                    mapData[mapId] = (new CommonMapModel()).updateFromData(data[mapId]);
+                }
                 model.fireEvent('mapsChanged');
             },
             // Map:end
             
             // Cell:start
-            makeUnknownCell: locId => new CellModel({locId:locId, c:'unk'}),
+            makeUnknownCell: locId => (new CellModel()).updateFromData({locId:locId, c:'unk'}),
             getCell: locId => cellData[locId],
             getCellByLocArr: locArr => cellData[locArrToId(locArr)],
             storeCellData: data => {
@@ -250,12 +264,12 @@
                         cellDatum.ent = null;
                     }
                     
-                    cellDatum.locId = locId;
                     for (const attrName of COMPASS_FIELDS) cellDatum[attrName] ??= null;
                     
                     // Create/Update the CellModel
                     const cell = model.getCell(locId) ?? (cellData[locId] = new CellModel());
-                    cell.callSetters(cellDatum);
+                    cell.setLocId(locId);
+                    cell.updateFromData(cellDatum);
                 }
                 model.fireEvent('cellsChanged');
             },
@@ -294,4 +308,5 @@
         });
     
     CommonCellModel.FACE_MODEL_CLASS = FaceModel;
+    CommonCellModel.INVENTORY_MODEL_CLASS = InventoryModel;
 })(orb);

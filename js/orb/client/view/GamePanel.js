@@ -754,12 +754,12 @@
                     const maxValue = this.maxValue;
                     return 'You are level ' + character?.lvl.value + ' with ' + formatNumber(character?.exp.value) + ' experience. You need ' + (maxValue - value) + ' experience to your next level.';
                 },
-                getTextByValue: value => character?.lvl.value,
+                getTextByValue: value => '' + character?.lvl.value,
                 setupConstraint: function() {this.constrain('update', [character, 'lvl', character, 'exp']);},
                 teardownConstraint: function() {this.releaseConstraint('update');},
                 update: function(ignoredEvent) {
                     const lvl = character.lvl.value;
-                    this.setMaxValue(experienceByLevel(lvl));
+                    this.setMaxValue(experienceByLevel(lvl + 1));
                     this.setValue(character.exp.value - minExperienceForLevel(lvl));
                 }
             }]);

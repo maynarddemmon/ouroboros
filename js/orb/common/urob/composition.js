@@ -181,7 +181,21 @@
             
             getSolidity: function() {return this.getCompositionObject()?.getSolidity();},
             getOpacity: function() {return this.getCompositionObject()?.getOpacity();},
-            getDamping: function() {return this.getCompositionObject()?.getDamping();}
+            getDamping: function() {return this.getCompositionObject()?.getDamping();},
+            
+            
+            // Persistence and Serialization ///////////////////////////////////
+            getAsData: function(character) {
+                const retval = this.callSuper(character);
+                retval.c = this.c;
+                return retval;
+            },
+            
+            updateFromData: function(datum) {
+                this.callSuper?.(datum);
+                if (datum.c != null) this.setC(datum.c);
+                return this;
+            }
         }),
         
         // Matter, Energy, Light lookup table for missing Cells

@@ -16,7 +16,8 @@ const orb = global.orb,
         fixture:{CommonFixtureModel},
         greek:{TYPE_CELL_DATA, TYPE_SOUND, TYPE_EXPOSITION},
         map:{CommonMapModel},
-        cell:{CommonFaceModel, CommonCellModel}
+        cell:{CommonFaceModel, CommonCellModel},
+        inventory:{Inventory}
     } = global.urob,
     
     {addMessageToUser} = require('./AccountService.js'),
@@ -38,14 +39,6 @@ const orb = global.orb,
     
     MapModel = new JSClass('MapModel', CommonMapModel, {
         // Methods /////////////////////////////////////////////////////////////
-        getAsData: function() {
-            return {
-                name:this.name,
-                description:this.description,
-                elements:this.elements
-            };
-        },
-        
         getMissingCellComposition: function() {
             const elements = this.getElements();
             
@@ -86,13 +79,6 @@ const orb = global.orb,
             const id = attrs.id ??= orb.getFixtureGuid();
             this.callSuper(attrs);
             fixtures[id] = this;
-        },
-        
-        getAsData: function() {
-            return {
-                template:this.template,
-                state:this.state
-            };
         },
         
         setStateByName: function(stateName, value) {
@@ -140,31 +126,15 @@ const orb = global.orb,
     }),
     
     FaceModel = new JSClass('FaceModel', CommonFaceModel, {
-        init: function(attrs) {
-            const cell = attrs.cell;
-            if (cell) {
-                this.setCell(cell);
-                delete attrs.cell;
-            }
-            this.callSuper(attrs);
-        },
-        
         setC: function(v) {
             this.callSuper(v);
             if (this.inited) this.getCell()?.notifyAllVisualChangeListenersThatCellChanged();
         },
         
         makeFixtureFromDatum: datum => new FixtureModel(datum),
-        
-        getAsData: function() {
-            const retval = {
-                    c:this.c
-                },
-                fixturesData = this.getFixturesAsData();
-            if (fixturesData) retval.fix = fixturesData;
-            return retval;
-        },
     }),
+    
+    InventoryModel = new JSClass('InventoryModel', Inventory, {}),
     
     CellModel = new JSClass('CellModel', CommonCellModel, {
         // Accessors ///////////////////////////////////////////////////////////
@@ -245,36 +215,8 @@ const orb = global.orb,
             }
         },
         
-        // Methods /////////////////////////////////////////////////////////////
-        getAsData: function() {
-            const retval = {
-                    c:this.c,
-                    n:this.n?.getAsData(),
-                    s:this.s?.getAsData(),
-                    e:this.e?.getAsData(),
-                    w:this.w?.getAsData(),
-                    t:this.t?.getAsData(),
-                    b:this.b?.getAsData()
-                },
-                fixturesData = this.getFixturesAsData();
-            if (fixturesData) retval.fix = fixturesData;
-            return retval;
-        },
-        getAsDataForCharacter: function(character) {
-            const retval = this.getAsData(),
-                entities = this.entities;
-            if (entities?.size > 0) {
-                const accum = [],
-                    characterId = character.getId();
-                
-                for (const entity of entities.values()) {
-                    if (entity.getId() !== characterId) accum.push(entity.getAsDataForCharacter(character));
-                }
-                if (accum.length > 0) retval.ent = accum;
-            }
-            return retval;
-        },
         
+        // Methods /////////////////////////////////////////////////////////////
         mayMoveInto: function(character, compassDirection) {
             return orb.rules.characterMayMoveOutOfCell(character, compassDirection) && 
                 orb.rules.characterMayMoveIntoCell(character, compassDirection, this);
@@ -295,7 +237,7 @@ const orb = global.orb,
                 const self = this,
                     locId = self.locId;
                 for (const character of self.getVisualChangeListeners()) {
-                    sendCellDataMsgToCharacter(character, {[locId]:self.getAsDataForCharacter(character)});
+                    sendCellDataMsgToCharacter(character, {[locId]:self.getAsData(character)});
                 }
             }
         },
@@ -304,7 +246,7 @@ const orb = global.orb,
                 const self = this,
                     locId = self.locId;
                 for (const character of self.getAuditoryChangeListeners()) {
-                    sendCellDataMsgToCharacter(character, {[locId]:self.getAsDataForCharacter(character)});
+                    sendCellDataMsgToCharacter(character, {[locId]:self.getAsData(character)});
                 }
             }
         },
@@ -331,7 +273,6 @@ const orb = global.orb,
         }
     }),
     
-    makeMap = params => new MapModel(params),
     getMap = mapId => maps[mapId],
     setMap = (mapId, map) => {
         maps[mapId] = map;
@@ -339,13 +280,8 @@ const orb = global.orb,
         return map;
     },
     
-    coerceToLocId = locArrOrId => (typeof locArrOrId === 'string' ? locArrOrId : locArrToId(locArrOrId)),
-    cellExistsForId = locId => getCell(locId) != null,
-    cellExistsForArr = locArr => getCellByLocArr(locArr) != null,
-    cellExists = locArrOrId => cellExistsForId(locArrToId(locArr)),
+    makeAndSetCellFromDatum = (locId, datum) => setCell(locId, (new CellModel()).updateFromData(datum)),
     
-    makeCell = params => new CellModel(params),
-    makeAndSetCell = (locArrOrId, params) => setCell(coerceToLocId(locArrOrId), makeCell(params)),
     makeAndSetMissingCell = locId => {
         let comp;
         const map = getMap(locIdToMapId(locId));
@@ -357,9 +293,8 @@ const orb = global.orb,
                 case 1: comp = 'v2'; break;
             }
         }
-        return makeAndSetCell(locId, {c:comp});
+        return makeAndSetCellFromDatum(locId, {c:comp});
     },
-    
     getCell = (locId, makeIfMissing) => cells[locId] ?? (makeIfMissing ? makeAndSetMissingCell(locId) : null),
     getCellByLocArr = (locArr, makeIfMissing) => getCell(locArrToId(locArr), makeIfMissing),
     setCell = (locId, cell) => {
@@ -443,7 +378,7 @@ const orb = global.orb,
         if (inBOnly.length > 0) {
             for (const cell of inBOnly) {
                 cell.addVisualChangeListener(character);
-                msgAccum[cell.locId] ??= cell.getAsDataForCharacter(character);
+                msgAccum[cell.locId] ??= cell.getAsData(character);
             }
         }
         
@@ -463,7 +398,7 @@ const orb = global.orb,
         if (inBOnly.length > 0) {
             for (const cell of inBOnly) {
                 cell.addAuditoryChangeListener(character);
-                msgAccum[cell.locId] ??= cell.getAsDataForCharacter(character);
+                msgAccum[cell.locId] ??= cell.getAsData(character);
             }
         }
         
@@ -478,7 +413,7 @@ const orb = global.orb,
         if (jsonData) {
             const mapData = jsonData || {};
             for (const mapId in mapData) {
-                setMap(mapId, makeMap(mapData[mapId]));
+                setMap(mapId, (new MapModel()).updateFromData(mapData[mapId]));
             }
             console.log('  Loaded ' + objectKeys(maps).length + ' maps.');
         }
@@ -487,7 +422,7 @@ const orb = global.orb,
         if (jsonData) {
             const cellData = jsonData || {};
             for (const locId in cellData) {
-                setCell(locId, makeCell(cellData[locId]));
+                makeAndSetCellFromDatum(locId, cellData[locId]);
             }
             console.log('  Loaded ' + objectKeys(cells).length + ' cells.');
         }
@@ -500,19 +435,13 @@ const orb = global.orb,
     die = (resolve, reject) => {
         console.log('Save World Maps');
         
-        const cellData = {};
-        for (const locId in cells) {
-            cellData[locId] = cells[locId].getAsData();
-        }
-        
         const mapData = {};
-        for (const mapId in maps) {
-            mapData[mapId] = maps[mapId].getAsData();
-        }
-        
+        for (const mapId in maps) mapData[mapId] = maps[mapId].getAsData();
         orb.saveDataToFile(FILENAME_MAPS, mapData);
         console.log('  Saved ' + objectKeys(mapData).length + '  maps.');
         
+        const cellData = {};
+        for (const locId in cells) cellData[locId] = cells[locId].getAsData();
         orb.saveDataToFile(FILENAME_CELLS, cellData);
         console.log('  Saved ' + objectKeys(cellData).length + ' cells.');
         
@@ -530,8 +459,6 @@ const orb = global.orb,
         
         getCell:getCell,
         getCellByLocArr:getCellByLocArr,
-        cellExistsForArr:cellExistsForArr,
-        makeAndSetCell:makeAndSetCell,
         
         getFixtureById:fixtureId => fixtures[fixtureId],
         
@@ -539,7 +466,7 @@ const orb = global.orb,
             // Send all mapData since it doesn't hurt and it's needed when a character changes maps.
             const mapData = {};
             for (const mapId in maps) {
-                mapData[mapId] = maps[mapId].getAsData();
+                mapData[mapId] = maps[mapId].getAsData(character);
             }
             return mapData;
         },
@@ -612,3 +539,4 @@ const orb = global.orb,
     };
 
 CommonCellModel.FACE_MODEL_CLASS = FaceModel;
+CommonCellModel.INVENTORY_MODEL_CLASS = InventoryModel;

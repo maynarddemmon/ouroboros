@@ -53,7 +53,7 @@
             getTotalVolume: function() {return this.totalVolume;},
             
             
-            // Methods /////////////////////////////////////////////////////////
+            // Item Methods ////////////////////////////////////////////////////
             addItem: function(item) {
                 const itemId = item.getId(),
                     existingItem = this.getItem(itemId);
@@ -74,6 +74,36 @@
                     delete this._items[itemId];
                     return item;
                 }
+            },
+            
+            
+            // Persistence and Serialization ///////////////////////////////////
+            getAsData: function(character) {
+                const retval = {
+                    mc:this.maxCapacity,
+                    mw:this.maxWeight,
+                    mv:this.maxVolume
+                };
+                
+                let itemsData;
+                const items = this._items;
+                if (items) {
+                    for (const item of items) itemsData.push(item.getAsData(character));
+                }
+                if (itemsData) retval.it = itemsData;
+                
+                return retval;
+            },
+            
+            updateFromData: function(datum) {
+                this.setMaxCapacity(datum.mc ?? 0);
+                this.setMaxVolume(datum.mv ?? 0);
+                this.setMaxWeight(datum.mw ?? 0);
+                
+                const itemData = datum.it;
+                if (itemData) {
+                    // FIXME: restore/update item data and use this.addItem
+                }
             }
         });
     
@@ -82,6 +112,21 @@
             getInventoryClass: () => Inventory,
             getInventory: function() {
                 return this._inventory ??= new (this.getInventoryClass())();
+            },
+            
+            
+            // Persistence and Serialization ///////////////////////////////////
+            getAsData: function(character) {
+                const retval = this.callSuper(character),
+                    inventory = this._inventory;
+                if (inventory) retval.inv = inventory.getAsData(character);
+                return retval;
+            },
+            
+            updateFromData: function(datum) {
+                this.callSuper(datum);
+                const inventoryData = datum.inv;
+                if (inventoryData) this.getInventory().updateFromData(inventoryData);
             }
         }),
         

@@ -136,21 +136,6 @@ const orb = global.orb,
             attrs.facing ??= NORTH;
             attrs.moveSpeed ??= 3;
             
-            for (const attrName of CORE_STAT_NAMES) {
-                self[attrName].setFromData(attrs[attrName] ?? {value:0});
-                delete attrs[attrName];
-            }
-            
-            for (const attrName of ABILITY_NAMES) {
-                self[attrName].setFromData(attrs[attrName] ?? {value:8});
-                delete attrs[attrName];
-            }
-            
-            for (const attrName of DERIVED_STAT_NAMES) {
-                self[attrName].setFromData(attrs[attrName]);
-                delete attrs[attrName];
-            }
-            
             self.callSuper(attrs);
             self.refreshStats();
             
@@ -308,61 +293,29 @@ const orb = global.orb,
             }
         },
         
-        getAsData: function() {
-            return {
-                id:this.id,
-                name:this.name,
-                
-                spirit:this.spirit,
-                zombie:this.zombie,
-                astral:this.astral,
-                
-                facing:this.facing,
-                loc:this.loc,
-                
-                moveSpeed:this.moveSpeed,
-                
-                lockMove:this.lockMove,
-                lockAct:this.lockAct,
-                lockReact:this.lockReact,
-                lockFree:this.lockFree,
-                
-                exp:this.exp.getAsData(),
-                lvl:this.lvl.getAsData(),
-                qui:this.qui.getAsData(),
-                
-                str:this.str.getAsData(),
-                agl:this.agl.getAsData(),
-                dex:this.dex.getAsData(),
-                con:this.con.getAsData(),
-                wil:this.wil.getAsData(),
-                per:this.per.getAsData(),
-                wis:this.wis.getAsData(),
-                int:this.int.getAsData(),
-                
-                soma:this.soma.getAsData(),
-                end:this.end.getAsData(),
-                endRec:this.endRec.getAsData(),
-                hp:this.hp.getAsData(),
-                hpRec:this.hpRec.getAsData(),
-                pneuma:this.pneuma.getAsData(),
-                magos:this.magos.getAsData(),
-                magosRec:this.magosRec.getAsData(),
-                psyche:this.psyche.getAsData(),
-                psycheRec:this.psycheRec.getAsData()
-            };
+        
+        // Persistence and Serialization ///////////////////////////////////////
+        getAsData: function(character) {
+            const retval = this.callSuper(character);
+            if (!character) {
+                for (const STAT_LIST of [CORE_STAT_NAMES, ABILITY_NAMES, DERIVED_STAT_NAMES]) {
+                    for (const statName of STAT_LIST) {
+                        retval[statName] = this[statName].getAsData(character);
+                    }
+                }
+            }
+            return retval;
         },
         
-        /** Gets data that the provided character can see/hear/sense about this entity. */
-        getAsDataForCharacter: function(character) {
-            return {
-                id: this.getId(),
-                name: this.getName(),
-                spirit: this.isSpirit(),
-                zombie: this.isZombie(),
-                astral: this.isAstralProjected(),
-                facing: this.getFacing()
-            };
+        updateFromData: function(datum) {
+            this.callSuper(datum);
+            for (const STAT_LIST of [CORE_STAT_NAMES, ABILITY_NAMES, DERIVED_STAT_NAMES]) {
+                for (const statName of STAT_LIST) {
+                    const statDatum = datum[statName];
+                    if (statDatum != null) this[statName].updateFromData(statDatum);
+                }
+            }
+            return this;
         },
         
         
@@ -481,22 +434,7 @@ const orb = global.orb,
         getVisualObservedCells: function() {return this._visualObservedCells;},
         setVisualObservedCells: function(v) {this._visualObservedCells = v;},
         getAuditoryObservedCells: function() {return this._auditoryObservedCells;},
-        setAuditoryObservedCells: function(v) {this._auditoryObservedCells = v;},
-        
-        getAsData: function() {
-            const retval = this.callSuper();
-            retval.uid = this.uid;
-            retval.perms = this.perms;
-            retval.inWorld = this.inWorld;
-            return retval;
-        },
-        
-        /** Gets data that the provided character can see/hear/sense about this character. */
-        getAsDataForCharacter: function(character) {
-            const retval = this.callSuper(character);
-            retval.inWorld = this.get('inWorld');
-            return retval;
-        }
+        setAuditoryObservedCells: function(v) {this._auditoryObservedCells = v;}
     }),
     
     // An object holding all characters by object id
@@ -583,8 +521,7 @@ const orb = global.orb,
             let count = 0;
             for (const datum of jsonData) {
                 if (datum.id && datum.uid && datum.name) {
-                    const character = new Character(datum);
-                    if (storeCharacterInRepo(character)) count++;
+                    if (storeCharacterInRepo((new Character()).updateFromData(datum))) count++;
                 } else {
                     console.error('  Failed to restore character: ', datum);
                 }
@@ -600,9 +537,7 @@ const orb = global.orb,
         console.log('Save Characters');
         
         // Force exit all in world characters
-        for (const id in charactersById) {
-            doCharacterExitWorld(charactersById[id]);
-        }
+        for (const id in charactersById) doCharacterExitWorld(charactersById[id]);
         
         // Save Characters
         const characterData = [];
@@ -639,12 +574,15 @@ const orb = global.orb,
             } else if (getCharacterByName(name)) {
                 retval.message = 'Character name already exists.';
             } else {
-                const character = new Character({
+                const character = (new Character()).updateFromData({
                     id:orb.getCharacterGuid(),
                     uid:userId,
                     name:name,
                     loc:[0,2,2,0]
                 });
+                for (const attrName of CORE_STAT_NAMES) character.set(attrName, 0);
+                for (const attrName of ABILITY_NAMES) character.set(attrName, 8);
+                
                 character.topUpStats();
                 
                 if (storeCharacterInRepo(character)) {
