@@ -89,7 +89,7 @@
             // Persistence and Serialization ///////////////////////////////////
             updateFromData: function(datum) {
                 this.callSuper?.(datum);
-                if (datum.ent) this.setEnt(datum.ent);
+                this.setEnt(datum.ent);
                 return this;
             }
         }),

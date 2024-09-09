@@ -54,8 +54,12 @@ const orb = global.orb,
             }
         }
     });
-    DerivedEntityStatModel = new JSClass('DerivedEntityStatModel', EntityStatModel, [DerivedStatModelMixin]),
-    DerivedEntityMaxStatModel = new JSClass('DerivedEntityMaxStatModel', EntityStatModel, [DerivedMaxStatModelMixin]),
+    DerivedEntityStatModel = new JSClass('DerivedEntityStatModel', EntityStatModel, {
+        include:[DerivedStatModelMixin]
+    }),
+    DerivedEntityMaxStatModel = new JSClass('DerivedEntityMaxStatModel', EntityStatModel, {
+        include:[DerivedMaxStatModelMixin]
+    }),
     
     EntityModel = new JSClass('EntityModel', Eventable, {
         include:[CommonEntityModelMixin],
