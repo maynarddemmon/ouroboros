@@ -137,6 +137,18 @@
                 accum.push(entitiesEntry);
             }
             
+            // Items
+            const items = cell.getInventory().getAllItems();
+            if (Object.keys(items).length > 0) {
+                let itemsEntry = 'Scattered about the area are:<ul>';
+                for (const itemId in items) {
+                    const item = items[itemId];
+                    itemsEntry += '<li>' + item.getName() + '</li>';
+                }
+                itemsEntry += '</ul>';
+                accum.push(itemsEntry);
+            }
+            
             // Faces
             const directionWords = getDirectionWordsByFacing(facing);
             for (const faceDir of COMPASS_FIELDS) {

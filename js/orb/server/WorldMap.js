@@ -17,7 +17,8 @@ const orb = global.orb,
         greek:{TYPE_CELL_DATA, TYPE_SOUND, TYPE_EXPOSITION},
         map:{CommonMapModel},
         cell:{CommonFaceModel, CommonCellModel},
-        inventory:{Inventory}
+        inventory:{Inventory},
+        item:{Item}
     } = global.urob,
     
     {addMessageToUser} = require('./AccountService.js'),
@@ -134,7 +135,37 @@ const orb = global.orb,
         makeFixtureFromDatum: datum => new FixtureModel(datum),
     }),
     
-    InventoryModel = new JSClass('InventoryModel', Inventory, {}),
+    InventoryModel = new JSClass('InventoryModel', Inventory, {
+        getAsData: function(character) {
+            const retval = this.callSuper(character);
+            
+            // All CellModels will have the same configuration for inventory so don't write the
+            // details if we're not getting this for a character.
+            if (!character) {
+                delete retval.mc;
+                delete retval.mw;
+                delete retval.mv;
+            }
+            
+            return retval;
+        },
+        
+        updateFromData: function(datum) {
+            // All CellModels will have the same configuration for inventory
+            datum.mc = 1000;
+            datum.mw = 100000;
+            datum.mv = 100 * 100 * 100 * 27; // 3m cube in cubic cm.
+            
+            this.callSuper(datum);
+        }
+    }),
+    
+    ItemModel = new JSClass('ItemModel', Item, {
+        updateFromData: function(datum) {
+            datum.id ??= orb.getItemGuid();
+            this.callSuper(datum);
+        }
+    }),
     
     CellModel = new JSClass('CellModel', CommonCellModel, {
         // Accessors ///////////////////////////////////////////////////////////
@@ -540,3 +571,4 @@ const orb = global.orb,
 
 CommonCellModel.FACE_MODEL_CLASS = FaceModel;
 CommonCellModel.INVENTORY_MODEL_CLASS = InventoryModel;
+Inventory.ITEM_MODEL_CLASS = ItemModel;

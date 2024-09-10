@@ -18,7 +18,7 @@
                 newTotalVolume = inventory.getTotalVolume() + item.getVolume();
             if (newTotalCapacity <= inventory.getMaxCapacity() && 
                 newTotalWeight <= inventory.getMaxWeight() && 
-                newTotalVolume <= inventory.getTotalVolume()
+                newTotalVolume <= inventory.getMaxVolume()
             ) {
                 inventory.totalCapcity = newTotalCapacity;
                 inventory.totalWeight = newTotalWeight;
@@ -28,6 +28,12 @@
         },
         
         Inventory = new JSClass('Inventory', Eventable, {
+            extend: {
+                ITEM_MODEL_CLASS:null
+            },
+            
+            
+            // Life Cycle //////////////////////////////////////////////////////
             init: function(attrs) {
                 this.maxCapacity = this.maxWeight = this.maxVolume = 0;
                 this.totalCapacity = this.totalWeight = this.totalVolume = 0;
@@ -54,6 +60,13 @@
             
             
             // Item Methods ////////////////////////////////////////////////////
+            makeItemFromData: function(itemDatum) {
+                const item = new (this.getItemClass())();
+                item.updateFromData(itemDatum);
+                return item;
+            },
+            getItemClass: () => Inventory.ITEM_MODEL_CLASS,
+            
             addItem: function(item) {
                 const itemId = item.getId(),
                     existingItem = this.getItem(itemId);
@@ -88,7 +101,10 @@
                 let itemsData;
                 const items = this._items;
                 if (items) {
-                    for (const item of items) itemsData.push(item.getAsData(character));
+                    itemsData = [];
+                    for (const itemId in items) {
+                        itemsData.push(items[itemId].getAsData(character));
+                    }
                 }
                 if (itemsData) retval.it = itemsData;
                 
@@ -102,7 +118,9 @@
                 
                 const itemData = datum.it;
                 if (itemData) {
-                    // FIXME: restore/update item data and use this.addItem
+                    for (const itemDatum of itemData) {
+                        this.addItem(this.makeItemFromData(itemDatum));
+                    }
                 }
             }
         });

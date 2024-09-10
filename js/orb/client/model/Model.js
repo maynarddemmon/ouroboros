@@ -15,7 +15,8 @@
             map:{CommonMapModel},
             entity:{CommonEntityModelMixin, CommonCharacterModelMixin},
             cell:{CommonFaceModel, CommonCellModel},
-            inventory:{Inventory}
+            inventory:{Inventory},
+            item:{Item}
         } = urob,
         
         getMapData = () => mapData ??= {},
@@ -54,6 +55,10 @@
         }),
         
         InventoryModel = new JSClass('InventoryModel', Inventory, {
+            
+        }),
+        
+        ItemModel = new JSClass('ItemModel', Item, {
             
         }),
         
@@ -309,4 +314,5 @@
     
     CommonCellModel.FACE_MODEL_CLASS = FaceModel;
     CommonCellModel.INVENTORY_MODEL_CLASS = InventoryModel;
+    Inventory.ITEM_MODEL_CLASS = ItemModel;
 })(orb);

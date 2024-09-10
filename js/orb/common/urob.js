@@ -196,8 +196,9 @@
         require('./urob/composition.js');
         require('./urob/fixture.js');
         require('./urob/MapModel.js');
+        require('./urob/inventory.js');
+        require('./urob/item.js');
         require('./urob/EntityModel.js');
-        require('./urob/Inventory.js');
         require('./urob/CellModel.js');
     }
 })();

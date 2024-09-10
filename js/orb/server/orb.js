@@ -12,6 +12,7 @@ const path = require('path'),
     GUID_COUNTER = {},
     GUID_KEY_CHARACTER = 'C',
     GUID_KEY_FIXTURE = 'F',
+    GUID_KEY_ITEM = 'I',
     getGuidString = prefix => prefix + (++GUID_COUNTER[prefix]),
     
     makePath = suffix => path.join(__dirname, PATH_PREFIX + suffix),
@@ -62,7 +63,7 @@ const path = require('path'),
                 for (const key in guidCounter) GUID_COUNTER[key] = guidCounter[key];
             } else {
                 console.warn('No guidCounter so initializing one.');
-                for (const key of [GUID_KEY_CHARACTER, GUID_KEY_FIXTURE]) GUID_COUNTER[key] = -1;
+                for (const key of [GUID_KEY_CHARACTER, GUID_KEY_FIXTURE, GUID_KEY_ITEM]) GUID_COUNTER[key] = -1;
             }
             resolve();
         } else {
@@ -130,6 +131,7 @@ const path = require('path'),
         
         getCharacterGuid: () => getGuidString(GUID_KEY_CHARACTER),
         getFixtureGuid: () => getGuidString(GUID_KEY_FIXTURE),
+        getItemGuid: () => getGuidString(GUID_KEY_ITEM),
         
         /** Watch a file for changes and execute a callback when a change
             occurs setting the file to a non-empty value. On each such change
