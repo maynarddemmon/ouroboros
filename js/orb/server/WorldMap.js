@@ -17,8 +17,7 @@ const orb = global.orb,
         greek:{TYPE_CELL_DATA, TYPE_SOUND, TYPE_EXPOSITION},
         map:{CommonMapModel},
         cell:{CommonFaceModel, CommonCellModel},
-        inventory:{Inventory},
-        item:{Item}
+        inventory:{Inventory}
     } = global.urob,
     
     {addMessageToUser} = require('./AccountService.js'),
@@ -156,13 +155,6 @@ const orb = global.orb,
             datum.mw = 100000;
             datum.mv = 100 * 100 * 100 * 27; // 3m cube in cubic cm.
             
-            this.callSuper(datum);
-        }
-    }),
-    
-    ItemModel = new JSClass('ItemModel', Item, {
-        updateFromData: function(datum) {
-            datum.id ??= orb.getItemGuid();
             this.callSuper(datum);
         }
     }),
@@ -571,4 +563,3 @@ const orb = global.orb,
 
 CommonCellModel.FACE_MODEL_CLASS = FaceModel;
 CommonCellModel.INVENTORY_MODEL_CLASS = InventoryModel;
-Inventory.ITEM_MODEL_CLASS = ItemModel;

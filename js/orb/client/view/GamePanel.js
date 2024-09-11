@@ -461,6 +461,9 @@
                 for (const guage of [levelGuage, somaGuage, hpGuage, endGuage, pneumaGuage, magosGuage, psycheGuage]) guage.setupConstraint();
                 gamePanel.constrain('updateCharacterDetails', [character, 'qui']);
                 gamePanel.attachToDom(GlobalKeys, '_keyDown', 'keydown', true);
+                
+                // FIXME
+console.log(character.getInventory());
             } else {
                 for (const guage of [levelGuage, somaGuage, hpGuage, endGuage, pneumaGuage, magosGuage, psycheGuage]) guage?.teardownConstraint();
                 gamePanel.releaseConstraint('updateCharacterDetails');

@@ -13,7 +13,10 @@
             fixture:{CommonFixtureModel},
             greek:{TYPE_MOVE},
             map:{CommonMapModel},
-            entity:{CommonEntityModelMixin, CommonCharacterModelMixin},
+            entity:{
+                CommonEntityModelMixin, CommonCharacterModelMixin,
+                CORE_STAT_NAMES, ABILITY_NAMES, DERIVED_STAT_NAMES
+            },
             cell:{CommonFaceModel, CommonCellModel},
             inventory:{Inventory},
             item:{Item}
@@ -41,7 +44,6 @@
                 entity = setEntity(entityId, new EntityModel());
             }
             entity.updateFromData(entityDatum);
-            
             return entity;
         },
         setEntity = (entityId, entity) => entityData[entityId] = entity,
@@ -116,6 +118,19 @@
             
             /** @overrides */
             getWorldClockNow: () => model.worldClockTime,
+            
+            
+            // Persistence and Serialization ///////////////////////////////////
+            updateFromData: function(datum) {
+                for (const STAT_LIST of [CORE_STAT_NAMES, ABILITY_NAMES, DERIVED_STAT_NAMES]) {
+                    for (const statName of STAT_LIST) {
+                        const statValue = datum[statName];
+                        if (statValue != null) this.set(statName, statValue);
+                    }
+                }
+                
+                return this.callSuper(datum);
+            }
         }),
         
         CharacterModel = new JSClass('CharacterModel', EntityModel, {
@@ -165,6 +180,10 @@
         }),
         
         model = pkg.model = new JS.Singleton('Model', Node, {
+            // Entity:start
+            getEntityById: entityId => entityData[entityId],
+            // Entity:end
+            
             // Characters:start
             setMaxCharacters: v => {model.set('maxCharacters', v, true);},
             getCharacters: () => characters,
@@ -182,37 +201,23 @@
             setCharactersFromData: data => {
                 if (Array.isArray(data)) {
                     for (const datum of data) {
-                        const existingCharacter = model.getCharacterById(datum.id);
-                        if (existingCharacter) {
-                            existingCharacter.callSetters(datum);
-                        } else {
-                            const character = new CharacterModel(datum);
-                            if (character) {
-                                characters.push(character);
-                                setEntity(character.getId(), character);
-                            }
+                        if (!model.updateCharacterFromData(datum)) {
+                            model.addCharacterFromData(datum, true);
                         }
                     }
                 }
                 model.fireEvent('characters', characters);
             },
-            addCharacterFromData: datum => {
-                const character = new CharacterModel(datum);
+            addCharacterFromData: (datum, noEvent) => {
+                const character = new CharacterModel();
                 if (character) {
+                    character.updateFromData(datum);
                     characters.push(character);
                     setEntity(character.getId(), character);
-                    model.fireEvent('characters', characters);
+                    if (!noEvent) model.fireEvent('characters', characters);
                 }
             },
-            
-            updateCharacterFromData: datum => {
-                const existingCharacter = model.getCharacterById(datum.id);
-                if (existingCharacter) {
-                    existingCharacter.callSetters(datum);
-                    return existingCharacter;
-                }
-                return null;
-            },
+            updateCharacterFromData: datum => model.getCharacterById(datum.id)?.updateFromData(datum),
             
             removeCharacterById: id => {
                 let i = characters.length;
@@ -251,6 +256,10 @@
             },
             // Map:end
             
+            // Fixture:start
+            getFixtureById: fixtureId => fixtureData[fixtureId],
+            // Fixture:end
+            
             // Cell:start
             makeUnknownCell: locId => (new CellModel()).updateFromData({locId:locId, c:'unk'}),
             getCell: locId => cellData[locId],
@@ -280,14 +289,6 @@
             },
             // Cell:end
             
-            // Entity:start
-            getEntityById: entityId => entityData[entityId],
-            // Entity:end
-            
-            // Fixture:start
-            getFixtureById: fixtureId => fixtureData[fixtureId],
-            // Fixture:end
-            
             
             // Methods /////////////////////////////////////////////////////////
             wipeClean: () => {
@@ -314,5 +315,6 @@
     
     CommonCellModel.FACE_MODEL_CLASS = FaceModel;
     CommonCellModel.INVENTORY_MODEL_CLASS = InventoryModel;
+    CommonEntityModelMixin.INVENTORY_MODEL_CLASS = InventoryModel;
     Inventory.ITEM_MODEL_CLASS = ItemModel;
 })(orb);

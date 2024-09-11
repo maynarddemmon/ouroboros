@@ -107,7 +107,6 @@
                     }
                 }
                 if (itemsData) retval.it = itemsData;
-                
                 return retval;
             },
             
@@ -135,14 +134,14 @@
             
             // Persistence and Serialization ///////////////////////////////////
             getAsData: function(character) {
-                const retval = this.callSuper(character),
+                const retval = this.callSuper?.(character) ?? {},
                     inventory = this._inventory;
                 if (inventory) retval.inv = inventory.getAsData(character);
                 return retval;
             },
             
             updateFromData: function(datum) {
-                this.callSuper(datum);
+                this.callSuper?.(datum);
                 const inventoryData = datum.inv;
                 if (inventoryData) this.getInventory().updateFromData(inventoryData);
             }

@@ -16,7 +16,12 @@ const orb = global.orb,
         },
         facing:{NORTH},
         stat:{StatModel, DerivedStatModelMixin, DerivedMaxStatModelMixin, RecoverableStatMixin},
-        entity:{CommonEntityModelMixin, CommonCharacterModelMixin, experienceToLevel}
+        entity:{
+            CommonEntityModelMixin, CommonCharacterModelMixin, experienceToLevel,
+            CORE_STAT_NAMES, ABILITY_NAMES, DERIVED_STAT_NAMES
+        },
+        inventory:{Inventory},
+        item:{Item}
     } = global.urob,
     
     {getNow} = require('./WorldClock.js'),
@@ -35,10 +40,6 @@ const orb = global.orb,
     
     BASE_QUINTESSENCE = 5,
     levelToQuintessence = lvl => BASE_QUINTESSENCE + 3*lvl,
-    
-    CORE_STAT_NAMES = ['exp','lvl','qui'],
-    ABILITY_NAMES = ['str','agl','dex','con','wil','per','wis','int'],
-    DERIVED_STAT_NAMES = ['soma','end','endRec','hp','hpRec','pneuma','magos','magosRec','psyche','psycheRec'],
     
     averageValueFloor = (v1, v2) => mathFloor((v2 + v2)/2),
     dividedValueCeil = (v, divisor) => mathCeil(v / divisor),
@@ -59,6 +60,17 @@ const orb = global.orb,
     }),
     DerivedEntityMaxStatModel = new JSClass('DerivedEntityMaxStatModel', EntityStatModel, {
         include:[DerivedMaxStatModelMixin]
+    }),
+    
+    InventoryModel = new JSClass('InventoryModel', Inventory, {
+        
+    }),
+    
+    ItemModel = new JSClass('ItemModel', Item, {
+        updateFromData: function(datum) {
+            datum.id ??= orb.getItemGuid();
+            this.callSuper(datum);
+        }
     }),
     
     EntityModel = new JSClass('EntityModel', Eventable, {
@@ -312,14 +324,20 @@ const orb = global.orb,
         },
         
         updateFromData: function(datum) {
-            this.callSuper(datum);
             for (const STAT_LIST of [CORE_STAT_NAMES, ABILITY_NAMES, DERIVED_STAT_NAMES]) {
                 for (const statName of STAT_LIST) {
                     const statDatum = datum[statName];
                     if (statDatum != null) this[statName].updateFromData(statDatum);
                 }
             }
-            return this;
+            
+            // Initialize Inventory Value
+            const inventoryDatum = datum.inv ??= {};
+            inventoryDatum.mc = 10;
+            inventoryDatum.mw = this.str.getValue() * 8;
+            inventoryDatum.mv = 100 * 100 * 100;
+            
+            return this.callSuper(datum);
         },
         
         
@@ -634,3 +652,6 @@ const orb = global.orb,
             return true;
         }
     };
+
+CommonEntityModelMixin.INVENTORY_MODEL_CLASS = InventoryModel;
+Inventory.ITEM_MODEL_CLASS = ItemModel;

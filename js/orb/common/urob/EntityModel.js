@@ -13,16 +13,29 @@
         
         {floor:mathFloor, ceil:mathCeil, sqrt:mathSqrt} = Math,
         
+        {
+            inventory:{InventoryContainer}
+        } = pkg,
+        
         PERM_CREATOR = pkg.permission.PERM_CREATOR,
         
-        BASE_EXP_PER_LVL = 1000;
-    
-    pkg.entity = {
-        experienceByLevel: lvl => lvl * BASE_EXP_PER_LVL,
-        minExperienceForLevel: lvl => ((lvl * (lvl + 1)) / 2) * BASE_EXP_PER_LVL,
-        experienceToLevel: exp => mathFloor((-1 + mathSqrt(1 + 8*exp/BASE_EXP_PER_LVL)) / 2),
+        BASE_EXP_PER_LVL = 1000,
         
-        CommonEntityModelMixin: new JSModule('CommonEntityModelMixin', {
+        CORE_STAT_NAMES = ['exp','lvl','qui'],
+        ABILITY_NAMES = ['str','agl','dex','con','wil','per','wis','int'],
+        DERIVED_STAT_NAMES = ['soma','end','endRec','hp','hpRec','pneuma','magos','magosRec','psyche','psycheRec'],
+        
+        CommonEntityModelMixin = new JSModule('CommonEntityModelMixin', {
+            include:[InventoryContainer],
+            
+            
+            // Class Methods and Attributes ////////////////////////////////////
+            extend: {
+                INVENTORY_MODEL_CLASS:null
+            },
+            
+            
+            // Life Cycle //////////////////////////////////////////////////////
             init: function(attrs) {
                 attrs.spirit ??= false;
                 attrs.zombie ??= false;
@@ -35,6 +48,10 @@
                 
                 this.callSuper(attrs);
             },
+            
+            
+            // Accessors ///////////////////////////////////////////////////////
+            getInventoryClass: () => CommonEntityModelMixin.INVENTORY_MODEL_CLASS,
             
             setId: function(v) {this.set('id', v, true);},
             getId: function() {return this.id;},
@@ -124,8 +141,18 @@
                 
                 return this;
             }
-        }),
+        });
+    
+    pkg.entity = {
+        experienceByLevel: lvl => lvl * BASE_EXP_PER_LVL,
+        minExperienceForLevel: lvl => ((lvl * (lvl + 1)) / 2) * BASE_EXP_PER_LVL,
+        experienceToLevel: exp => mathFloor((-1 + mathSqrt(1 + 8*exp/BASE_EXP_PER_LVL)) / 2),
         
+        CORE_STAT_NAMES:CORE_STAT_NAMES,
+        ABILITY_NAMES:ABILITY_NAMES,
+        DERIVED_STAT_NAMES:DERIVED_STAT_NAMES,
+        
+        CommonEntityModelMixin:CommonEntityModelMixin,
         CommonCharacterModelMixin: new JSModule('CommonCharacterModelMixin', {
             init: function(attrs) {
                 attrs.uid ??= null;
