@@ -21,7 +21,7 @@
             
             
             // Persistence and Serialization ///////////////////////////////////
-            getAsData: function(character) {
+            getAsData: function(cfg) {
                 return {
                     name:this.name,
                     description:this.description,

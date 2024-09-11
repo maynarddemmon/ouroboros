@@ -185,8 +185,8 @@
             
             
             // Persistence and Serialization ///////////////////////////////////
-            getAsData: function(character) {
-                const retval = this.callSuper(character);
+            getAsData: function(cfg) {
+                const retval = this.callSuper(cfg);
                 retval.c = this.c;
                 return retval;
             },

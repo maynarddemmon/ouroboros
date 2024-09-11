@@ -91,7 +91,7 @@
             
             
             // Persistence and Serialization ///////////////////////////////////
-            getAsData: function(character) {
+            getAsData: function(cfg) {
                 const retval = {
                     mc:this.maxCapacity,
                     mw:this.maxWeight,
@@ -103,7 +103,7 @@
                 if (items) {
                     itemsData = [];
                     for (const itemId in items) {
-                        itemsData.push(items[itemId].getAsData(character));
+                        itemsData.push(items[itemId].getAsData(cfg));
                     }
                 }
                 if (itemsData) retval.it = itemsData;
@@ -133,10 +133,10 @@
             
             
             // Persistence and Serialization ///////////////////////////////////
-            getAsData: function(character) {
-                const retval = this.callSuper?.(character) ?? {},
+            getAsData: function(cfg) {
+                const retval = this.callSuper?.(cfg) ?? {},
                     inventory = this._inventory;
-                if (inventory) retval.inv = inventory.getAsData(character);
+                if (inventory) retval.inv = inventory.getAsData(cfg);
                 return retval;
             },
             

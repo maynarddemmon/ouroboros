@@ -82,15 +82,15 @@
             
             
             // Persistence and Serialization ///////////////////////////////////
-            getAsData: function(character) {
-                const retval = this.callSuper?.(character) ?? {};
+            getAsData: function(cfg) {
+                const retval = this.callSuper?.(cfg) ?? {};
                 
                 let fixturesData;
                 const fixtures = this.fixtures;
                 if (fixtures?.size > 0) {
                     fixturesData = {};
                     for (const [fixtureId, fixture] of fixtures) {
-                        fixturesData[fixtureId] = fixture.getAsData(character);
+                        fixturesData[fixtureId] = fixture.getAsData(cfg);
                     }
                 }
                 if (fixturesData) retval.fix = fixturesData;
@@ -253,21 +253,22 @@
             
             
             // Persistence and Serialization ///////////////////////////////////
-            getAsData: function(character) {
-                const retval = this.callSuper?.(character) ?? {};
+            getAsData: function(cfg) {
+                const retval = this.callSuper?.(cfg) ?? {};
                 
                 for (const attrName of COMPASS_FIELDS) {
                     const attr = this[attrName];
-                    if (attr != null) retval[attrName] = attr.getAsData(character);
+                    if (attr != null) retval[attrName] = attr.getAsData(cfg);
                 }
                 
+                const character = cfg?.character;
                 if (character) {
                     const entities = this.entities;
                     if (entities?.size > 0) {
                         const accum = [],
                             characterId = character.getId();
                         for (const entity of entities.values()) {
-                            if (entity.getId() !== characterId) accum.push(entity.getAsData(character));
+                            if (entity.getId() !== characterId) accum.push(entity.getAsData(cfg));
                         }
                         if (accum.length > 0) retval.ent = accum;
                     }

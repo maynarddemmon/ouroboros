@@ -63,7 +63,19 @@ const orb = global.orb,
     }),
     
     InventoryModel = new JSClass('InventoryModel', Inventory, {
-        
+        getAsData: function(cfg) {
+            const retval = this.callSuper(cfg);
+            
+            // When saving to disk, remove mw, mv and mc since those will all be calculated during 
+            // updateFromData for Entitites and this Inventory is only for use with Entitites.
+            if (cfg?.isSave) {
+                delete retval.mw;
+                delete retval.mv;
+                delete retval.mc;
+            }
+            
+            return retval;
+        }
     }),
     
     ItemModel = new JSClass('ItemModel', Item, {
@@ -311,12 +323,12 @@ const orb = global.orb,
         
         
         // Persistence and Serialization ///////////////////////////////////////
-        getAsData: function(character) {
-            const retval = this.callSuper(character);
-            if (!character) {
+        getAsData: function(cfg) {
+            const retval = this.callSuper(cfg);
+            if (!cfg?.character) {
                 for (const STAT_LIST of [CORE_STAT_NAMES, ABILITY_NAMES, DERIVED_STAT_NAMES]) {
                     for (const statName of STAT_LIST) {
-                        retval[statName] = this[statName].getAsData(character);
+                        retval[statName] = this[statName].getAsData(cfg);
                     }
                 }
             }
@@ -564,7 +576,7 @@ const orb = global.orb,
         // Save Characters
         const characterData = [];
         for (const characterId in charactersById) {
-            characterData.push(charactersById[characterId].getAsData());
+            characterData.push(charactersById[characterId].getAsData({isSave:true}));
         }
         orb.saveDataToFile(FILENAME_CHARACTERS, characterData);
         

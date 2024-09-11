@@ -42,7 +42,7 @@
             
             
             // Persistence and Serialization ///////////////////////////////////
-            getAsData: function(character) {
+            getAsData: function(cfg) {
                 return {
                     id:this.id,
                     n:this.n,

@@ -143,7 +143,7 @@
             
             
             // Persistence and Serialization ///////////////////////////////////
-            getAsData: function(character) {
+            getAsData: function(cfg) {
                 return {
                     min:this.min,
                     max:this.max,

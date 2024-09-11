@@ -135,12 +135,12 @@ const orb = global.orb,
     }),
     
     InventoryModel = new JSClass('InventoryModel', Inventory, {
-        getAsData: function(character) {
-            const retval = this.callSuper(character);
+        getAsData: function(cfg) {
+            const retval = this.callSuper(cfg);
             
             // All CellModels will have the same configuration for inventory so don't write the
-            // details if we're not getting this for a character.
-            if (!character) {
+            // details if we're saving to disk.
+            if (cfg?.isSave) {
                 delete retval.mc;
                 delete retval.mw;
                 delete retval.mv;
@@ -260,7 +260,7 @@ const orb = global.orb,
                 const self = this,
                     locId = self.locId;
                 for (const character of self.getVisualChangeListeners()) {
-                    sendCellDataMsgToCharacter(character, {[locId]:self.getAsData(character)});
+                    sendCellDataMsgToCharacter(character, {[locId]:self.getAsData({character:character})});
                 }
             }
         },
@@ -269,7 +269,7 @@ const orb = global.orb,
                 const self = this,
                     locId = self.locId;
                 for (const character of self.getAuditoryChangeListeners()) {
-                    sendCellDataMsgToCharacter(character, {[locId]:self.getAsData(character)});
+                    sendCellDataMsgToCharacter(character, {[locId]:self.getAsData({character:character})});
                 }
             }
         },
@@ -293,6 +293,22 @@ const orb = global.orb,
         
         sendExposition: function(message, medium) {
             worldMap.sendExpositionToCell(this, message, medium);
+        },
+        
+        
+        // Persistence and Serialization ///////////////////////////////////////
+        getAsData: function(cfg) {
+            const retval = this.callSuper?.(cfg) ?? {};
+            
+            // Don't save empty inventories to disk under any circumstances.
+            if (
+                cfg?.isSave && retval.inv &&
+                (!retval.inv.it || retval.inv.it.length === 0)
+            ) {
+                delete retval.inv;
+            }
+            
+            return retval;
         }
     }),
     
@@ -401,7 +417,7 @@ const orb = global.orb,
         if (inBOnly.length > 0) {
             for (const cell of inBOnly) {
                 cell.addVisualChangeListener(character);
-                msgAccum[cell.locId] ??= cell.getAsData(character);
+                msgAccum[cell.locId] ??= cell.getAsData({character:character});
             }
         }
         
@@ -421,7 +437,7 @@ const orb = global.orb,
         if (inBOnly.length > 0) {
             for (const cell of inBOnly) {
                 cell.addAuditoryChangeListener(character);
-                msgAccum[cell.locId] ??= cell.getAsData(character);
+                msgAccum[cell.locId] ??= cell.getAsData({character:character});
             }
         }
         
@@ -459,12 +475,12 @@ const orb = global.orb,
         console.log('Save World Maps');
         
         const mapData = {};
-        for (const mapId in maps) mapData[mapId] = maps[mapId].getAsData();
+        for (const mapId in maps) mapData[mapId] = maps[mapId].getAsData({isSave:true});
         orb.saveDataToFile(FILENAME_MAPS, mapData);
         console.log('  Saved ' + objectKeys(mapData).length + '  maps.');
         
         const cellData = {};
-        for (const locId in cells) cellData[locId] = cells[locId].getAsData();
+        for (const locId in cells) cellData[locId] = cells[locId].getAsData({isSave:true});
         orb.saveDataToFile(FILENAME_CELLS, cellData);
         console.log('  Saved ' + objectKeys(cellData).length + ' cells.');
         
@@ -489,7 +505,7 @@ const orb = global.orb,
             // Send all mapData since it doesn't hurt and it's needed when a character changes maps.
             const mapData = {};
             for (const mapId in maps) {
-                mapData[mapId] = maps[mapId].getAsData(character);
+                mapData[mapId] = maps[mapId].getAsData({character:character});
             }
             return mapData;
         },

@@ -100,8 +100,8 @@
             
             
             // Persistence and Serialization ///////////////////////////////////
-            getAsData: function(character) {
-                const retval = this.callSuper?.(character) ?? {};
+            getAsData: function(cfg) {
+                const retval = this.callSuper?.(cfg) ?? {};
                 
                 retval.id = this.id;
                 retval.name = this.name;
@@ -110,7 +110,7 @@
                 retval.astral = this.astral;
                 retval.facing = this.facing;
                 
-                if (!character) {
+                if (!cfg?.character) {
                     retval.loc = this.loc;
                     retval.moveSpeed = this.moveSpeed;
                     retval.lockMove = this.lockMove;
@@ -177,10 +177,10 @@
             
             
             // Persistence and Serialization ///////////////////////////////////
-            getAsData: function(character) {
-                const retval = this.callSuper(character);
+            getAsData: function(cfg) {
+                const retval = this.callSuper(cfg);
                 retval.inWorld = this.inWorld;
-                if (!character) {
+                if (!cfg?.character) {
                     retval.uid = this.uid;
                     retval.perms = this.perms;
                 }
