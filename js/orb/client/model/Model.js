@@ -19,7 +19,7 @@
             },
             cell:{CommonFaceModel, CommonCellModel},
             inventory:{Inventory},
-            item:{Item}
+            item:{Item, getItemById, clearItemCache}
         } = urob,
         
         getMapData = () => mapData ??= {},
@@ -260,6 +260,10 @@
             getFixtureById: fixtureId => fixtureData[fixtureId],
             // Fixture:end
             
+            // Item:start
+            getItemById:getItemById,
+            // Item:end
+            
             // Cell:start
             makeUnknownCell: locId => (new CellModel()).updateFromData({locId:locId, c:'unk'}),
             getCell: locId => cellData[locId],
@@ -302,6 +306,7 @@
                 model.fireEvent('mapsChanged');
                 cellData = {};
                 fixtureData = {};
+                clearItemCache();
                 // Purge non-Characters.
                 for (const entityId in entityData) {
                     const entity = entityData[entityId];

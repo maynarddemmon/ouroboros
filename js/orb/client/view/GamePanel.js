@@ -50,7 +50,7 @@
             greek:{
                 ATTR_DIRECTION,
                 TYPE_EXIT_WORLD, TYPE_ALTER_CELL, TYPE_CHANGE_FACING, TYPE_VOCALIZE,
-                TYPE_INTERACT_WITH_FIXTURE
+                TYPE_INTERACT_WITH_FIXTURE, TYPE_INTERACT_WITH_ITEM
             },
             entity:{experienceByLevel, minExperienceForLevel}
         } = global.urob,
@@ -101,7 +101,7 @@
                 const interactions = fixtureIds[fixtureId],
                     fixture = model.getFixtureById(fixtureId);
                 
-                fixtureEntry += fixture.describeForCharacter(character);
+                fixtureEntry += fixture.describe(character);
                 
                 if (interactions) {
                     for (const interaction of interactions) {
@@ -111,6 +111,18 @@
                 accum.push(fixtureEntry);
             }
             return concatenateList(accum);
+        },
+        
+        getItemClause = (item, character) => {
+            const interactions = item.getInteractions(character);
+            let accum = [];
+            if (interactions?.length > 0) {
+                const itemId = item.getId();
+                for (const interaction of interactions) {
+                    accum.push(' [<a href="#" onclick="orb.gamePanel.doItemLink(\'' + itemId + '\',\'' + interaction + '\'); return false;">' + interaction + '</a>]');
+                }
+            }
+            return item.describe(character) + (accum.length > 0 ? concatenateList(accum) : '');
         },
         
         getFullLocInfo = (character, cell) => {
@@ -142,8 +154,7 @@
             if (Object.keys(items).length > 0) {
                 let itemsEntry = 'Scattered about the area are:<ul>';
                 for (const itemId in items) {
-                    const item = items[itemId];
-                    itemsEntry += '<li>' + item.getName() + '</li>';
+                    itemsEntry += '<li>' + getItemClause(items[itemId], character) + '</li>';
                 }
                 itemsEntry += '</ul>';
                 accum.push(itemsEntry);
@@ -462,7 +473,7 @@
                 gamePanel.constrain('updateCharacterDetails', [character, 'qui']);
                 gamePanel.attachToDom(GlobalKeys, '_keyDown', 'keydown', true);
                 
-                // FIXME
+                // FIXME: display the character's inventory
 console.log(character.getInventory());
             } else {
                 for (const guage of [levelGuage, somaGuage, hpGuage, endGuage, pneumaGuage, magosGuage, psycheGuage]) guage?.teardownConstraint();
@@ -509,7 +520,24 @@ console.log(character.getInventory());
                 
                 if (!character[doXFuncName](TYPE_INTERACT_WITH_FIXTURE, {fixtureId:fixtureId, interactionName:interactionName})) {
                     gameMap.animateEntity(character.getId());
-                    gamePanel.appendToChatLog('<i>You can\'t perform an action right now.</i>');
+                    gamePanel.appendToChatLog('<i>You can\'t ' + interactionName + ' the ' + fixture.getName(character) + ' right now.</i>');
+                }
+            }
+        },
+        
+        doItemLink: (itemId, interactionName) => {
+            const item = model.getItemById(itemId);
+            if (item) {
+                let doXFuncName;
+                switch (item.getLockPropertyForInteraction(character, interactionName)) {
+                    case 'lockAct': doXFuncName = 'doAction'; break;
+                    case 'lockMove': doXFuncName = 'doMove'; break;
+                    case 'lockFree': doXFuncName = 'doFree'; break;
+                }
+                
+                if (!character[doXFuncName](TYPE_INTERACT_WITH_ITEM, {itemId:itemId, interactionName:interactionName})) {
+                    gameMap.animateEntity(character.getId());
+                    gamePanel.appendToChatLog('<i>You can\'t ' + interactionName + ' the ' + item.getName(character) + ' right now.</i>');
                 }
             }
         },
@@ -541,7 +569,6 @@ console.log(character.getInventory());
             gamePanel.buildLeftPanel();
             gameMap = new pkg.GameMap(gamePanel, {}, [{
                 doCharacterCell: (character, cell) => {
-                    const interactionsAccum = cell.getInteractions(character);
                     if (curLocId !== cell.locId) {
                         curLocId = cell.locId;
                         cellHV.setVisible(false);

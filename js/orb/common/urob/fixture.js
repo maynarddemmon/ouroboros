@@ -494,11 +494,11 @@
                 return this.getTemplateObject().getUrl(this, character);
             },
             
-            describeForCharacter: function(character) {
+            describe: function(character) {
                 return this.getTemplateObject().describe(this, character);
             },
             
-            getNameForCharacter: function(character) {
+            getName: function(character) {
                 return this.getTemplateObject().getName(this, character);
             },
             

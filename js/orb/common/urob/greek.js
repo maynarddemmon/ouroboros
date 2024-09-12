@@ -42,6 +42,7 @@
         
         // Actions
         TYPE_INTERACT_WITH_FIXTURE:'interactFixture',
+        TYPE_INTERACT_WITH_ITEM:'interactItem',
         TYPE_ACTION_FAILED:'actionFailed',
         ACTION_ERROR_CODES:{
             INVALID_VALUE:1,

@@ -42,6 +42,9 @@
             
             
             // Accessors ///////////////////////////////////////////////////////
+            setOwner: function(v) {this._owner = v;},
+            isOwner: function(ownerToTest) {return ownerToTest?.getId() === this._owner?.getId()},
+            
             // The maximum number of items the inventory can contain.
             setMaxCapacity: function(v) {this.set('maxCapacity', v, true);},
             getMaxCapacity: function(fixture, character) {return this.maxCapacity;},
@@ -61,7 +64,7 @@
             
             // Item Methods ////////////////////////////////////////////////////
             makeItemFromData: function(itemDatum) {
-                const item = new (this.getItemClass())();
+                const item = new (this.getItemClass())({inventory:this});
                 item.updateFromData(itemDatum);
                 return item;
             },
@@ -128,7 +131,7 @@
         InventoryContainer: new JSModule('InventoryContainer', {
             getInventoryClass: () => Inventory,
             getInventory: function() {
-                return this._inventory ??= new (this.getInventoryClass())();
+                return this._inventory ??= new (this.getInventoryClass())({owner:this});
             },
             
             

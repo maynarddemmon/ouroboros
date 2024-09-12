@@ -58,6 +58,7 @@ const
                 [greek.TYPE_CHANGE_FACING]:doEventNowHandler,
                 [greek.TYPE_VOCALIZE]:doEventNowHandler,
                 [greek.TYPE_INTERACT_WITH_FIXTURE]:doEventNowHandler,
+                [greek.TYPE_INTERACT_WITH_ITEM]:doEventNowHandler,
             };
         
         console.log('Socket Server Starting Up...');

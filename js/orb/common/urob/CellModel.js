@@ -144,6 +144,10 @@
                 return asCopy ? locArr.slice() : locArr;
             },
             
+            getId: function() {
+                return this.locId;
+            },
+            
             setN: function(v) {
                 if (v) {
                     v = makeFaceForCell(this, v);

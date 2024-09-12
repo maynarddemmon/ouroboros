@@ -563,7 +563,7 @@
                 isMyCharacter = false;
             if (soundSource) {
                 if (isFixtureSource) {
-                    soundSourceName = soundSource.getNameForCharacter(character);
+                    soundSourceName = soundSource.getName(character);
                 } else {
                     if (soundSource === character) {
                         isMyCharacter = true;

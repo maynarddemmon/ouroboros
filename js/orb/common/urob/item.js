@@ -12,60 +12,127 @@
     const {Eventable} = tym,
         {Module:JSModule, Class:JSClass} = JS,
         
-        items = {},
+        INTERACTION_DROP = 'drop',
+        INTERACTION_PICK_UP = 'pick up',
+        
+        items = new Map(),
+        
+        ItemTemplate = new JSClass('ItemTemplate', Eventable, {
+            setName: function(v) {this.set('name', v, true);},
+            getName: function(character) {return this.name;},
+            
+            setWeight: function(v) {this.set('weight', v, true);},
+            getWeight: function(character) {return this.weight;},
+            
+            setVolume: function(v) {this.set('volume', v, true);},
+            getVolume: function(character) {return this.volume;},
+            
+            getCapacityNeeded: function(character) {return 1;},
+            
+            
+            // Methods /////////////////////////////////////////////////////////
+            getInteractions: (item, character) => [item.getInventory().isOwner(character) ? INTERACTION_DROP : INTERACTION_PICK_UP],
+            getLockPropertyForInteraction: (item, character, interactionName) => 'lockAct',
+            getSoundForInteraction: (item, character, interactionName) => null,
+            
+            // Server Only
+            /** Optionally returns an error message. */
+            doInteraction: (item, character, interactionName) => {},
+            
+            // Client Only
+            describe: (item, character) => item.getName(character)
+        }),
         
         Item = new JSClass('Item', Eventable, {
-            init: function(attrs) {
-                this.w = this.v = 0;
-                
-                this.callSuper(attrs);
-            },
-            
-            
             // Accessors ///////////////////////////////////////////////////////
             setId: function(v) {this.set('id', v, true);},
-            getId: function(fixture, character) {return this.id;},
+            getId: function() {return this.id;},
+            
+            setInventory: function(v) {this._inventory = v;},
+            getInventory: function() {return this._inventory},
             
             setName: function(v) {this.set('n', v, true);},
-            getName: function(fixture, character) {return this.n;},
+            getName: function(character) {
+                return this.n != null ? this.n : this.getTemplateObject().getName(character);
+            },
             
             setWeight: function(v) {this.set('w', v, true);},
-            getWeight: function(fixture, character) {return this.w;},
+            getWeight: function(character) {
+                return this.w != null ? this.w : this.getTemplateObject().getWeight(character);
+            },
             
             setVolume: function(v) {this.set('v', v, true);},
-            getVolume: function(fixture, character) {return this.v;},
+            getVolume: function(character) {
+                return this.v != null ? this.v : this.getTemplateObject().getVolume(character);
+            },
             
-            getCapacityNeeded: () => 1,
+            setCapacityNeeded: function(v) {this.set('c', v, true);},
+            getCapacityNeeded: function(character) {
+                return this.c != null ? this.c : this.getTemplateObject().getCapacityNeeded(character);
+            },
+            
+            setTemplate: function(v) {this.set('t', v, true);},
+            getTemplate: function() {return this.t;},
+            getTemplateObject: function() {return getTemplate(this.getTemplate());},
             
             
             // Item Methods ////////////////////////////////////////////////////
+            getInteractions: function(character) {
+                return this.getTemplateObject().getInteractions(this, character);
+            },
+            
+            getLockPropertyForInteraction: function(character, interactionName) {
+                return this.getTemplateObject().getLockPropertyForInteraction(this, character, interactionName);
+            },
+            
+            describe: function(character) {
+                return this.getTemplateObject().describe(this, character);
+            },
             
             
             // Persistence and Serialization ///////////////////////////////////
             getAsData: function(cfg) {
-                return {
+                const retval = {
                     id:this.id,
-                    n:this.n,
-                    w:this.w,
-                    v:this.v
+                    t:this.t
                 };
+                
+                // Serialize overridden attributes.
+                for (const attrName of ['n','w','v','c']) {
+                    if (this[attrName] != null) retval[attrName] = this[attrName];
+                }
+                
+                return retval;
             },
             
             updateFromData: function(datum) {
-                const id = datum.id;
+                this.setId(datum.id);
+                this.setTemplate(datum.t);
                 
-                this.setId(id);
-                this.setName(datum.n);
-                this.setWeight(datum.w);
-                this.setVolume(datum.v);
+                if (datum.n != null) this.setName(datum.n);
+                if (datum.w != null) this.setWeight(datum.w);
+                if (datum.v != null) this.setVolume(datum.v);
+                if (datum.c != null) this.setCapacityNeeded(datum.c);
                 
-                items[id] = this;
+                items.set(this.id, this);
             }
-        });
+        }),
+        
+        templates = {
+            item_1:new ItemTemplate({name:'Item Number One', weight:4, volume:78}),
+            item_2:new ItemTemplate({name:'Item Number Two', weight:7, volume:100}),
+            item_3:new ItemTemplate({name:'Item Number Three', weight:9, volume:50})
+        },
+        
+        getTemplate = itemTemplateId => templates[itemTemplateId];
     
     pkg.item = {
-        getItemById:itemId => items[itemId],
+        getItemById:itemId => items.get(itemId),
+        clearItemCache: () => {items.clear();},
         
-        Item:Item
+        Item:Item,
+        
+        getTemplates: () => templates,
+        getTemplate: getTemplate
     };
 })(global.urob);

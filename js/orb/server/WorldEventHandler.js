@@ -22,7 +22,7 @@ const orb = global.orb,
             TYPE_REACT_FAILED, REACT_ERROR_CODES,
             TYPE_CHANGE_FACING, TYPE_VOCALIZE, TYPE_ALTER_CELL, TYPE_FREE_FAILED, FREE_ERROR_CODES,
             TYPE_ALTER_CHARACTER,
-            TYPE_INTERACT_WITH_FIXTURE
+            TYPE_INTERACT_WITH_FIXTURE, TYPE_INTERACT_WITH_ITEM
         }
     } = global.urob,
     
@@ -295,6 +295,7 @@ const orb = global.orb,
                         if (fixture && matchedInteractionName) {
                             return fixture.getLockPropertyForInteraction(character, interactionName) ?? 'lockAct';
                         } else {
+                            // FIXME: handle sending back the appropriate lock update response.
                             addMessageToUser(username, {type:TYPE_ACTION_FAILED, code:ACTION_ERROR_CODES.ACTION_NOT_ALLOWED});
                         }
                     } else {
@@ -308,4 +309,51 @@ const orb = global.orb,
                 }
             );
         },
+        
+        [TYPE_INTERACT_WITH_ITEM]:event => {
+            const {itemId, interactionName} = event.msg;
+            let item,
+                matchedInteractionName;
+            performAction(
+                event, 
+                (username, character) => {
+                    if (itemId && interactionName) {
+                        // Get the interactions on the server side and lookup the requested
+                        // itemId and interactionName within it.
+                        // FIXME
+                        /*const interactions = character.getCell().getInteractions(character);
+                        for (const fixtureContainerKey in interactions) {
+                            const fixtureContainerData = interactions[fixtureContainerKey];
+                            if (fixtureContainerData) {
+                                const interactionsArray = fixtureContainerData[fixtureId];
+                                if (interactionsArray) {
+                                    fixture = worldMap.getFixtureById(fixtureId);
+                                    for (const iaName of interactionsArray) {
+                                        if (iaName === interactionName) {
+                                            matchedInteractionName = true;
+                                            break;
+                                        }
+                                    }
+                                    break;
+                                }
+                            }
+                        }*/
+                        
+                        if (item && matchedInteractionName) {
+                            return item.getLockPropertyForInteraction(character, interactionName) ?? 'lockAct';
+                        } else {
+                            // FIXME: handle sending back the appropriate lock update response.
+                            addMessageToUser(username, {type:TYPE_ACTION_FAILED, code:ACTION_ERROR_CODES.ACTION_NOT_ALLOWED});
+                        }
+                    } else {
+                        addMessageToUser(username, {type:TYPE_ACTION_FAILED, code:ACTION_ERROR_CODES.INVALID_VALUE});
+                    }
+                }, 
+                null, 
+                (username, character) => {
+                    const failureMsg = item.doInteraction(character, interactionName);
+                    if (failureMsg) addMessageToUser(username, {type:TYPE_ACTION_FAILED, msg:failureMsg});
+                }
+            );
+        }
     };
