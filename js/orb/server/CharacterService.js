@@ -12,7 +12,7 @@ const orb = global.orb,
         isValidLocArr, locIdToArr, locArrToId,
         greek:{
             TYPE_ALTER_ENTITY, TYPE_SOUND,
-            TYPE_ALTER_CHARACTER, TYPE_MOVE_FAILED, MOVE_ERROR_CODES
+            TYPE_ALTER_CHARACTER, TYPE_ALTER_INVENTORY, TYPE_MOVE_FAILED, MOVE_ERROR_CODES
         },
         facing:{NORTH},
         stat:{StatModel, DerivedStatModelMixin, DerivedMaxStatModelMixin, RecoverableStatMixin},
@@ -63,6 +63,31 @@ const orb = global.orb,
     }),
     
     InventoryModel = new JSClass('InventoryModel', Inventory, {
+        notifyForAdd: function(item) {
+            const entity = this.getOwner(),
+                username = entity.isA(Character) ? entity.getUserId() : null;
+            if (username) {
+                getAccountService().addMessageToUser(username, {type:TYPE_ALTER_INVENTORY, msg:{
+                    inventoryType:'character',
+                    action:'add',
+                    id:entity.getId(), 
+                    item:item.getAsData({character:entity})
+                }});
+            }
+        },
+        notifyForRemove: function(item) {
+            const entity = this.getOwner(),
+                username = entity.isA(Character) ? entity.getUserId() : null;
+            if (username) {
+                getAccountService().addMessageToUser(username, {type:TYPE_ALTER_INVENTORY, msg:{
+                    inventoryType:'character',
+                    action:'remove',
+                    id:entity.getId(), 
+                    item:item.getAsData({character:entity})
+                }});
+            }
+        },
+        
         getAsData: function(cfg) {
             const retval = this.callSuper(cfg);
             

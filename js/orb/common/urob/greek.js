@@ -26,6 +26,7 @@
         
         TYPE_ALTER_CHARACTER:'alterCharacter',
         TYPE_ALTER_ENTITY:'alterEntity',
+        TYPE_ALTER_INVENTORY:'alterInventory',
         
         TYPE_SOUND:'sound',
         

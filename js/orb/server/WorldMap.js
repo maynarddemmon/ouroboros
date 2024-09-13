@@ -14,7 +14,7 @@ const orb = global.orb,
         facing:{NORTH, SOUTH, EAST, WEST},
         composition:{MEL_LOOKUP},
         fixture:{CommonFixtureModel},
-        greek:{TYPE_CELL_DATA, TYPE_SOUND, TYPE_EXPOSITION},
+        greek:{TYPE_CELL_DATA, TYPE_SOUND, TYPE_EXPOSITION, TYPE_ALTER_INVENTORY},
         map:{CommonMapModel},
         cell:{CommonFaceModel, CommonCellModel},
         inventory:{Inventory}
@@ -135,6 +135,35 @@ const orb = global.orb,
     }),
     
     InventoryModel = new JSClass('InventoryModel', Inventory, {
+        notifyForAdd: function(item) {
+            if (isReady) {
+                const cell = this.getOwner(),
+                    cellId = cell.getId();
+                for (const character of cell.getVisualChangeListeners()) {
+                    sendMsgToCharacter(character, TYPE_ALTER_INVENTORY, {
+                        inventoryType:'cell',
+                        action:'add',
+                        id:cellId, 
+                        item:item.getAsData({character:character})
+                    });
+                }
+            }
+        },
+        notifyForRemove: function(item) {
+            if (isReady) {
+                const cell = this.getOwner(),
+                    cellId = cell.getId();
+                for (const character of cell.getVisualChangeListeners()) {
+                    sendMsgToCharacter(character, TYPE_ALTER_INVENTORY, {
+                        inventoryType:'cell',
+                        action:'remove',
+                        id:cellId, 
+                        item:item.getAsData({character:character})
+                    });
+                }
+            }
+        },
+        
         getAsData: function(cfg) {
             const retval = this.callSuper(cfg);
             

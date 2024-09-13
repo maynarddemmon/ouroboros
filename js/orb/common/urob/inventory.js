@@ -84,6 +84,8 @@
                             oldInventory.removeItem(itemId);
                             item.setInventory(this);
                         }
+                        
+                        if (this.isNotLoading()) this.notifyForAdd(item);
                     }
                     return success;
                 }
@@ -102,9 +104,15 @@
                     this.totalWeight -= item.getWeight();
                     this.totalVolume -= item.getVolume();
                     delete this._items[itemId];
+                    
+                    if (this.isNotLoading()) this.notifyForRemove(item);
+                    
                     return item;
                 }
             },
+            
+            notifyForAdd: item => {/* Subclasses to implement as needed. */},
+            notifyForRemove: item => {/* Subclasses to implement as needed. */},
             
             
             // Persistence and Serialization ///////////////////////////////////
@@ -128,6 +136,8 @@
             },
             
             updateFromData: function(datum) {
+                this._loading = true;
+                
                 this.setMaxCapacity(datum.mc ?? 0);
                 this.setMaxVolume(datum.mv ?? 0);
                 this.setMaxWeight(datum.mw ?? 0);
@@ -135,10 +145,14 @@
                 const itemData = datum.it;
                 if (itemData) {
                     for (const itemDatum of itemData) {
-                        this.addItem(this.makeItemFromData(itemDatum));
+                        this.addItem(this.makeItemFromData(itemDatum), true);
                     }
                 }
-            }
+                
+                this._loading = false;
+            },
+            
+            isNotLoading: function() {return this._loading !== true;}
         });
     
     pkg.inventory = {
