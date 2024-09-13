@@ -11,6 +11,7 @@
         
         mapInfo,
         myLocInfo,
+        inventoryInfo,
         
         levelGuage,
         somaGuage,
@@ -473,8 +474,20 @@
                 gamePanel.constrain('updateCharacterDetails', [character, 'qui']);
                 gamePanel.attachToDom(GlobalKeys, '_keyDown', 'keydown', true);
                 
-                // FIXME: display the character's inventory
-console.log(character.getInventory());
+                // FIXME: for now just render as text in the inventoryTab
+                const inventory = character.getInventory(),
+                    items = inventory.getAllItems();
+                let txt = '';
+                for (const fieldName of ['maxCapacity','maxWeight','maxVolume','totalCapacity','totalWeight','totalVolume']) {
+                    txt += fieldName + ': ' + inventory[fieldName] + '<br>';
+                }
+                txt += '<ul>';
+                for (const itemId in items) {
+                    txt += '<li>' + getItemClause(items[itemId], character) + '</li>';
+                }
+                txt += '</ul>';
+                
+                inventoryInfo.setText(txt);
             } else {
                 for (const guage of [levelGuage, somaGuage, hpGuage, endGuage, pneumaGuage, magosGuage, psycheGuage]) guage?.teardownConstraint();
                 gamePanel.releaseConstraint('updateCharacterDetails');
@@ -719,6 +732,12 @@ console.log(character.getInventory());
             const inventoryTab = new LocalTabSlider(leftPanel, {
                 tabId:'inventory', text:pkg.FA_INVENTORY + ' Inventory'
             });
+            
+            inventoryInfo = new Text(inventoryTab, {
+                x:spacing, whiteSpace:'normal',
+                percentOfParentWidth:100, percentOfParentWidthOffset:-2*spacing,
+                domClass:'expository'
+            }, [SizeToParent]);
             
             leftPanel.restoreState(['location', 'chat']);
         },

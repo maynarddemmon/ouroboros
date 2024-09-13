@@ -20,7 +20,7 @@
                 newTotalWeight <= inventory.getMaxWeight() && 
                 newTotalVolume <= inventory.getMaxVolume()
             ) {
-                inventory.totalCapcity = newTotalCapacity;
+                inventory.totalCapacity = newTotalCapacity;
                 inventory.totalWeight = newTotalWeight;
                 inventory.totalVolume = newTotalVolume;
                 inventory._items[item.getId()] = item;
@@ -81,7 +81,7 @@
                     if (success) {
                         const oldInventory = item.getInventory();
                         if (oldInventory !== this) {
-                            item.getInventory().removeItem(itemId);
+                            oldInventory.removeItem(itemId);
                             item.setInventory(this);
                         }
                     }
