@@ -24,7 +24,9 @@
                 inventory.totalWeight = newTotalWeight;
                 inventory.totalVolume = newTotalVolume;
                 inventory._items[item.getId()] = item;
+                return true;
             }
+            return false;
         },
         
         Inventory = new JSClass('Inventory', Eventable, {
@@ -43,6 +45,7 @@
             
             // Accessors ///////////////////////////////////////////////////////
             setOwner: function(v) {this._owner = v;},
+            getOwner: function() {return this._owner;},
             isOwner: function(ownerToTest) {return ownerToTest?.getId() === this._owner?.getId()},
             
             // The maximum number of items the inventory can contain.
@@ -73,7 +76,18 @@
             addItem: function(item) {
                 const itemId = item.getId(),
                     existingItem = this.getItem(itemId);
-                if (!existingItem) addWeightAndVolume(this, item);
+                if (!existingItem) {
+                    const success = addWeightAndVolume(this, item);
+                    if (success) {
+                        const oldInventory = item.getInventory();
+                        if (oldInventory !== this) {
+                            item.getInventory().removeItem(itemId);
+                            item.setInventory(this);
+                        }
+                    }
+                    return success;
+                }
+                return false;
             },
             getItem: function(itemId) {
                 return this.getAllItems()[itemId];
@@ -133,6 +147,13 @@
             getInventory: function() {
                 return this._inventory ??= new (this.getInventoryClass())({owner:this});
             },
+            
+            
+            // Inventory Wrapper Functions
+            addItem: function(item) {return this.getInventory().addItem(item);},
+            getItem: function(itemId) {return this.getInventory().getItem(itemId);},
+            getAllItems: function() {return this.getInventory().getAllItems();},
+            removeItem: function(itemId) {return this.getInventory().removeItem(itemId);},
             
             
             // Persistence and Serialization ///////////////////////////////////

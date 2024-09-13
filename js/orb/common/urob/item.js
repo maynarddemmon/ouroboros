@@ -37,7 +37,36 @@
             
             // Server Only
             /** Optionally returns an error message. */
-            doInteraction: (item, character, interactionName) => {},
+            doInteraction: function(item, character, interactionName) {
+                switch (interactionName) {
+                    case INTERACTION_PICK_UP: return this.doInteractionPickUp(item, character, interactionName);
+                    case INTERACTION_DROP:    return this.doInteractionDrop(item, character, interactionName);
+                }
+            },
+            
+            doInteractionPickUp: (item, character, interactionName) => {
+                const characterCell = character.getCell(),
+                    itemCell = item.getInventory().getOwner();
+                if (characterCell && itemCell && characterCell === itemCell) {
+                    if (!character.addItem(item)) {
+                        return 'Can\'t ' + interactionName + ' the ' + item.getName(character) + ' because it can\'t be added to your inventory.';
+                    }
+                } else {
+                    return 'Can\'t ' + interactionName + ' the ' + item.getName(character) + ' because it\'s not here.';
+                }
+            },
+            
+            doInteractionDrop: (item, character, interactionName) => {
+                const characterCell = character.getCell(),
+                    itemOwner = item.getInventory().getOwner();
+                if (characterCell && itemOwner && character === itemOwner) {
+                    if (!characterCell.addItem(item)) {
+                        return 'Can\'t ' + interactionName + ' the ' + item.getName(character) + ' because it can\'t be added to this location.';
+                    }
+                } else {
+                    return 'Can\'t ' + interactionName + ' the ' + item.getName(character) + ' because you don\'t seem to have it.';
+                }
+            },
             
             // Client Only
             describe: (item, character) => item.getName(character)
@@ -83,6 +112,10 @@
             
             getLockPropertyForInteraction: function(character, interactionName) {
                 return this.getTemplateObject().getLockPropertyForInteraction(this, character, interactionName);
+            },
+            
+            doInteraction: function(character, interactionName) {
+                return this.getTemplateObject().doInteraction(this, character, interactionName);
             },
             
             describe: function(character) {

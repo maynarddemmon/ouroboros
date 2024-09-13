@@ -62,7 +62,14 @@ const orb = global.orb,
                 if (character.getUserId() === username) {
                     // lockProperty can be a function. If so, invoke it to determine the kind of lock.
                     lockProperty = typeof lockProperty === 'function' ? lockProperty(username, character) : lockProperty;
-                    if (!lockProperty) return;
+                    if (!lockProperty) {
+                        // Clear the client side lock since no action will be taken on the server.
+                        const clientLockType = event.msg.clientLockType;
+                        addMessageToUser(username, {type:TYPE_ALTER_CHARACTER, msg:{
+                            id:characterId, p:clientLockType, v:character.get(clientLockType)
+                        }});
+                        return;
+                    }
                     
                     let curLockValue = character.get(lockProperty);
                     const now = event[ATTR_TIME];
@@ -295,7 +302,6 @@ const orb = global.orb,
                         if (fixture && matchedInteractionName) {
                             return fixture.getLockPropertyForInteraction(character, interactionName) ?? 'lockAct';
                         } else {
-                            // FIXME: handle sending back the appropriate lock update response.
                             addMessageToUser(username, {type:TYPE_ACTION_FAILED, code:ACTION_ERROR_CODES.ACTION_NOT_ALLOWED});
                         }
                     } else {
@@ -320,29 +326,22 @@ const orb = global.orb,
                     if (itemId && interactionName) {
                         // Get the interactions on the server side and lookup the requested
                         // itemId and interactionName within it.
-                        // FIXME
-                        /*const interactions = character.getCell().getInteractions(character);
-                        for (const fixtureContainerKey in interactions) {
-                            const fixtureContainerData = interactions[fixtureContainerKey];
-                            if (fixtureContainerData) {
-                                const interactionsArray = fixtureContainerData[fixtureId];
-                                if (interactionsArray) {
-                                    fixture = worldMap.getFixtureById(fixtureId);
-                                    for (const iaName of interactionsArray) {
-                                        if (iaName === interactionName) {
-                                            matchedInteractionName = true;
-                                            break;
-                                        }
+                        item = character.getItem(itemId) ?? character.getCell().getItem(itemId);
+                        if (item) {
+                            const interactionsArray = item.getInteractions(character);
+                            if (interactionsArray?.length > 0) {
+                                for (const iaName of interactionsArray) {
+                                    if (iaName === interactionName) {
+                                        matchedInteractionName = true;
+                                        break;
                                     }
-                                    break;
                                 }
                             }
-                        }*/
+                        }
                         
                         if (item && matchedInteractionName) {
                             return item.getLockPropertyForInteraction(character, interactionName) ?? 'lockAct';
                         } else {
-                            // FIXME: handle sending back the appropriate lock update response.
                             addMessageToUser(username, {type:TYPE_ACTION_FAILED, code:ACTION_ERROR_CODES.ACTION_NOT_ALLOWED});
                         }
                     } else {

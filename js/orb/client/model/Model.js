@@ -148,7 +148,7 @@
                     // server handles the character's movement.
                     this.lockMove = Number.MAX_SAFE_INTEGER;
                     
-                    pkg.websocket.sendTypedMessage(type, {id:this.id, ...params});
+                    pkg.websocket.sendTypedMessage(type, {id:this.id, clientLockType:'lockMove', ...params});
                     return true;
                 }
                 return false;
@@ -160,7 +160,7 @@
                     // server handles the character's action.
                     this.lockAct = Number.MAX_SAFE_INTEGER;
                     
-                    pkg.websocket.sendTypedMessage(type, {id:this.id, ...params});
+                    pkg.websocket.sendTypedMessage(type, {id:this.id, clientLockType:'lockAct', ...params});
                     return true;
                 }
                 return false;
@@ -172,7 +172,7 @@
                     // server handles the character's action.
                     this.lockFree = Number.MAX_SAFE_INTEGER;
                     
-                    pkg.websocket.sendTypedMessage(type, {id:this.id, ...params});
+                    pkg.websocket.sendTypedMessage(type, {id:this.id, clientLockType:'lockFree', ...params});
                     return true;
                 }
                 return false;
