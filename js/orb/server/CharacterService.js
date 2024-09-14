@@ -11,7 +11,7 @@ const orb = global.orb,
     {
         isValidLocArr, locIdToArr, locArrToId,
         greek:{
-            TYPE_ALTER_ENTITY, TYPE_SOUND,
+            TYPE_ALTER_ENTITY,
             TYPE_ALTER_CHARACTER, TYPE_ALTER_INVENTORY, TYPE_MOVE_FAILED, MOVE_ERROR_CODES
         },
         facing:{NORTH},
@@ -185,7 +185,7 @@ const orb = global.orb,
             
             attrs.id ??= null;
             attrs.name ??= '';
-            attrs.loc ??= [0,0,0,0];
+            attrs.loc ??= null;
             attrs.facing ??= NORTH;
             attrs.moveSpeed ??= 3;
             
@@ -247,7 +247,7 @@ const orb = global.orb,
                 newCell.addEntity(this);
                 return true;
             } else {
-                console.error('Attempt to set invalid location array on entity: ', v, this);
+                if (this.inited) console.error('Attempt to set invalid location array on entity: ', v);
                 return false;
             }
         },
@@ -406,10 +406,7 @@ const orb = global.orb,
         },
         
         doVocalize: function(volume, message) {
-            const self = this;
-            self.getCell()?.notifyAllAuditoryChangeListeners(TYPE_SOUND, {
-                from:self.getId(), type:'vocalize', volume:volume, message:message
-            }, true);
+            getWorldMap().broadcastSound(this.getCell(), this, 'vocalize', message, volume);
         },
         
         doMove: function(locArrOrId, direction, moveSoundTypeBefore, moveSoundTypeAfter, callbackBefore, callbackAfter) {
@@ -431,7 +428,7 @@ const orb = global.orb,
                 this.end.adjValue(END_MOVE_COST, {allOrNothing:true}) === END_MOVE_COST
             ) {
                 // Generate movement sound before
-                if (moveSoundTypeBefore) orb.rules.generateSoundForEntityAction(this, this.getCell(), moveSoundTypeBefore);
+                if (moveSoundTypeBefore) getWorldMap().generateSoundForEntityAction(this, this.getCell(), moveSoundTypeBefore);
                 
                 callbackBefore?.();
                 
@@ -447,7 +444,7 @@ const orb = global.orb,
                 }
                 
                 // Generate movement sound after
-                if (moveSoundTypeAfter) orb.rules.generateSoundForEntityAction(this, this.getCell(), moveSoundTypeAfter);
+                if (moveSoundTypeAfter) getWorldMap().generateSoundForEntityAction(this, this.getCell(), moveSoundTypeAfter);
                 return true;
             } else {
                 if (username) {

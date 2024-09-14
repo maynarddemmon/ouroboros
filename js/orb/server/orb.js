@@ -181,6 +181,8 @@ const path = require('path'),
             
             doOnSpiritualChangeForEntity: (entity, cell) => {
                 if (!cell) cell = entity.getCell();
+                if (!cell) return;
+                
                 if (orb.rules.isCompositionVoid(cell)) {
                     if (entity.isSpirit()) {
                         cell.setComposition('v3');
@@ -238,29 +240,6 @@ const path = require('path'),
                 
                 // Only 2 Corporeal at a time in a cell
                 return !cell.getCorporealEntityCount(2);
-            },
-            
-            generateSoundForEntityAction: function(entity, cell, actionType) {
-                let soundEffect = 'sound',
-                    volume = 1<<1;
-                switch (actionType) {
-                    case 'teleport-arrive':
-                        soundEffect = 'pop';
-                        volume = 1<<5;
-                        break;
-                    case 'teleport-leave':
-                        soundEffect = 'pip';
-                        volume = 1<<5;
-                        break;
-                    case 'move':
-                        soundEffect = 'footsteps';
-                        volume = 1<<5;
-                        break;
-                }
-                
-                cell.notifyAllAuditoryChangeListeners(urob.greek.TYPE_SOUND, {
-                    from:entity.getId(), type:actionType, volume:volume, message:'*' + soundEffect + '*'
-                }, true);
             }
         }
     };

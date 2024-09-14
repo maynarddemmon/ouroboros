@@ -87,41 +87,6 @@ const orb = global.orb,
                 const cell = this.getCell() ?? this.getFace()?.getCell();
                 cell?.notifyAllVisualChangeListenersThatCellChanged();
             }
-        },
-        
-        doInteractionForCharacter: function(character, interactionName) {
-            const template = this.getTemplateObject(),
-                failureMsg = template.doInteraction(this, character, interactionName);
-            
-            // Make sound if successful
-            if (!failureMsg) {
-                const randomSounds = template.getSoundForInteraction(this, character, interactionName);
-                if (randomSounds) {
-                    let message,
-                        volume;
-                    if (Array.isArray(randomSounds)) {
-                        const rand = getRandom();
-                        for (const entry of randomSounds) {
-                            if (rand < entry[0]) {
-                                message = entry[1];
-                                volume = entry[2];
-                                break;
-                            }
-                        }
-                    } else {
-                        // Simple sound was generated
-                        message = randomSounds;
-                    }
-                    
-                    if (message) {
-                        this.getParentCell()?.notifyAllAuditoryChangeListeners(TYPE_SOUND, {
-                            from:this.getId(), type:'fixture', volume:volume ?? 2, message:message
-                        }, true);
-                    }
-                }
-            }
-            
-            return failureMsg;
         }
     }),
     
@@ -613,6 +578,58 @@ const orb = global.orb,
         sendExpositionToEveryone: (msg, medium) => {}
         */
         // End:expository messages
+        
+        // Start:sound messages
+        DEFAULT_SOUND_VOLUME: 2,
+        selectSoundRandomly: soundProbabilityArr => {
+            const retval = {};
+            if (!soundProbabilityArr) {
+                // Nothing to select from so return {}
+            } else if (soundProbabilityArr.length > 0) {
+                const rand = getRandom();
+                for (const entry of soundProbabilityArr) {
+                    if (rand < entry[0]) {
+                        retval.sound = entry[1];
+                        retval.volume = entry[2] ?? worldMap.DEFAULT_SOUND_VOLUME;
+                        break;
+                    }
+                }
+            } else {
+                const entry = soundProbabilityArr[0];
+                retval.sound = entry[1];
+                retval.volume = entry[2] ?? worldMap.DEFAULT_SOUND_VOLUME;
+            }
+            return retval;
+        },
+        
+        broadcastSound: (cell, fromObj, type, sound, volume) => {
+            if (cell && sound) {
+                cell.notifyAllAuditoryChangeListeners(TYPE_SOUND, {
+                    from:fromObj.getId(), type:type, volume:volume, message:sound
+                }, true);
+            }
+        },
+        
+        generateSoundForEntityAction: (entity, cell, actionType) => {
+            let soundEffect = 'sound',
+                volume = 1<<1;
+            switch (actionType) {
+                case 'teleport-arrive':
+                    soundEffect = 'pop';
+                    volume = 1<<5;
+                    break;
+                case 'teleport-leave':
+                    soundEffect = 'pip';
+                    volume = 1<<5;
+                    break;
+                case 'move':
+                    soundEffect = 'footsteps';
+                    volume = 1<<5;
+                    break;
+            }
+            worldMap.broadcastSound(cell, entity, actionType, '*' + soundEffect + '*', volume);
+        }
+        // End:sound messages
     };
 
 CommonCellModel.FACE_MODEL_CLASS = FaceModel;

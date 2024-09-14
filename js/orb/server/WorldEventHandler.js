@@ -310,7 +310,7 @@ const orb = global.orb,
                 }, 
                 null, 
                 (username, character) => {
-                    const failureMsg = fixture.doInteractionForCharacter(character, interactionName);
+                    const failureMsg = fixture.doInteraction(character, interactionName);
                     if (failureMsg) addMessageToUser(username, {type:TYPE_ACTION_FAILED, msg:failureMsg});
                 }
             );

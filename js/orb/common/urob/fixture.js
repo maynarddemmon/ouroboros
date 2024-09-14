@@ -1,5 +1,5 @@
 (pkg => {
-    let tym, JS;
+    let tym, JS, worldMap;
     if (typeof module === 'object' && module.exports) {
         const imported = require('../../../../lib/tym.js');
         JS = imported.JS;
@@ -16,6 +16,8 @@
             getPhraseWithArticle,
             facing:{NORTH, SOUTH, EAST, WEST}
         } = pkg,
+        
+        getWorldMap = () => worldMap ??= require('../../server/WorldMap.js'),
         
         IMAGE_PREFIX = '/img/fixture/',
         
@@ -218,9 +220,9 @@
             getSoundForInteraction: (fixture, character, interactionName) => {
                 return [
                     // threshold in ascending order, sound, volume
-                    [0.6, '*grinding*', 5],  // 60% chance
-                    [0.9, '*scraping*', 4],  // 30% chance
-                    [1.0, '*scratching*', 2] // 10% chance
+                    [0.6, '*grinding*', 1<<5],  // 60% chance
+                    [0.9, '*scraping*', 1<<4],  // 30% chance
+                    [1.0, '*scratching*', 1<<2] // 10% chance
                 ];
             },
             
@@ -281,7 +283,7 @@
                 return retval;
             },
             getLockPropertyForInteraction: (fixture, character, interactionName) => 'lockMove',
-            getSoundForInteraction: (fixture, character, interactionName) => '*whoosh*',
+            getSoundForInteraction: (fixture, character, interactionName) => [[1, '*whoosh*', 2]],
             doInteraction: function(fixture, character, interactionName) {
                 switch (interactionName) {
                     case INTERACTION_ENTER:
@@ -504,6 +506,25 @@
             
             getLockPropertyForInteraction: function(character, interactionName) {
                 return this.getTemplateObject().getLockPropertyForInteraction?.(this, character, interactionName);
+            },
+            
+            getSoundForInteraction: function(character, interactionName) {
+                return this.getTemplateObject().getSoundForInteraction(this, character, interactionName);
+            },
+            
+            doInteraction: function(character, interactionName) {
+                const failureMsg = this.getTemplateObject().doInteraction(this, character, interactionName);
+                
+                // Make sound if successful
+                if (!failureMsg) {
+                    const worldMap = getWorldMap(),
+                        {volume, sound} = worldMap.selectSoundRandomly(this.getSoundForInteraction(character, interactionName));
+                    if (sound) {
+                        worldMap.broadcastSound(this.getParentCell(), this, 'fixture', sound, volume);
+                    }
+                }
+                
+                return failureMsg;
             },
             
             

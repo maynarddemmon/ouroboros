@@ -1,5 +1,5 @@
 (pkg => {
-    let tym, JS;
+    let tym, JS, worldMap;
     if (typeof module === 'object' && module.exports) {
         const imported = require('../../../../lib/tym.js');
         JS = imported.JS;
@@ -11,6 +11,8 @@
     
     const {Eventable} = tym,
         {Module:JSModule, Class:JSClass} = JS,
+        
+        getWorldMap = () => worldMap ??= require('../../server/WorldMap.js'),
         
         INTERACTION_DROP = 'drop',
         INTERACTION_PICK_UP = 'pick up',
@@ -38,7 +40,19 @@
                     case INTERACTION_DROP:    return 'lockFree';
                 }
             },
-            getSoundForInteraction: (item, character, interactionName) => null,
+            getSoundForInteraction: (item, character, interactionName) => {
+                switch (interactionName) {
+                    case INTERACTION_DROP:
+                        return [
+                            // threshold in ascending order, sound, volume
+                            [0.6, '*plink*', 1<<2],  // 60% chance
+                            [0.8, '*thump*', 1<<3],  // 20% chance
+                            [0.9, '*thud*', 1<<4],  // 10% chance
+                            [1.0, '*clatter*', 1<<5] // 10% chance
+                        ];
+                }
+                return null;
+            },
             
             // Server Only
             /** Optionally returns an error message. */
@@ -119,8 +133,26 @@
                 return this.getTemplateObject().getLockPropertyForInteraction(this, character, interactionName);
             },
             
+            getSoundForInteraction: function(character, interactionName) {
+                return this.getTemplateObject().getSoundForInteraction(this, character, interactionName);
+            },
+            
             doInteraction: function(character, interactionName) {
-                return this.getTemplateObject().doInteraction(this, character, interactionName);
+                const failureMsg = this.getTemplateObject().doInteraction(this, character, interactionName);
+                
+                // Make sound if successful
+                if (!failureMsg) {
+                    const worldMap = getWorldMap(),
+                        {volume, sound} = worldMap.selectSoundRandomly(this.getSoundForInteraction(character, interactionName));
+                    if (sound) {
+                        const inventoryOwner = this.getInventory().getOwner(),
+                            cell = inventoryOwner.isA(pkg.cell.CommonCellModel) ? inventoryOwner : inventoryOwner.getCell();
+                        worldMap.broadcastSound(cell, this, 'item', sound, volume);
+                    }
+                }
+                
+                return failureMsg;
+                
             },
             
             describe: function(character) {

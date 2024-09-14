@@ -110,7 +110,7 @@
             locIdToMapId: locId => locId ? locId.split(',')[0] : null,
             locArrToMapId: locArr => '' + locArr[0],
             isValidLocArr: locArr => {
-                if (locArr.length === 4) {
+                if (locArr?.length === 4) {
                     for (const entry of locArr) {
                         if (!Number.isInteger(entry)) return false;
                     }

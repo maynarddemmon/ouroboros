@@ -557,12 +557,26 @@
             }
             
             const isFixtureSource = type === 'fixture',
-                isGarbled = effectiveVolume < 1,
-                soundSource = isFixtureSource ? model.getFixtureById(from) : model.getEntityById(from);
+                isItemSource = type === 'item',
+                isGarbled = effectiveVolume < 1;
+            
+            // Determine the source of the sound
+            let soundSource;
+            if (isFixtureSource) {
+                soundSource = model.getFixtureById(from);
+            } else if (isItemSource) {
+                soundSource = model.getItemById(from);
+            } else {
+                soundSource = model.getEntityById(from);
+            }
+            
+            
             let soundSourceName = '',
                 isMyCharacter = false;
             if (soundSource) {
                 if (isFixtureSource) {
+                    soundSourceName = soundSource.getName(character);
+                } else if (isItemSource) {
                     soundSourceName = soundSource.getName(character);
                 } else {
                     if (soundSource === character) {
