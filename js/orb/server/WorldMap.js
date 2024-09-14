@@ -135,6 +135,15 @@ const orb = global.orb,
     }),
     
     InventoryModel = new JSClass('InventoryModel', Inventory, {
+        init: function(attrs) {
+            // All CellModels will have the same configuration for inventory
+            attrs.maxCapacity = 1000;
+            attrs.maxWeight = 100000;
+            attrs.maxVolume = 100 * 100 * 100 * 27; // 3m cube in cubic cm.
+            
+            this.callSuper(attrs);
+        },
+        
         notifyForAdd: function(item) {
             if (isReady) {
                 const cell = this.getOwner(),
@@ -179,10 +188,10 @@ const orb = global.orb,
         },
         
         updateFromData: function(datum) {
-            // All CellModels will have the same configuration for inventory
-            datum.mc = 1000;
-            datum.mw = 100000;
-            datum.mv = 100 * 100 * 100 * 27; // 3m cube in cubic cm.
+            // Don't change the values hard-coded in the init function.
+            datum.mc = this.maxCapacity;
+            datum.mw = this.maxWeight;
+            datum.mv = this.maxVolume;
             
             this.callSuper(datum);
         }

@@ -57,6 +57,12 @@
         }),
         
         CellInventoryModel = new JSClass('CellInventoryModel', Inventory, {
+            init: function(attrs) {
+                // cell inventory on client side should not enforce any restrictions so max everything.
+                attrs.maxCapacity = attrs.maxWeight = attrs.maxVolume = Number.MAX_SAFE_INTEGER;
+                this.callSuper(attrs);
+            },
+            
             notifyForAdd: function(item) {
                 if (this.getOwner() === model.getCharacterInPlay()?.getCell()) pkg.gamePanel.updateCellInventory();
             },
