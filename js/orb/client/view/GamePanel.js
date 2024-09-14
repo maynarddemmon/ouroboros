@@ -11,6 +11,8 @@
         
         mapInfo,
         myLocInfo,
+        myLocEntityInfo,
+        myLocItemInfo,
         inventoryInfo,
         
         levelGuage,
@@ -139,28 +141,6 @@
             cellEntry += '.<br><br>';
             accum.push(cellEntry);
             
-            // Entities
-            const entities = cell.getEntities();
-            if (entities?.length > 0) {
-                let entitiesEntry = 'Here with you are:<ul>';
-                for (const entity of entities) {
-                    entitiesEntry += '<li>' + getEntityInfo(entity) + '</li>';
-                }
-                entitiesEntry += '</ul>';
-                accum.push(entitiesEntry);
-            }
-            
-            // Items
-            const items = cell.getInventory().getAllItems();
-            if (Object.keys(items).length > 0) {
-                let itemsEntry = 'Scattered about the area are:<ul>';
-                for (const itemId in items) {
-                    itemsEntry += '<li>' + getItemClause(items[itemId], character) + '</li>';
-                }
-                itemsEntry += '</ul>';
-                accum.push(itemsEntry);
-            }
-            
             // Faces
             const directionWords = getDirectionWordsByFacing(facing);
             for (const faceDir of COMPASS_FIELDS) {
@@ -193,6 +173,26 @@
             }
             
             return accum.join(' ');
+        },
+        
+        getLocEntityInfo = () => {
+            const entities = character.getCell().getEntities();
+            if (entities?.length > 0) {
+                const accum = [];
+                for (const entity of entities) accum.push('<li>' + getEntityInfo(entity) + '</li>');
+                return 'Here with you are:<ul>' + accum.join('') + '</ul>';
+            }
+            return '<i>You don\'t notice any other entities here.<i/>';
+        },
+        
+        getLocItemInfo = () => {
+            const items = character.getCell().getInventory().getAllItems();
+            if (Object.keys(items).length > 0) {
+                const accum = [];
+                for (const itemId in items) accum.push('<li>' + getItemClause(items[itemId], character) + '</li>');
+                return 'Scattered about the area are:<ul>' + accum.join('') + '</ul>';
+            }
+            return '<i>You don\'t notice any items here.<i/>';
         },
         
         getEntityInfo = entity => {
@@ -474,20 +474,7 @@
                 gamePanel.constrain('updateCharacterDetails', [character, 'qui']);
                 gamePanel.attachToDom(GlobalKeys, '_keyDown', 'keydown', true);
                 
-                // FIXME: for now just render as text in the inventoryTab
-                const inventory = character.getInventory(),
-                    items = inventory.getAllItems();
-                let txt = '';
-                for (const fieldName of ['maxCapacity','maxWeight','maxVolume','totalCapacity','totalWeight','totalVolume']) {
-                    txt += fieldName + ': ' + inventory[fieldName] + '<br>';
-                }
-                txt += '<ul>';
-                for (const itemId in items) {
-                    txt += '<li>' + getItemClause(items[itemId], character) + '</li>';
-                }
-                txt += '</ul>';
-                
-                inventoryInfo.setText(txt);
+                gamePanel.updateCharacterInventory();
             } else {
                 for (const guage of [levelGuage, somaGuage, hpGuage, endGuage, pneumaGuage, magosGuage, psycheGuage]) guage?.teardownConstraint();
                 gamePanel.releaseConstraint('updateCharacterDetails');
@@ -495,6 +482,8 @@
                 if (gameMap) {
                     gameMap.setCharacter();
                     myLocInfo.setText();
+                    myLocEntityInfo.setText();
+                    myLocItemInfo.setText();
                     mapInfo.setText();
                     msgLog.setText();
                 }
@@ -519,6 +508,26 @@
             characterDetailsTxt.setText(
                 'Quintessence: <b>' + character.qui.value + '</b><br>'
             );
+        }, 50),
+        
+        updateCharacterInventory: debounce(() => {
+            const inventory = character.getInventory(),
+                items = inventory.getAllItems();
+            let txt = '';
+            for (const fieldName of ['maxCapacity','maxWeight','maxVolume','totalCapacity','totalWeight','totalVolume']) {
+                txt += fieldName + ': ' + inventory[fieldName] + '<br>';
+            }
+            txt += '<ul>';
+            for (const itemId in items) {
+                txt += '<li>' + getItemClause(items[itemId], character) + '</li>';
+            }
+            txt += '</ul>';
+            
+            inventoryInfo.setText(txt);
+        }, 50),
+        
+        updateCellInventory: debounce(() => {
+            myLocItemInfo.setText(getLocItemInfo());
         }, 50),
         
         doFixtureLink: (fixtureId, interactionName) => {
@@ -588,6 +597,8 @@
                     }
                     mapInfo.setText(pkg.FA_GLOBE + ' ' + getMapInfo(cell));
                     myLocInfo.setText(getFullLocInfo(character, cell));
+                    myLocEntityInfo.setText(getLocEntityInfo());
+                    myLocItemInfo.setText(getLocItemInfo());
                 }
             }]);
             gamePanel.buildOverlays();
@@ -609,6 +620,18 @@
             });
             
             myLocInfo = new Text(locationTab, {
+                x:spacing, whiteSpace:'normal',
+                percentOfParentWidth:100, percentOfParentWidthOffset:-2*spacing,
+                domClass:'expository'
+            }, [SizeToParent]);
+            
+            myLocEntityInfo = new Text(locationTab, {
+                x:spacing, whiteSpace:'normal',
+                percentOfParentWidth:100, percentOfParentWidthOffset:-2*spacing,
+                domClass:'expository'
+            }, [SizeToParent]);
+            
+            myLocItemInfo = new Text(locationTab, {
                 x:spacing, whiteSpace:'normal',
                 percentOfParentWidth:100, percentOfParentWidthOffset:-2*spacing,
                 domClass:'expository'

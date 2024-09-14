@@ -145,7 +145,7 @@
                 const itemData = datum.it;
                 if (itemData) {
                     for (const itemDatum of itemData) {
-                        this.addItem(this.makeItemFromData(itemDatum), true);
+                        this.addItem(this.makeItemFromData(itemDatum));
                     }
                 }
                 
@@ -168,6 +168,7 @@
             getItem: function(itemId) {return this.getInventory().getItem(itemId);},
             getAllItems: function() {return this.getInventory().getAllItems();},
             removeItem: function(itemId) {return this.getInventory().removeItem(itemId);},
+            makeItemFromData: function(itemDatum) {return this.getInventory().makeItemFromData(itemDatum);},
             
             
             // Persistence and Serialization ///////////////////////////////////

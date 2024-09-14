@@ -449,6 +449,28 @@
             }, greek.TYPE_ALTER_ENTITY);
             
             websocket.registerListener(response => {
+                const {inventoryType, action, id, item:itemDatum} = response.msg;
+                let inventoryContainer;
+                if (inventoryType === 'character') {
+                    inventoryContainer = model.getCharacterById(id);
+                } else if (inventoryType === 'cell') {
+                    inventoryContainer = model.getCell(id);
+                } else {
+                    console.log('unexpected inventoryType', inventoryType);
+                    return;
+                }
+                
+                if (action === 'add') {
+                    inventoryContainer.addItem(inventoryContainer.makeItemFromData(itemDatum));
+                } else if (action === 'remove') {
+                    inventoryContainer.removeItem(itemDatum.id)
+                } else {
+                    console.log('unexpected action', action);
+                    return;
+                }
+            }, greek.TYPE_ALTER_INVENTORY);
+            
+            websocket.registerListener(response => {
                 pkg.gameMap.handleSoundMessage(response.msg);
             }, greek.TYPE_SOUND);
             

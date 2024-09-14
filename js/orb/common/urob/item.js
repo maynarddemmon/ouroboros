@@ -32,7 +32,12 @@
             
             // Methods /////////////////////////////////////////////////////////
             getInteractions: (item, character) => [item.getInventory().isOwner(character) ? INTERACTION_DROP : INTERACTION_PICK_UP],
-            getLockPropertyForInteraction: (item, character, interactionName) => 'lockAct',
+            getLockPropertyForInteraction: (item, character, interactionName) => {
+                switch (interactionName) {
+                    case INTERACTION_PICK_UP: return 'lockAct';
+                    case INTERACTION_DROP:    return 'lockFree';
+                }
+            },
             getSoundForInteraction: (item, character, interactionName) => null,
             
             // Server Only

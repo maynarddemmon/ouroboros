@@ -56,8 +56,21 @@
             makeFixtureFromDatum:makeFixtureFromDatum,
         }),
         
-        InventoryModel = new JSClass('InventoryModel', Inventory, {
-            
+        CellInventoryModel = new JSClass('CellInventoryModel', Inventory, {
+            notifyForAdd: function(item) {
+                if (this.getOwner() === model.getCharacterInPlay()?.getCell()) pkg.gamePanel.updateCellInventory();
+            },
+            notifyForRemove: function(item) {
+                if (this.getOwner() === model.getCharacterInPlay()?.getCell()) pkg.gamePanel.updateCellInventory();
+            },
+        }),
+        EntityInventoryModel = new JSClass('EntityInventoryModel', Inventory, {
+            notifyForAdd: function(item) {
+                if (this.getOwner() === model.getCharacterInPlay()) pkg.gamePanel.updateCharacterInventory();
+            },
+            notifyForRemove: function(item) {
+                if (this.getOwner() === model.getCharacterInPlay()) pkg.gamePanel.updateCharacterInventory();
+            },
         }),
         
         ItemModel = new JSClass('ItemModel', Item, {
@@ -118,6 +131,10 @@
             
             /** @overrides */
             getWorldClockNow: () => model.worldClockTime,
+            
+            getCell: function() {
+                return model.getCellByLocArr(this.getLocArr());
+            },
             
             
             // Persistence and Serialization ///////////////////////////////////
@@ -319,7 +336,7 @@
         });
     
     CommonCellModel.FACE_MODEL_CLASS = FaceModel;
-    CommonCellModel.INVENTORY_MODEL_CLASS = InventoryModel;
-    CommonEntityModelMixin.INVENTORY_MODEL_CLASS = InventoryModel;
+    CommonCellModel.INVENTORY_MODEL_CLASS = CellInventoryModel;
+    CommonEntityModelMixin.INVENTORY_MODEL_CLASS = EntityInventoryModel;
     Inventory.ITEM_MODEL_CLASS = ItemModel;
 })(orb);
