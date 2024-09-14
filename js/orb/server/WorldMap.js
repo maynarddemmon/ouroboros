@@ -111,7 +111,7 @@ const orb = global.orb,
         
         notifyForAdd: function(item) {
             if (isReady) {
-                const cell = this.getOwner(),
+                const cell = this.getCell(),
                     cellId = cell.getId();
                 for (const character of cell.getVisualChangeListeners()) {
                     sendMsgToCharacter(character, TYPE_ALTER_INVENTORY, {
@@ -125,7 +125,7 @@ const orb = global.orb,
         },
         notifyForRemove: function(item) {
             if (isReady) {
-                const cell = this.getOwner(),
+                const cell = this.getCell(),
                     cellId = cell.getId();
                 for (const character of cell.getVisualChangeListeners()) {
                     sendMsgToCharacter(character, TYPE_ALTER_INVENTORY, {
@@ -267,7 +267,7 @@ const orb = global.orb,
                 }
             }
         },
-        notifyAllAuditoryChangeListenersThatCellChanged: function() {
+        /*notifyAllAuditoryChangeListenersThatCellChanged: function() {
             if (isReady) {
                 const self = this,
                     locId = self.locId;
@@ -275,7 +275,7 @@ const orb = global.orb,
                     sendCellDataMsgToCharacter(character, {[locId]:self.getAsData({character:character})});
                 }
             }
-        },
+        },*/
         
         notifyAllVisualChangeListeners: function(type, msg, includeLocId) {
             if (isReady) {
@@ -285,9 +285,9 @@ const orb = global.orb,
                 }
             }
         },
-        notifyAllAuditoryChangeListeners: function(type, msg, includeLocId) {
+        notifyAllAuditoryChangeListeners: function(type, msg) {
             if (isReady) {
-                if (includeLocId) msg.locId = this.locId;
+                msg.locId = this.locId;
                 for (const character of this.getAuditoryChangeListeners()) {
                     sendMsgToCharacter(character, type, msg);
                 }
@@ -569,7 +569,7 @@ const orb = global.orb,
                     break;
                 case 'auditory':
                     // The exposition emanates from the cell aurally.
-                    cell.notifyAllAuditoryChangeListeners(TYPE_EXPOSITION, msg, true);
+                    cell.notifyAllAuditoryChangeListeners(TYPE_EXPOSITION, msg);
                     break;
             }
         },
@@ -602,15 +602,15 @@ const orb = global.orb,
             return retval;
         },
         
-        broadcastSound: (cell, fromObj, type, sound, volume) => {
-            if (cell && sound) {
-                cell.notifyAllAuditoryChangeListeners(TYPE_SOUND, {
+        broadcastSound: (fromObj, type, sound, volume) => {
+            if (fromObj && sound) {
+                fromObj.getCell().notifyAllAuditoryChangeListeners(TYPE_SOUND, {
                     from:fromObj.getId(), type:type, volume:volume, message:sound
-                }, true);
+                });
             }
         },
         
-        generateSoundForEntityAction: (entity, cell, actionType) => {
+        generateSoundForEntityAction: (entity, actionType) => {
             let soundEffect = 'sound',
                 volume = 1<<1;
             switch (actionType) {
@@ -627,7 +627,7 @@ const orb = global.orb,
                     volume = 1<<5;
                     break;
             }
-            worldMap.broadcastSound(cell, entity, actionType, '*' + soundEffect + '*', volume);
+            worldMap.broadcastSound(entity, actionType, '*' + soundEffect + '*', volume);
         }
         // End:sound messages
     };

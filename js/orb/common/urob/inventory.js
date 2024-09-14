@@ -44,6 +44,8 @@
             
             
             // Accessors ///////////////////////////////////////////////////////
+            getCell: function() {return this.getOwner().getCell();},
+            
             setOwner: function(v) {this._owner = v;},
             getOwner: function() {return this._owner;},
             isOwner: function(ownerToTest) {return ownerToTest?.getId() === this._owner?.getId()},

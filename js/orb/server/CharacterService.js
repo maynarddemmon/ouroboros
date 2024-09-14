@@ -406,7 +406,7 @@ const orb = global.orb,
         },
         
         doVocalize: function(volume, message) {
-            getWorldMap().broadcastSound(this.getCell(), this, 'vocalize', message, volume);
+            getWorldMap().broadcastSound(this, 'vocalize', message, volume);
         },
         
         doMove: function(locArrOrId, direction, moveSoundTypeBefore, moveSoundTypeAfter, callbackBefore, callbackAfter) {
@@ -428,7 +428,7 @@ const orb = global.orb,
                 this.end.adjValue(END_MOVE_COST, {allOrNothing:true}) === END_MOVE_COST
             ) {
                 // Generate movement sound before
-                if (moveSoundTypeBefore) getWorldMap().generateSoundForEntityAction(this, this.getCell(), moveSoundTypeBefore);
+                if (moveSoundTypeBefore) getWorldMap().generateSoundForEntityAction(this, moveSoundTypeBefore);
                 
                 callbackBefore?.();
                 
@@ -444,7 +444,7 @@ const orb = global.orb,
                 }
                 
                 // Generate movement sound after
-                if (moveSoundTypeAfter) getWorldMap().generateSoundForEntityAction(this, this.getCell(), moveSoundTypeAfter);
+                if (moveSoundTypeAfter) getWorldMap().generateSoundForEntityAction(this, moveSoundTypeAfter);
                 return true;
             } else {
                 if (username) {

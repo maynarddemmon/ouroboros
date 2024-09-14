@@ -144,9 +144,9 @@
                 return asCopy ? locArr.slice() : locArr;
             },
             
-            getId: function() {
-                return this.locId;
-            },
+            getId: function() {return this.locId;},
+            
+            getCell: function() {return this;},
             
             setN: function(v) {
                 if (v) {

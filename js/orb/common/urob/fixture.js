@@ -478,11 +478,7 @@
                 this.set('cell', v, true);
                 if (this.inited) this.registerEffects(this.cell);
             },
-            getCell: function() {return this.cell;},
-            
-            getParentCell: function() {
-                return this.cell ?? this.face.getCell();
-            },
+            getCell: function() {return this.cell ?? this.face.getCell();},
             
             setTemplate: function(v) {this.set('template', v, true);},
             getTemplate: function() {return this.template;},
@@ -520,7 +516,7 @@
                     const worldMap = getWorldMap(),
                         {volume, sound} = worldMap.selectSoundRandomly(this.getSoundForInteraction(character, interactionName));
                     if (sound) {
-                        worldMap.broadcastSound(this.getParentCell(), this, 'fixture', sound, volume);
+                        worldMap.broadcastSound(this, 'fixture', sound, volume);
                     }
                 }
                 

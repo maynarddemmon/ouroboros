@@ -96,6 +96,8 @@
             setId: function(v) {this.set('id', v, true);},
             getId: function() {return this.id;},
             
+            getCell: function() {return this.getInventory().getCell();},
+            
             setInventory: function(v) {this._inventory = v;},
             getInventory: function() {return this._inventory},
             
@@ -145,9 +147,7 @@
                     const worldMap = getWorldMap(),
                         {volume, sound} = worldMap.selectSoundRandomly(this.getSoundForInteraction(character, interactionName));
                     if (sound) {
-                        const inventoryOwner = this.getInventory().getOwner(),
-                            cell = inventoryOwner.isA(pkg.cell.CommonCellModel) ? inventoryOwner : inventoryOwner.getCell();
-                        worldMap.broadcastSound(cell, this, 'item', sound, volume);
+                        worldMap.broadcastSound(this, 'item', sound, volume);
                     }
                 }
                 
