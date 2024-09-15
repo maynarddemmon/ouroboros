@@ -12,23 +12,6 @@
     const {Eventable} = tym,
         {Module:JSModule, Class:JSClass} = JS,
         
-        addWeightAndVolume = (inventory, item) => {
-            const newTotalCapacity = inventory.getTotalCapacity() + item.getCapacityNeeded(),
-                newTotalWeight = inventory.getTotalWeight() + item.getWeight(),
-                newTotalVolume = inventory.getTotalVolume() + item.getVolume();
-            if (newTotalCapacity <= inventory.getMaxCapacity() && 
-                newTotalWeight <= inventory.getMaxWeight() && 
-                newTotalVolume <= inventory.getMaxVolume()
-            ) {
-                inventory.totalCapacity = newTotalCapacity;
-                inventory.totalWeight = newTotalWeight;
-                inventory.totalVolume = newTotalVolume;
-                inventory._items[item.getId()] = item;
-                return true;
-            }
-            return false;
-        },
-        
         Inventory = new JSClass('Inventory', Eventable, {
             extend: {
                 ITEM_MODEL_CLASS:null
@@ -79,8 +62,19 @@
                 const itemId = item.getId(),
                     existingItem = this.getItem(itemId);
                 if (!existingItem) {
-                    const success = addWeightAndVolume(this, item);
-                    if (success) {
+                    // Ensure the item will not exceed weight, volume and capacity limits.
+                    const newTotalCapacity = this.getTotalCapacity() + item.getCapacityNeeded(),
+                        newTotalWeight = this.getTotalWeight() + item.getWeight(),
+                        newTotalVolume = this.getTotalVolume() + item.getVolume();
+                    if (newTotalCapacity <= this.getMaxCapacity() && 
+                        newTotalWeight <= this.getMaxWeight() && 
+                        newTotalVolume <= this.getMaxVolume()
+                    ) {
+                        this.totalCapacity = newTotalCapacity;
+                        this.totalWeight = newTotalWeight;
+                        this.totalVolume = newTotalVolume;
+                        this._items[item.getId()] = item;
+                        
                         const oldInventory = item.getInventory();
                         if (oldInventory !== this) {
                             oldInventory.removeItem(itemId);
@@ -88,8 +82,9 @@
                         }
                         
                         if (this.isNotLoading()) this.notifyForAdd(item);
+                        
+                        return true;
                     }
-                    return success;
                 }
                 return false;
             },

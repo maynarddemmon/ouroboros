@@ -427,6 +427,8 @@
         CommonFixtureModel: new JSClass('CommonFixtureModel', Eventable, {
             include:[ValueAffectorMixin],
             
+            
+            // Life Cycle //////////////////////////////////////////////////////
             /** Fixtures will have either a face or a cell but not both. The cell for a face
                 can be accessed via the face. */
             init: function(attrs) {
@@ -458,11 +460,8 @@
                 this.callSuper();
             },
             
-            affectValue: function(attrName, value) {
-                const template = this.getTemplateObject();
-                return template ? template.affectValue(this, attrName, value) : this.callSuper(value);
-            },
             
+            // Accessors ///////////////////////////////////////////////////////
             setId: function(v) {this.set('id', v, true);},
             getId: function() {return this.id;},
             
@@ -492,6 +491,8 @@
                 return this.getTemplateObject().getUrl(this, character);
             },
             
+            
+            // Methods /////////////////////////////////////////////////////////
             describe: function(character) {
                 return this.getTemplateObject().describe(this, character);
             },
@@ -521,6 +522,11 @@
                 }
                 
                 return failureMsg;
+            },
+            
+            affectValue: function(attrName, value) {
+                const template = this.getTemplateObject();
+                return template ? template.affectValue(this, attrName, value) : this.callSuper(value);
             },
             
             
