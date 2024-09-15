@@ -47,6 +47,7 @@
             
             setName: function(v) {this.set('name', v, true);},
             getName: function(fixture, character) {return this.name;},
+            getSimpleName: function(fixture, character) {return this.name;},
             
             setStates: function(v) {this.set('states', v, true);},
             getStates: function() {return this.states;},
@@ -67,6 +68,9 @@
             // Server Only
             /** Optionally returns an error message. */
             doInteraction: (fixture, character, interactionName) => {},
+            
+            doExpositionBeforeInteraction: (fixture, character, interactionName, willSucceed) => {},
+            doExpositionAfterInteraction: (fixture, character, interactionName, succeeded) => {},
             
             // Client Only
             describe: function(fixture, character, isAppend) {
@@ -187,6 +191,7 @@
                             case SOUTH: fixture.setStateByName(STATE_FACING, WEST); break;
                             case WEST: fixture.setStateByName(STATE_FACING, NORTH); break;
                         }
+                        fixture.doExpositionAfterInteraction(character, interactionName, true);
                         return;
                     case INTERACTION_ROTATE_COUNTER_CLOCKWISE:
                         switch (fixture.getStateByName(STATE_FACING)) {
@@ -195,9 +200,25 @@
                             case SOUTH: fixture.setStateByName(STATE_FACING, EAST); break;
                             case WEST: fixture.setStateByName(STATE_FACING, SOUTH); break;
                         }
+                        fixture.doExpositionAfterInteraction(character, interactionName, true);
                         return;
                 }
                 return this.callSuper(fixture, character, interactionName);
+            },
+            
+            doExpositionAfterInteraction: (fixture, character, interactionName, succeeded) => {
+                if (succeeded) {
+                    const expositionFunc = directionTxt => {
+                        const fixtureName = fixture.getSimpleName();
+                        character.sendExposition('You rotate the ' + fixtureName + ' ' + directionTxt + '.', 'narrative');
+                        character.getCell().sendExposition(character.getName() + ' rotates the ' + fixtureName + ' ' + directionTxt + '.', 'visual', character);
+                    };
+                    switch (interactionName) {
+                        case INTERACTION_ROTATE_CLOCKWISE: expositionFunc('clockwise'); return;
+                        case INTERACTION_ROTATE_COUNTER_CLOCKWISE: expositionFunc('counter clockwise'); return;
+                    }
+                }
+                this.callSuper(fixture, character, interactionName, succeeded);
             }
         }),
         
@@ -285,18 +306,40 @@
             getLockPropertyForInteraction: (fixture, character, interactionName) => 'lockMove',
             getSoundForInteraction: (fixture, character, interactionName) => [[1, '*whoosh*', 2]],
             doInteraction: function(fixture, character, interactionName) {
-                switch (interactionName) {
-                    case INTERACTION_ENTER:
-                        character.doMove(
-                            fixture.getStateByName(STATE_DESTINATION), null, 
-                            'teleport-leave', 'teleport-arrive', 
-                            () => {
-                                character.sendExposition('You enter the portal and your essence is torn apart. You are transported through higher dimensions for what seems an eternity. Until finally...', 'narrative');
-                            }
-                        );
-                        return;
+                if (interactionName === INTERACTION_ENTER) {
+                    character.doMove(
+                        fixture.getStateByName(STATE_DESTINATION), null, 
+                        'teleport-leave', 'teleport-arrive', 
+                        () => {
+                            fixture.doExpositionBeforeInteraction(character, interactionName, true);
+                        },
+                        () => {
+                            fixture.doExpositionAfterInteraction(character, interactionName, true);
+                        }
+                    );
+                    return;
                 }
                 return this.callSuper(fixture, character, interactionName);
+            },
+            
+            doExpositionBeforeInteraction: (fixture, character, interactionName, willSucceed) => {
+                if (willSucceed && interactionName === INTERACTION_ENTER) {
+                    const fixtureName = fixture.getName();
+                    character.sendExposition('You enter the ' + fixtureName + ' and your essence is torn apart. You are transported through higher dimensions for what seems an eternity. Until finally...', 'narrative');
+                    character.getCell().sendExposition(character.getName() + ' enters the ' + fixtureName + '.', 'visual', character);
+                    return;
+                }
+                this.callSuper(fixture, character, interactionName, willSucceed);
+            },
+            
+            doExpositionAfterInteraction: (fixture, character, interactionName, succeeded) => {
+                if (succeeded && interactionName === INTERACTION_ENTER) {
+                    const fixtureName = fixture.getName();
+                    character.sendExposition('You emerge from the ' + fixtureName + ' somewhere else.', 'narrative');
+                    character.getCell().sendExposition(character.getName() + ' emerges from the ' + fixtureName + '.', 'visual', character);
+                    return;
+                }
+                this.callSuper(fixture, character, interactionName, succeeded);
             },
             
             getUrl: (fixture, character) => IMAGE_PREFIX + 'portal.png'
@@ -330,43 +373,59 @@
                 }
                 return retval;
             },
+            
             getLockPropertyForInteraction: (fixture, character, interactionName) => 'lockMove',
+            
             doInteraction: function(fixture, character, interactionName) {
-                const direction = fixture.getStateByName(STATE_STAIR_DIRECTION),
-                    originalCell = character.getCell(),
-                    locArr = character.getLocArr(true);
+                const doAscendOrDescend = isAscend => {
+                    const direction = fixture.getStateByName(STATE_STAIR_DIRECTION);
+                    if (direction !== (isAscend ? 'down' : 'up')) {
+                        const locArr = character.getLocArr(true);
+                        locArr[3] += isAscend ? 1 : -1;
+                        character.doMove(
+                            locArr, null, 'move', 'move', 
+                            () => {
+                                fixture.doExpositionBeforeInteraction(character, interactionName, true);
+                            },
+                            () => {
+                                fixture.doExpositionAfterInteraction(character, interactionName, true);
+                            }
+                        );
+                    }
+                };
                 
                 switch (interactionName) {
-                    case INTERACTION_ASCEND:
-                        if (direction !== 'down') {
-                            locArr[3] += 1;
-                            character.doMove(
-                                locArr, null, 'move', 'move', 
-                                () => {
-                                    character.sendExposition('You ascend the spiral staircase.', 'narrative');
-                                },
-                                () => {
-                                    originalCell.sendExposition(character.getName() + ' ascend the spiral staircase.', 'visual');
-                                }
-                            );
-                        }
-                        return;
-                    case INTERACTION_DESCEND:
-                        if (direction !== 'up') {
-                            locArr[3] -= 1;
-                            character.doMove(
-                                locArr, null, 'move', 'move', 
-                                () => {
-                                    character.sendExposition('You descend the spiral staircase.', 'narrative');
-                                },
-                                () => {
-                                    originalCell.sendExposition(character.getName() + ' descend the spiral staircase.', 'visual');
-                                }
-                            );
-                        }
-                        return;
+                    case INTERACTION_ASCEND: doAscendOrDescend(true); return;
+                    case INTERACTION_DESCEND: doAscendOrDescend(false); return;
                 }
                 return this.callSuper(fixture, character, interactionName);
+            },
+            
+            doExpositionBeforeInteraction: (fixture, character, interactionName, willSucceed) => {
+                if (willSucceed) {
+                    switch (interactionName) {
+                        case INTERACTION_ASCEND:
+                        case INTERACTION_DESCEND:
+                            const fixtureName = fixture.getSimpleName();
+                            character.sendExposition('You ' + interactionName + ' the ' + fixtureName + '.', 'narrative');
+                            character.getCell().sendExposition(character.getName() + ' ' + interactionName + 's the ' + fixtureName + '.', 'visual', character);
+                            return;
+                    }
+                }
+                this.callSuper(fixture, character, interactionName, willSucceed);
+            },
+            
+            doExpositionAfterInteraction: (fixture, character, interactionName, succeeded) => {
+                if (succeeded) {
+                    switch (interactionName) {
+                        case INTERACTION_ASCEND:
+                        case INTERACTION_DESCEND:
+                            const fixtureName = fixture.getSimpleName();
+                            character.getCell().sendExposition(character.getName() + ' comes ' + (interactionName === INTERACTION_ASCEND ? 'up' : 'down') + ' the ' + fixtureName + '.', 'visual', character);
+                            return;
+                    }
+                }
+                this.callSuper(fixture, character, interactionName, succeeded);
             },
             
             getUrl: (fixture, character) => {
@@ -501,6 +560,10 @@
                 return this.getTemplateObject().getName(this, character);
             },
             
+            getSimpleName: function(character) {
+                return this.getTemplateObject().getSimpleName(this, character);
+            },
+            
             getLockPropertyForInteraction: function(character, interactionName) {
                 return this.getTemplateObject().getLockPropertyForInteraction?.(this, character, interactionName);
             },
@@ -522,6 +585,13 @@
                 }
                 
                 return failureMsg;
+            },
+            
+            doExpositionBeforeInteraction: function(character, interactionName, willSucceed) {
+                return this.getTemplateObject().doExpositionBeforeInteraction(this, character, interactionName, willSucceed);
+            },
+            doExpositionAfterInteraction: function(character, interactionName, succeeded) {
+                return this.getTemplateObject().doExpositionAfterInteraction(this, character, interactionName, succeeded);
             },
             
             affectValue: function(attrName, value) {

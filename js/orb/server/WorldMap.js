@@ -277,25 +277,25 @@ const orb = global.orb,
             }
         },*/
         
-        notifyAllVisualChangeListeners: function(type, msg, includeLocId) {
+        notifyAllVisualChangeListeners: function(type, msg, includeLocId, characterToOmit) {
             if (isReady) {
                 if (includeLocId) msg.locId = this.locId;
                 for (const character of this.getVisualChangeListeners()) {
-                    sendMsgToCharacter(character, type, msg);
+                    if (character !== characterToOmit) sendMsgToCharacter(character, type, msg);
                 }
             }
         },
-        notifyAllAuditoryChangeListeners: function(type, msg) {
+        notifyAllAuditoryChangeListeners: function(type, msg, characterToOmit) {
             if (isReady) {
                 msg.locId = this.locId;
                 for (const character of this.getAuditoryChangeListeners()) {
-                    sendMsgToCharacter(character, type, msg);
+                    if (character !== characterToOmit) sendMsgToCharacter(character, type, msg);
                 }
             }
         },
         
-        sendExposition: function(message, medium) {
-            worldMap.sendExpositionToCell(this, message, medium);
+        sendExposition: function(message, medium, characterToOmit) {
+            worldMap.sendExpositionToCell(this, message, medium, characterToOmit);
         },
         
         
@@ -554,7 +554,7 @@ const orb = global.orb,
                     sendMsgToCharacter(character, TYPE_EXPOSITION, msg);
             }
         },
-        sendExpositionToCell: (cell, message, medium) => {
+        sendExpositionToCell: (cell, message, medium, characterToOmit) => {
             medium ??= 'narrative';
             const msg = {msg:message, medium:medium};
             switch (medium) {
@@ -565,11 +565,11 @@ const orb = global.orb,
                     break;
                 case 'visual':
                     // The exposition emanates from the cell visually.
-                    cell.notifyAllVisualChangeListeners(TYPE_EXPOSITION, msg, true);
+                    cell.notifyAllVisualChangeListeners(TYPE_EXPOSITION, msg, true, characterToOmit);
                     break;
                 case 'auditory':
                     // The exposition emanates from the cell aurally.
-                    cell.notifyAllAuditoryChangeListeners(TYPE_EXPOSITION, msg);
+                    cell.notifyAllAuditoryChangeListeners(TYPE_EXPOSITION, msg, characterToOmit);
                     break;
             }
         },
