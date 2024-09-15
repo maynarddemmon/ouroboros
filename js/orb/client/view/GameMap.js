@@ -20,7 +20,7 @@
         {
             View, PaddedText, ImageSupport, Reusable, MouseOverAndDown, TrackActivesPool, 
             Animator, TransformSupport,
-            debounce, getRandomInt
+            debounce, getRandomInt, escapeMarkup
         } = myt,
         
         {
@@ -29,6 +29,12 @@
         } = pkg,
         
         FACE_OVERAGE = 4,
+        
+        COLOR_NARRATIVE = '#999999',
+        COLOR_VISUAL = '#0099ff',
+        COLOR_AUDITORY = '#cccc00',
+        COLOR_VOCALIZE = '#ffffff',
+        COLOR_MENTAL = '#9900ff',
         
         QUIET_ADVERBS = ['quiet','faint','muted','muffled','soft','low'],
         QUIET_VOCALIZATION_ADVERBS = [...QUIET_ADVERBS, 'hushed'],
@@ -85,7 +91,7 @@
                 const self = this,
                     entity = self.entity,
                     locId = self.locId,
-                    anchorView = entityViewsByEntityId.get(entity.getId()) ?? cellViewsByLocId.get(locId);
+                    anchorView = entityViewsByEntityId.get(entity?.getId()) ?? cellViewsByLocId.get(locId);
                 if (anchorView) {
                     self.setX(anchorView.x - (self.width - anchorView.width) / 2);
                     self.setY(anchorView.y - self.height - 6);
@@ -547,6 +553,43 @@
             return retval ?? 0;
         },
         
+        handleExpositionMessage: socketMsg => {
+            const {msg, medium, locId} = socketMsg;
+            if (msg) {
+                let prefix,
+                    color,
+                    cellView;
+                if (locId) cellView = cellViewsByLocId.get(locId);
+                
+                switch (medium) {
+                    case 'narrative':
+                        color = COLOR_NARRATIVE;
+                        prefix = '';
+                        break;
+                    case 'mental':
+                        color = COLOR_MENTAL;
+                        prefix = 'A voice echos in your mind: ';
+                        break;
+                    case 'visual':
+                        // Abort if the cell is not currently seen.
+                        if (locId && !cellView || !cellView.isSeen) return;
+                        color = COLOR_VISUAL;
+                        prefix = 'You see: ';
+                        break;
+                    case 'auditory':
+                        prefix = 'You hear: ';
+                        color = COLOR_AUDITORY;
+                        break;
+                }
+                
+                pkg.gamePanel.appendToChatLog('<span style="color:' + color + ';">' + prefix + '<b>' + msg + '</b></span>');
+                
+                if (locId) {
+                    chatBubblePool.getInstance().configure(msg, medium, null, locId);
+                }
+            }
+        },
+        
         handleSoundMessage: socketMsg => {
             const {locId, from, type, volume, message} = socketMsg,
                 AUDIBLE_THRESHOLD = 0.5,
@@ -588,18 +631,20 @@
                 }
             }
             
-            let actionLabel = '',
-                msgHeard = message;
+            let color,
+                actionLabel = '';
             switch (type) {
                 case 'fixture': // FIXME: garbled fixture sounds?
                 case 'move':
+                    color = COLOR_AUDITORY;
                     if (isGarbled) {
-                        msgHeard = '*' + getRandomArrayValue(QUIET_ADVERBS) + ' ' + getRandomArrayValue(MOVEMENT_SOUND_VERBS) + '*';
+                        message = '*' + getRandomArrayValue(QUIET_ADVERBS) + ' ' + getRandomArrayValue(MOVEMENT_SOUND_VERBS) + '*';
                     }
                     break;
                 case 'vocalize':
+                    color = COLOR_VOCALIZE;
                     if (isGarbled) {
-                        msgHeard = '*' + getRandomArrayValue(QUIET_VOCALIZATION_ADVERBS) + ' ' + getRandomArrayValue(VOCALIZATION_SOUND_VERBS) + '*';
+                        message = '*' + getRandomArrayValue(QUIET_VOCALIZATION_ADVERBS) + ' ' + getRandomArrayValue(VOCALIZATION_SOUND_VERBS) + '*';
                     } else {
                         if (volume >= 1<<7) {
                             actionLabel = isMyCharacter ? 'yell' : 'yells';
@@ -614,9 +659,9 @@
             }
             
             let chatMsg = soundSourceName + actionLabel;
-            chatMsg += (chatMsg ? ': ' : '') + msgHeard;
+            chatMsg += (chatMsg ? ': ' : '') + '<b>' + escapeMarkup(message) + '</b>';
             
-            pkg.gamePanel.appendToChatLog(chatMsg);
+            pkg.gamePanel.appendToChatLog('<span style="color:' + color + ';">' + chatMsg + '</span>');
             if (soundSource) {
                 chatBubblePool.getInstance().configure(chatMsg, type, soundSource, locId);
             }

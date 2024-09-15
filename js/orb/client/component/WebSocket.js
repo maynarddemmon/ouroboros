@@ -475,16 +475,7 @@
             }, greek.TYPE_SOUND);
             
             websocket.registerListener(response => {
-                const {msg, medium} = response.msg;
-                let prefix;
-                switch (medium) {
-                    case 'narrative': prefix = ''; break;
-                    case 'mental': prefix = 'A voice echos in your mind: '; break;
-                    case 'visual': prefix = 'You see: '; break;
-                    case 'auditory': prefix = 'You hear: '; break;
-                }
-                if (msg) pkg.gamePanel.appendToChatLog(prefix + '<b>' + msg + '</b>');
-                
+                pkg.gameMap.handleExpositionMessage(response.msg);
             }, greek.TYPE_EXPOSITION);
             
             websocket.registerListener(response => {
