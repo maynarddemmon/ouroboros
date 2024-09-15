@@ -524,6 +524,8 @@
         });
     
     pkg.fixture = {
+        STATE_FACING:STATE_FACING,
+        
         CommonFixtureModel: new JSClass('CommonFixtureModel', Eventable, {
             include:[ValueAffectorMixin],
             

@@ -14,7 +14,8 @@
         {
             locArrToId, getVisibilityPath, cellOffsetsByDistance,
             getCompositionTemplate,
-            facing:{NORTH, SOUTH, EAST, WEST, SELF, getOppositeDirection}
+            facing:{NORTH, SOUTH, EAST, WEST, SELF, getOppositeDirection},
+            fixture:{STATE_FACING}
         } = urob,
         
         {
@@ -257,11 +258,12 @@
         }),
         
         FixtureView = new JSClass('FixtureView', View, {
-            include:[ImageSupport],
+            include:[ImageSupport, TransformSupport],
             
             initNode: function(parent, attrs) {
                 attrs.width = attrs.height = cellSize;
                 attrs.imageSize = 'contain';
+                attrs.transformOrigin = 'center';
                 
                 this.callSuper(parent, attrs);
             },
@@ -274,6 +276,15 @@
                 if (fixture) {
                     this.setVisible(true);
                     this.setImageUrl(fixture.getTemplateUrl(character) ?? null);
+                    
+                    let angle;
+                    switch (fixture.getStateByName(STATE_FACING)) {
+                        case SOUTH: angle = 180; break;
+                        case EAST: angle = 90; break;
+                        case WEST: angle = 270; break;
+                        case NORTH: default: angle = 0; break;
+                    }
+                    this.setRotation(angle);
                 } else {
                     this.setImageUrl(null);
                 }
