@@ -102,10 +102,11 @@
                     case INTERACTION_CLOSE:
                         if (fixture.getStateByName(STATE_OPEN)) {
                             fixture.setStateByName(STATE_OPEN, false);
+                            fixture.doExpositionBeforeInteraction(character, interactionName, true);
+                            return;
                         } else {
                             return 'Can\'t close the ' + this.getName(fixture, character) + ' because it\'s already closed.';
                         }
-                        return;
                     case INTERACTION_OPEN:
                         if (fixture.getStateByName(STATE_OPEN)) {
                             return 'Can\'t open the ' + this.getName(fixture, character) + ' because it\'s already open.';
@@ -114,11 +115,36 @@
                                 return 'Can\'t open the ' + this.getName(fixture, character) + ' because it appears to be locked.';
                             } else {
                                 fixture.setStateByName(STATE_OPEN, true);
+                                fixture.doExpositionAfterInteraction(character, interactionName, true);
+                                return;
                             }
                         }
-                        return;
                 }
                 return this.callSuper(fixture, character, interactionName);
+            },
+            doExpositionBeforeInteraction: function(fixture, character, interactionName, willSucceed) {
+                if (willSucceed) {
+                    switch (interactionName) {
+                        case INTERACTION_CLOSE:
+                            const fixtureName = fixture.getSimpleName();
+                            character.sendExposition('You ' + interactionName + ' the ' + fixtureName + '.', 'narrative');
+                            character.getCell().sendExposition(character.getName() + ' ' + interactionName + 'ed the ' + fixtureName + '.', 'visual', character);
+                            return;
+                    }
+                }
+                this.callSuper(fixture, character, interactionName, succeeded);
+            },
+            doExpositionAfterInteraction: function(fixture, character, interactionName, succeeded) {
+                if (succeeded) {
+                    switch (interactionName) {
+                        case INTERACTION_OPEN:
+                            const fixtureName = fixture.getSimpleName();
+                            character.sendExposition('You ' + interactionName + ' the ' + fixtureName + '.', 'narrative');
+                            character.getCell().sendExposition(character.getName() + ' ' + interactionName + 'ed the ' + fixtureName + '.', 'visual', character);
+                            return;
+                    }
+                }
+                this.callSuper(fixture, character, interactionName, succeeded);
             }
         }),
         
@@ -143,19 +169,34 @@
                     case INTERACTION_UNLOCK:
                         if (fixture.getStateByName(STATE_LOCKED)) {
                             fixture.setStateByName(STATE_LOCKED, false);
+                            fixture.doExpositionAfterInteraction(character, interactionName, true);
+                            return;
                         } else {
                             return 'Can\'t unlock the ' + this.getName(fixture, character) + ' because it\'s already unlocked.';
                         }
-                        return;
                     case INTERACTION_LOCK:
                         if (fixture.getStateByName(STATE_LOCKED)) {
                             return 'Can\'t lock the ' + this.getName(fixture, character) + ' because it\'s already locked.';
                         } else {
                             fixture.setStateByName(STATE_LOCKED, true);
+                            fixture.doExpositionAfterInteraction(character, interactionName, true);
+                            return;
                         }
-                        return;
                 }
                 return this.callSuper(fixture, character, interactionName);
+            },
+            doExpositionAfterInteraction: function(fixture, character, interactionName, succeeded) {
+                if (succeeded) {
+                    switch (interactionName) {
+                        case INTERACTION_UNLOCK:
+                        case INTERACTION_LOCK:
+                            const fixtureName = fixture.getSimpleName();
+                            character.sendExposition('You ' + interactionName + ' the ' + fixtureName + '.', 'narrative');
+                            character.getCell().sendExposition(character.getName() + ' ' + interactionName + 'ed the ' + fixtureName + '.', 'visual', character);
+                            return;
+                    }
+                }
+                this.callSuper(fixture, character, interactionName, succeeded);
             }
         }),
         
@@ -206,7 +247,7 @@
                 return this.callSuper(fixture, character, interactionName);
             },
             
-            doExpositionAfterInteraction: (fixture, character, interactionName, succeeded) => {
+            doExpositionAfterInteraction: function(fixture, character, interactionName, succeeded) {
                 if (succeeded) {
                     const expositionFunc = directionTxt => {
                         const fixtureName = fixture.getSimpleName();
