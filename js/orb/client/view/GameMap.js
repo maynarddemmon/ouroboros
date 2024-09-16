@@ -582,7 +582,9 @@
                         prefix = 'A voice echos in your mind: ';
                         break;
                     case 'visual':
-                        // Abort if the cell is not currently seen.
+                        // Abort if the cell is not currently seen. Have to refresh the map
+                        // immediately to ensure isSeen is up-to-date.
+                        gameMap.refreshMapImmediately();
                         if (locId && !cellView || !cellView.isSeen) return;
                         color = COLOR_VISUAL;
                         prefix = 'You see: ';
@@ -678,12 +680,14 @@
             }
         },
         
-        updateMapForCharacterChange: event => {
+        updateMapForCharacterChange: ignoredEvent => {
             // Invert colors for spirit characters
             gameMap.getIDS().filter = 'invert(' + (character.isSpirit() ? 1 : 0) + ')';
         },
         
-        refreshMap: debounce(event => {
+        refreshMap: debounce(ignoredEvent => {gameMap.refreshMapImmediately();}, 35),
+        
+        refreshMapImmediately: () => {
             if (!character) return;
             
             cellPool.putActives();
@@ -922,6 +926,6 @@
             // Have backgroundImage track the map offset so the background image does not drift
             // as the character moves.
             //gameMap.setImagePosition(-baseX * cellSize + 'px ' + -baseY * cellSize + 'px');
-        }, 35)
+        }
     });
 })(orb);

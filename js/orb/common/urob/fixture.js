@@ -101,8 +101,8 @@
                 switch (interactionName) {
                     case INTERACTION_CLOSE:
                         if (fixture.getStateByName(STATE_OPEN)) {
-                            fixture.setStateByName(STATE_OPEN, false);
                             fixture.doExpositionBeforeInteraction(character, interactionName, true);
+                            fixture.setStateByName(STATE_OPEN, false);
                             return;
                         } else {
                             return 'Can\'t close the ' + this.getName(fixture, character) + ' because it\'s already closed.';

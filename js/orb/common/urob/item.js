@@ -21,15 +21,16 @@
         
         ItemTemplate = new JSClass('ItemTemplate', Eventable, {
             setName: function(v) {this.set('name', v, true);},
-            getName: function(character) {return this.name;},
+            getName: function(item, character) {return this.name;},
+            getSimpleName: function(item, character) {return this.name;},
             
             setWeight: function(v) {this.set('weight', v, true);},
-            getWeight: function(character) {return this.weight;},
+            getWeight: function(item, character) {return this.weight;},
             
             setVolume: function(v) {this.set('volume', v, true);},
-            getVolume: function(character) {return this.volume;},
+            getVolume: function(item, character) {return this.volume;},
             
-            getCapacityNeeded: function(character) {return 1;},
+            getCapacityNeeded: function(item, character) {return 1;},
             
             
             // Methods /////////////////////////////////////////////////////////
@@ -63,11 +64,29 @@
                 }
             },
             
+            doExpositionBeforeInteraction: (item, character, interactionName, willSucceed) => {},
+            doExpositionAfterInteraction: function(item, character, interactionName, succeeded) {
+                if (succeeded) {
+                    const simpleExpositionFunc = (actionWordSelf, actionWordOther) => {
+                        const itemName = item.getSimpleName();
+                        character.sendExposition('You ' + actionWordSelf + ' the ' + itemName + '.', 'narrative');
+                        character.getCell().sendExposition(character.getName() + ' ' + actionWordOther + ' the ' + itemName + '.', 'visual', character);
+                    };
+                    switch (interactionName) {
+                        case INTERACTION_PICK_UP: simpleExpositionFunc(interactionName, 'picked up'); return;
+                        case INTERACTION_DROP: simpleExpositionFunc(interactionName, 'dropped'); return;
+                    }
+                }
+                this.callSuper?.(item, character, interactionName, succeeded);
+            },
+            
             doInteractionPickUp: (item, character, interactionName) => {
                 const characterCell = character.getCell(),
                     itemCell = item.getInventory().getOwner();
                 if (characterCell && itemCell && characterCell === itemCell) {
-                    if (!character.addItem(item)) {
+                    if (character.addItem(item)) {
+                        item.doExpositionAfterInteraction(character, interactionName, true);
+                    } else {
                         return 'Can\'t ' + interactionName + ' the ' + item.getName(character) + ' because it can\'t be added to your inventory.';
                     }
                 } else {
@@ -79,7 +98,9 @@
                 const characterCell = character.getCell(),
                     itemOwner = item.getInventory().getOwner();
                 if (characterCell && itemOwner && character === itemOwner) {
-                    if (!characterCell.addItem(item)) {
+                    if (characterCell.addItem(item)) {
+                        item.doExpositionAfterInteraction(character, interactionName, true);
+                    } else {
                         return 'Can\'t ' + interactionName + ' the ' + item.getName(character) + ' because it can\'t be added to this location.';
                     }
                 } else {
@@ -103,22 +124,26 @@
             
             setName: function(v) {this.set('n', v, true);},
             getName: function(character) {
-                return this.n != null ? this.n : this.getTemplateObject().getName(character);
+                return this.n != null ? this.n : this.getTemplateObject().getName(this, character);
+            },
+            
+            getSimpleName: function(character) {
+                return this.n != null ? this.n : this.getTemplateObject().getSimpleName(this, character);
             },
             
             setWeight: function(v) {this.set('w', v, true);},
             getWeight: function(character) {
-                return this.w != null ? this.w : this.getTemplateObject().getWeight(character);
+                return this.w != null ? this.w : this.getTemplateObject().getWeight(this, character);
             },
             
             setVolume: function(v) {this.set('v', v, true);},
             getVolume: function(character) {
-                return this.v != null ? this.v : this.getTemplateObject().getVolume(character);
+                return this.v != null ? this.v : this.getTemplateObject().getVolume(this, character);
             },
             
             setCapacityNeeded: function(v) {this.set('c', v, true);},
             getCapacityNeeded: function(character) {
-                return this.c != null ? this.c : this.getTemplateObject().getCapacityNeeded(character);
+                return this.c != null ? this.c : this.getTemplateObject().getCapacityNeeded(this, character);
             },
             
             setTemplate: function(v) {this.set('t', v, true);},
@@ -153,6 +178,12 @@
                 
                 return failureMsg;
                 
+            },
+            doExpositionBeforeInteraction: function(character, interactionName, willSucceed) {
+                return this.getTemplateObject().doExpositionBeforeInteraction(this, character, interactionName, willSucceed);
+            },
+            doExpositionAfterInteraction: function(character, interactionName, succeeded) {
+                return this.getTemplateObject().doExpositionAfterInteraction(this, character, interactionName, succeeded);
             },
             
             describe: function(character) {
