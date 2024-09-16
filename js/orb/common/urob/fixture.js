@@ -502,8 +502,18 @@
             s1:new StatueFixtureTemplate(),
             p1:new PortalFixtureTemplate({name:'swirling silver portal'}),
             
-            stair_1:new StairFixtureTemplate({name:'spiral staircase'}),
-            stair_2:new FaceableStairFixtureTemplate({name:'switchback staircase'}),
+            stair_1:new StairFixtureTemplate({name:'spiral stairs'}),
+            stair_2:new FaceableStairFixtureTemplate({name:'switchback stairs'}),
+            stair_3:new FaceableStairFixtureTemplate({name:'stairs'}, [{
+                getUrl: (fixture, character) => {
+                    return IMAGE_PREFIX + 'stair_' + fixture.getStateByName(STATE_STAIR_DIRECTION) + '.png';
+                }
+            }]),
+            stair_4:new FaceableStairFixtureTemplate({name:'ramp'}, [{
+                getUrl: (fixture, character) => {
+                    return IMAGE_PREFIX + 'ramp_' + fixture.getStateByName(STATE_STAIR_DIRECTION) + '.png';
+                }
+            }]),
             
             crate_1:new FixtureTemplate({name:'wooden crate'})
         },
