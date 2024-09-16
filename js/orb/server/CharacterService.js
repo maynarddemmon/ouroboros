@@ -424,7 +424,8 @@ const orb = global.orb,
             const cell = getWorldMap().getCell(locId, true),
                 username = this.isA(Character) ? this.getUserId() : null;
             if (
-                cell.mayMoveInto(this, direction) &&
+                orb.rules.characterMayMoveOutOfCell(this, direction) && 
+                orb.rules.characterMayMoveIntoCell(this, direction, cell) && 
                 this.end.adjValue(END_MOVE_COST, {allOrNothing:true}) === END_MOVE_COST
             ) {
                 // Generate movement sound before

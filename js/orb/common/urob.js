@@ -89,6 +89,18 @@
             
             isTraversableSolidityForCorporeal:solidity => solidity >= 0 && solidity < 1,
             
+            isCompositionVoid: cell => cell.getCompositionObject().getSolidity() === -1,
+            
+            isCompositionAether: cell => {
+                switch (cell.getComposition()) {
+                    case 'v3':
+                    case 'v4':
+                        return true;
+                    default:
+                        return false;
+                }
+            },
+            
             getCompositionTemplate: compositionTemplateId => urob.composition.getTemplate(compositionTemplateId),
             //getFixtureTemplate: fixtureTemplateId => urob.fixture.getTemplate(fixtureTemplateId),
             

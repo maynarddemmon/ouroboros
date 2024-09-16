@@ -242,12 +242,6 @@ const orb = global.orb,
         },
         
         
-        // Methods /////////////////////////////////////////////////////////////
-        mayMoveInto: function(character, compassDirection) {
-            return orb.rules.characterMayMoveOutOfCell(character, compassDirection) && 
-                orb.rules.characterMayMoveIntoCell(character, compassDirection, this);
-        },
-        
         // Change Listeners //
         getVisualChangeListeners: function() {return this._visualChangeListeners ??= new Set();},
         getAuditoryChangeListeners: function() {return this._auditoryChangeListeners ??= new Set();},
