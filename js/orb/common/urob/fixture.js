@@ -474,6 +474,14 @@
             }
         }),
         
+        FaceableStairFixtureTemplate = new JSClass('FaceableStairFixtureTemplate', StairFixtureTemplate, {
+            include:[FaceableFixture],
+            
+            getUrl: (fixture, character) => {
+                return IMAGE_PREFIX + 'switchback_stair_' + fixture.getStateByName(STATE_STAIR_DIRECTION) + '.png';
+            }
+        }),
+        
         templates = {
             d1:new DoorFixtureTemplate({
                 name:'wooden door'
@@ -495,6 +503,7 @@
             p1:new PortalFixtureTemplate({name:'swirling silver portal'}),
             
             stair_1:new StairFixtureTemplate({name:'spiral staircase'}),
+            stair_2:new FaceableStairFixtureTemplate({name:'switchback staircase'}),
             
             crate_1:new FixtureTemplate({name:'wooden crate'})
         },
