@@ -268,22 +268,22 @@ const orb = global.orb,
         },
         
         [TYPE_INTERACT_WITH_FIXTURE]:event => {
-            const {fixtureId, interactionName} = event.msg;
+            const {targetId, interactionName} = event.msg;
             let fixture,
                 matchedInteractionName;
             performAction(
                 event, 
                 (username, character) => {
-                    if (fixtureId && interactionName) {
+                    if (targetId && interactionName) {
                         // Get the interactions on the server side and lookup the requested
-                        // fixtureId and interactionName within it.
+                        // targetId and interactionName within it.
                         const interactions = character.getCell().getInteractions(character);
                         for (const fixtureContainerKey in interactions) {
                             const fixtureContainerData = interactions[fixtureContainerKey];
                             if (fixtureContainerData) {
-                                const interactionsArray = fixtureContainerData[fixtureId];
+                                const interactionsArray = fixtureContainerData[targetId];
                                 if (interactionsArray) {
-                                    fixture = worldMap.getFixtureById(fixtureId);
+                                    fixture = worldMap.getFixtureById(targetId);
                                     for (const iaName of interactionsArray) {
                                         if (iaName === interactionName) {
                                             matchedInteractionName = true;
@@ -313,16 +313,16 @@ const orb = global.orb,
         },
         
         [TYPE_INTERACT_WITH_ITEM]:event => {
-            const {itemId, interactionName} = event.msg;
+            const {targetId, interactionName} = event.msg;
             let item,
                 matchedInteractionName;
             performAction(
                 event, 
                 (username, character) => {
-                    if (itemId && interactionName) {
+                    if (targetId && interactionName) {
                         // Get the interactions on the server side and lookup the requested
-                        // itemId and interactionName within it.
-                        item = character.getItem(itemId) ?? character.getCell().getItem(itemId);
+                        // targetId and interactionName within it.
+                        item = character.getItem(targetId) ?? character.getCell().getItem(targetId);
                         if (item) {
                             const interactionsArray = item.getInteractions(character);
                             if (interactionsArray?.length > 0) {

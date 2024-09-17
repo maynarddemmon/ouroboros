@@ -97,37 +97,53 @@
             }
         },
         
-        getFixtureClause = (character, fixtureIds) => {
-            let accum = [];
-            for (const fixtureId in fixtureIds) {
-                let fixtureEntry = '';
-                const interactions = fixtureIds[fixtureId],
-                    fixture = model.getFixtureById(fixtureId);
-                
-                fixtureEntry += fixture.describe(character);
-                
-                if (interactions) {
-                    let actionAccum = [];
-                    for (const interaction of interactions) {
-                        actionAccum.push('<a href="#" onclick="orb.gamePanel.doFixtureLink(\'' + fixtureId + '\',\'' + interaction + '\'); return false;">' + interaction + '</a>');
-                    }
-                    fixtureEntry += (actionAccum.length > 0 ? ' [' + concatenateList(actionAccum, true) + ']' : '')
+        doXLink = (type, targetObj, interactionName) => {
+            if (targetObj) {
+                const targetId = targetObj.getId();
+                let doXFuncName;
+                switch (targetObj.getLockPropertyForInteraction(character, interactionName)) {
+                    case 'lockAct': doXFuncName = 'doAction'; break;
+                    case 'lockMove': doXFuncName = 'doMove'; break;
+                    case 'lockFree': doXFuncName = 'doFree'; break;
                 }
-                accum.push(fixtureEntry);
+                
+                if (!character[doXFuncName](type, {targetId:targetId, interactionName:interactionName})) {
+                    gameMap.animateEntity(character.getId());
+                    gamePanel.appendToChatLog('<i>You can\'t ' + interactionName + ' the ' + targetObj.getName(character) + ' right now.</i>');
+                }
+            }
+        },
+        
+        makeInteractionsClause = (interactions, id, methodName) => {
+            if (interactions) {
+                const accum = [];
+                for (const interaction of interactions) {
+                    accum.push('<a href="#" onclick="orb.gamePanel.' + methodName + "('" + id + "','" + interaction + '\'); return false;">' + interaction + '</a>');
+                }
+                if (accum.length > 0) return ' [' + concatenateList(accum, true) + ']';
+            }
+            return '';
+        },
+        
+        makeWeightAndVolumeClause = (item) => {
+            return ' <span style="color:#999;">(' + item.getWeight() + 'wt, ' + item.getVolume() + 'vol)</span>';
+        },
+        
+        getFixtureClause = (character, fixtureIds) => {
+            const accum = [];
+            for (const fixtureId in fixtureIds) {
+                accum.push(
+                    model.getFixtureById(fixtureId).describe(character) +
+                    makeInteractionsClause(fixtureIds[fixtureId], fixtureId, 'doFixtureLink')
+                );
             }
             return concatenateList(accum);
         },
         
         getItemClause = (item, character) => {
-            const interactions = item.getInteractions(character);
-            let accum = [];
-            if (interactions?.length > 0) {
-                const itemId = item.getId();
-                for (const interaction of interactions) {
-                    accum.push('<a href="#" onclick="orb.gamePanel.doItemLink(\'' + itemId + '\',\'' + interaction + '\'); return false;">' + interaction + '</a>');
-                }
-            }
-            return item.describe(character) + (accum.length > 0 ? ' [' + concatenateList(accum, true) + ']' : '');
+            return item.describe(character) + 
+                makeWeightAndVolumeClause(item) + 
+                makeInteractionsClause(item.getInteractions(character), item.getId(), 'doItemLink');
         },
         
         getFullLocInfo = (character, cell) => {
@@ -514,11 +530,15 @@
         
         updateCharacterInventory: debounce(() => {
             const inventory = character.getInventory(),
-                items = inventory.getAllItems();
-            let txt = '';
-            for (const fieldName of ['maxCapacity','maxWeight','maxVolume','totalCapacity','totalWeight','totalVolume']) {
-                txt += fieldName + ': ' + inventory[fieldName] + '<br>';
+                items = inventory.getAllItems(),
+                accum = [];
+            for (const label of ['Capacity','Weight','Volume']) {
+                const total = inventory['total' + label],
+                    max = inventory['max' + label];
+                accum.push(label + ': ' + total + '/' + max + ' ' + formatAsPercentage(total/max));
             }
+            
+            let txt = accum.join(' - ');
             txt += '<ul>';
             for (const itemId in items) {
                 txt += '<li>' + getItemClause(items[itemId], character) + '</li>';
@@ -532,39 +552,8 @@
             myLocItemInfo.setText(getLocItemInfo());
         }, 50),
         
-        doFixtureLink: (fixtureId, interactionName) => {
-            const fixture = model.getFixtureById(fixtureId);
-            if (fixture) {
-                let doXFuncName;
-                switch (fixture.getLockPropertyForInteraction(character, interactionName)) {
-                    case 'lockAct': doXFuncName = 'doAction'; break;
-                    case 'lockMove': doXFuncName = 'doMove'; break;
-                    case 'lockFree': doXFuncName = 'doFree'; break;
-                }
-                
-                if (!character[doXFuncName](TYPE_INTERACT_WITH_FIXTURE, {fixtureId:fixtureId, interactionName:interactionName})) {
-                    gameMap.animateEntity(character.getId());
-                    gamePanel.appendToChatLog('<i>You can\'t ' + interactionName + ' the ' + fixture.getName(character) + ' right now.</i>');
-                }
-            }
-        },
-        
-        doItemLink: (itemId, interactionName) => {
-            const item = model.getItemById(itemId);
-            if (item) {
-                let doXFuncName;
-                switch (item.getLockPropertyForInteraction(character, interactionName)) {
-                    case 'lockAct': doXFuncName = 'doAction'; break;
-                    case 'lockMove': doXFuncName = 'doMove'; break;
-                    case 'lockFree': doXFuncName = 'doFree'; break;
-                }
-                
-                if (!character[doXFuncName](TYPE_INTERACT_WITH_ITEM, {itemId:itemId, interactionName:interactionName})) {
-                    gameMap.animateEntity(character.getId());
-                    gamePanel.appendToChatLog('<i>You can\'t ' + interactionName + ' the ' + item.getName(character) + ' right now.</i>');
-                }
-            }
-        },
+        doFixtureLink: (fixtureId, interactionName) => doXLink(TYPE_INTERACT_WITH_FIXTURE, model.getFixtureById(fixtureId), interactionName),
+        doItemLink: (itemId, interactionName) => doXLink(TYPE_INTERACT_WITH_ITEM, model.getItemById(itemId), interactionName),
         
         /** @private */
         _keyDown: event => {
