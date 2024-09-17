@@ -65,6 +65,7 @@
             isZombie: function() {return this.zombie;},
             setAstral: function(v) {this.set('astral', v, true);},
             isAstralProjected: function() {return this.astral;},
+            isCorporeal: function() {return !this.isSpirit() && !this.isAstralProjected();},
             
             setLoc: function(v) {this.set('loc', v, true);},
             getLocArr: function(asCopy) {return asCopy ? this.loc.slice() : this.loc;},
@@ -82,12 +83,19 @@
             // Lock Times
             setLockMove: function(v) {this.set('lockMove', v, true);},
             getLockMove: function() {return this.lockMove;},
+            adjLockMove: function(v) {if (v !== 0) this.setLockMove(this.getLockMove() + v);},
+            
             setLockAct: function(v) {this.set('lockAct', v, true);},
             getLockAct: function() {return this.lockAct;},
+            adjLockAct: function(v) {if (v !== 0) this.setLockAct(this.getLockAct() + v);},
+            
             setLockFree: function(v) {this.set('lockFree', v, true);},
             getLockFree: function() {return this.lockFree;},
+            adjLockFree: function(v) {if (v !== 0) this.setLockFree(this.getLockFree() + v);},
+            
             setLockReact: function(v) {this.set('lockReact', v, true);},
             getLockReact: function() {return this.lockReact;},
+            adjLockReact: function(v) {if (v !== 0) this.setLockReact(this.getLockReact() + v);},
             
             getWorldClockNow: () => {/* Subclasses must implement. */},
             canMove: function() {return this.lockMove <= this.getWorldClockNow();},

@@ -9,6 +9,7 @@ const orb = global.orb,
     } = require('../../../lib/tym.js'),
     
     {
+        getNatuarlNumberFromNum,
         isValidLocArr, locIdToArr, locArrToId,
         greek:{
             TYPE_ALTER_ENTITY,
@@ -426,6 +427,8 @@ const orb = global.orb,
             if (
                 orb.rules.characterMayMoveOutOfCell(this, direction) && 
                 orb.rules.characterMayMoveIntoCell(this, direction, cell) && 
+                
+                // Try to adjust endurance
                 this.end.adjValue(END_MOVE_COST, {allOrNothing:true}) === END_MOVE_COST
             ) {
                 // Generate movement sound before
@@ -433,6 +436,10 @@ const orb = global.orb,
                 
                 callbackBefore?.();
                 
+                // Increment moveLock by an additional amount if necessary
+                this.adjLockMove(getNatuarlNumberFromNum(orb.rules.calculateSolidityForTraverse(this, direction, cell)));
+                
+                // Update location
                 this.setLoc(locArr);
                 
                 callbackAfter?.();

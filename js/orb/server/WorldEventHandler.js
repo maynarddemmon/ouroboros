@@ -2,13 +2,10 @@ let characterService;
 
 const orb = global.orb,
     
-    {
-        tym:{getRandom}
-    } = require('../../../lib/tym.js'),
-    
     {addMessageToUser, getAccountByUsername} = require('./AccountService.js'),
     worldMap = require('./WorldMap.js'),
     {
+        getNatuarlNumberFromNum,
         locIdToArr, isValidLocArr, locArrToId,
         permission:{PERM_CREATOR},
         facing:{NORTH, SOUTH, EAST, WEST, UP, DOWN, SELF},
@@ -53,6 +50,22 @@ const orb = global.orb,
         }
     },
     
+    getNewCooldownValue = (character, lockAttrName, now, cooldownContext) => {
+        if (now >= character.get(lockAttrName)) {
+            let cooldownFuncName;
+            switch (lockAttrName) {
+                case 'lockAct': cooldownFuncName = 'getActSpeed'; break;
+                case 'lockMove': cooldownFuncName = 'getMoveSpeed'; break;
+                case 'lockReact': cooldownFuncName = 'getReactSpeed'; break;
+                case 'lockFree': cooldownFuncName = 'getFreeSpeed'; break;
+            }
+            
+            return now + getNatuarlNumberFromNum(character[cooldownFuncName](cooldownContext));
+        } else {
+            return null;
+        }
+    },
+    
     performAction = (event, lockProperty, cooldownContext, actionFunc) => {
         const username = verifyUserIdHasAccount(event);
         if (username) {
@@ -62,39 +75,22 @@ const orb = global.orb,
                 if (character.getUserId() === username) {
                     // lockProperty can be a function. If so, invoke it to determine the kind of lock.
                     lockProperty = typeof lockProperty === 'function' ? lockProperty(username, character) : lockProperty;
-                    if (!lockProperty) {
-                        // Clear the client side lock since no action will be taken on the server.
-                        const clientLockType = event.msg.clientLockType;
-                        addMessageToUser(username, {type:TYPE_ALTER_CHARACTER, msg:{
-                            id:characterId, p:clientLockType, v:character.get(clientLockType)
-                        }});
-                        return;
-                    }
                     
-                    let curLockValue = character.get(lockProperty);
-                    const now = event[ATTR_TIME];
-                    if (now >= curLockValue) {
-                        let cooldownFuncName;
-                        switch (lockProperty) {
-                            case 'lockAct': cooldownFuncName = 'getActSpeed'; break;
-                            case 'lockMove': cooldownFuncName = 'getMoveSpeed'; break;
-                            case 'lockReact': cooldownFuncName = 'getReactSpeed'; break;
-                            case 'lockFree': cooldownFuncName = 'getFreeSpeed'; break;
+                    if (lockProperty) {
+                        const newCooldownValue = getNewCooldownValue(character, lockProperty, event[ATTR_TIME], cooldownContext);
+                        if (newCooldownValue) {
+                            character.set(lockProperty, newCooldownValue);
+                            actionFunc(username, character);
                         }
-                        
-                        const cooldownAmount = character[cooldownFuncName](cooldownContext),
-                            fixedAmount = Math.floor(cooldownAmount),
-                            randomChance = cooldownAmount - fixedAmount,
-                            randomAmount = (randomChance > 0 && getRandom() < randomChance) ? 1 : 0;
-                        curLockValue = now + fixedAmount + randomAmount;
-                        character.set(lockProperty, curLockValue);
-                        actionFunc(username, character);
+                    } else {
+                        // Clear the client side lock since no action will be taken on the server.
+                        lockProperty = event.msg.clientLockType;
                     }
                     
-                    // Always send the cooldown to the user since it has either
-                    // been updated or the value the client had was stale.
+                    // Always send the cooldown to the user since it has either been updated or the 
+                    // value the client had was stale.
                     addMessageToUser(username, {type:TYPE_ALTER_CHARACTER, msg:{
-                        id:characterId, p:lockProperty, v:curLockValue
+                        id:characterId, p:lockProperty, v:character.get(lockProperty)
                     }});
                 } else {
                     warningMessageToUser(username, 'Character not found in your account ' + characterId);

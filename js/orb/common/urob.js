@@ -13,6 +13,8 @@
     
     /* Define functions with no dependencies immediately inside global.urob. */
     const 
+        {getRandom} = tym,
+        
         WORD_AN = 'an',
         WORD_A = 'a',
         WORD_AND = 'and',
@@ -195,6 +197,16 @@
             
             formatNumber: num => formatNumberWithSeparator(num, '', -1, ',', '.'),
             // End: String Manipulation and Formatting
+            
+            getNatuarlNumberFromNum: num => {
+                if (num > 0) {
+                    const fixedAmount = Math.floor(num),
+                        randomChance = num - fixedAmount;
+                    return fixedAmount + ((randomChance > 0 && getRandom() < randomChance) ? 1 : 0);
+                } else {
+                    return 0;
+                }
+            }
         };
     
     /** These are handled in the client via manifest.js. */

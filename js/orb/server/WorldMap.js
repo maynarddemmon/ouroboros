@@ -218,7 +218,7 @@ const orb = global.orb,
         
         getSpiritEntityCount: function(atLeast) {return this.getEntityCount(entity => entity.isSpirit(), atLeast);},
         getAstralProjectedEntityCount: function(atLeast) {return this.getEntityCount(entity => entity.isAstralProjected(), atLeast);},
-        getCorporealEntityCount: function(atLeast) {return this.getEntityCount(entity => !entity.isSpirit() && !entity.isAstralProjected(), atLeast);},
+        getCorporealEntityCount: function(atLeast) {return this.getEntityCount(entity => entity.isCorporeal(), atLeast);},
         getEntityCount: function(filterFunc, atLeast) {
             const entities = this.entities;
             if (filterFunc) {

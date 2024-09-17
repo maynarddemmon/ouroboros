@@ -7,6 +7,8 @@ const path = require('path'),
     {JS, tym} = require(PATH_PREFIX + 'lib/tym.js'),
     {getRandomInt} = tym,
     
+    {abs:mathAbs} = Math,
+    
     FILENAME_PACKAGE_STATE = 'pkg_state',
     
     GUID_COUNTER = {},
@@ -228,6 +230,33 @@ const path = require('path'),
                 
                 // Only 2 Corporeal at a time in a cell
                 return !cell.getCorporealEntityCount(2);
+            },
+            
+            calculateSolidityForTraverse: function(character, compassDirection, destinationCell) {
+                let solidity = 0;
+                
+                // Current Cell Solidity
+                const cell = character.getCell();
+                solidity += mathAbs(cell.getAffectedValue('solidity'));
+                
+                // Current Cell Face to move through
+                let face = cell.getFaceForDirection(compassDirection);
+                if (face) solidity += mathAbs(face.getAffectedValue('solidity'));
+                
+                // Current Cell Crowding
+                solidity += cell.getCorporealEntityCount() - (character.isCorporeal() ? 1 : 0);
+                
+                // New Cell Solidity
+                solidity += mathAbs(destinationCell.getAffectedValue('solidity'));
+                
+                // New Cell Face to move through
+                face = destinationCell.getFaceForOppositeDirection(compassDirection);
+                if (face) solidity += mathAbs(face.getAffectedValue('solidity'));
+                
+                // New Cell Crowding
+                solidity += destinationCell.getCorporealEntityCount();
+                
+                return solidity;
             }
         }
     };
