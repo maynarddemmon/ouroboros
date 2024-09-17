@@ -107,9 +107,11 @@
                 fixtureEntry += fixture.describe(character);
                 
                 if (interactions) {
+                    let actionAccum = [];
                     for (const interaction of interactions) {
-                        fixtureEntry += ' [<a href="#" onclick="orb.gamePanel.doFixtureLink(\'' + fixtureId + '\',\'' + interaction + '\'); return false;">' + interaction + '</a>]';
+                        actionAccum.push('<a href="#" onclick="orb.gamePanel.doFixtureLink(\'' + fixtureId + '\',\'' + interaction + '\'); return false;">' + interaction + '</a>');
                     }
+                    fixtureEntry += (actionAccum.length > 0 ? ' [' + concatenateList(actionAccum, true) + ']' : '')
                 }
                 accum.push(fixtureEntry);
             }
@@ -122,10 +124,10 @@
             if (interactions?.length > 0) {
                 const itemId = item.getId();
                 for (const interaction of interactions) {
-                    accum.push(' [<a href="#" onclick="orb.gamePanel.doItemLink(\'' + itemId + '\',\'' + interaction + '\'); return false;">' + interaction + '</a>]');
+                    accum.push('<a href="#" onclick="orb.gamePanel.doItemLink(\'' + itemId + '\',\'' + interaction + '\'); return false;">' + interaction + '</a>');
                 }
             }
-            return item.describe(character) + (accum.length > 0 ? concatenateList(accum) : '');
+            return item.describe(character) + (accum.length > 0 ? ' [' + concatenateList(accum, true) + ']' : '');
         },
         
         getFullLocInfo = (character, cell) => {

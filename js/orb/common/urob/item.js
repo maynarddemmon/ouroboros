@@ -17,7 +17,17 @@
         INTERACTION_DROP = 'drop',
         INTERACTION_PICK_UP = 'pick up',
         
+        INTERACTION_EAT = 'eat',
+        
         items = new Map(),
+        
+        broadcastSound = (item, character, interactionName) => {
+            const worldMap = getWorldMap(),
+                {volume, sound} = worldMap.selectSoundRandomly(item.getSoundForInteraction(character, interactionName));
+            if (sound) worldMap.broadcastSound(item, 'item', sound, volume);
+        },
+        
+        isItemInCharacterInventory = (item, character) => item.getInventory().isOwner(character),
         
         ItemTemplate = new JSClass('ItemTemplate', Eventable, {
             setName: function(v) {this.set('name', v, true);},
@@ -34,12 +44,13 @@
             
             
             // Methods /////////////////////////////////////////////////////////
-            getInteractions: (item, character) => [item.getInventory().isOwner(character) ? INTERACTION_DROP : INTERACTION_PICK_UP],
-            getLockPropertyForInteraction: (item, character, interactionName) => {
+            getInteractions: (item, character) => [isItemInCharacterInventory(item, character) ? INTERACTION_DROP : INTERACTION_PICK_UP],
+            getLockPropertyForInteraction: function(item, character, interactionName) {
                 switch (interactionName) {
                     case INTERACTION_PICK_UP: return 'lockAct';
                     case INTERACTION_DROP:    return 'lockFree';
                 }
+                return this.callSuper?.(item, character, interactionName);
             },
             getSoundForInteraction: (item, character, interactionName) => {
                 switch (interactionName) {
@@ -112,6 +123,61 @@
             describe: (item, character) => item.getName(character)
         }),
         
+        EatableItem = new JSModule('EatableItem', {
+            // Methods /////////////////////////////////////////////////////////
+            getInteractions: function(item, character) {
+                const retval = this.callSuper(item, character);
+                if (isItemInCharacterInventory(item, character)) retval.push(INTERACTION_EAT);
+                return retval;
+            },
+            getLockPropertyForInteraction: function(item, character, interactionName) {
+                if (interactionName === INTERACTION_EAT) return 'lockAct';
+                return this.callSuper(item, character, interactionName);
+            },
+            getSoundForInteraction: function(item, character, interactionName) {
+                if (interactionName === INTERACTION_EAT) return [[1.0, '*munch*', 1<<2]];
+                return this.callSuper(item, character, interactionName);
+            },
+            
+            doInteraction: function(item, character, interactionName) {
+                if (interactionName === INTERACTION_EAT) return this.doInteractionEat(item, character, interactionName);
+                return this.callSuper(item, character, interactionName);
+            },
+            
+            doExpositionAfterInteraction: function(item, character, interactionName, succeeded) {
+                if (succeeded) {
+                    if (interactionName === INTERACTION_EAT) {
+                        const itemName = item.getSimpleName();
+                        character.sendExposition('You ' + interactionName + ' the ' + itemName + '.', 'narrative');
+                        character.getCell().sendExposition(character.getName() + ' ' + interactionName + 's the ' + itemName + '.', 'visual', character);
+                    }
+                }
+                this.callSuper?.(item, character, interactionName, succeeded);
+            },
+            
+            doInteractionEat: (item, character, interactionName) => {/** Subclasses to implement. */}
+        }),
+        
+        FoodItemTemplate = new JSClass('FoodItemTemplate', ItemTemplate, {
+            include:[EatableItem],
+            
+            // Accessors ///////////////////////////////////////////////////////
+            setSustenance: function(v) {this.set('sustenance', v, true);},
+            getSustenance: function(item, character) {return this.sustenance;},
+            
+            
+            // Methods /////////////////////////////////////////////////////////
+            doInteractionEat: function(item, character, interactionName) {
+                const somaRecovered = character.soma.adjValue(this.getSustenance());
+                item.doExpositionAfterInteraction(character, interactionName, true);
+                broadcastSound(item, character, interactionName);
+                character.sendExposition('You recover ' + somaRecovered + ' soma from eating the food.', 'narrative');
+                
+                item.getInventory().removeItem(item.getId());
+                item.destroy();
+            }
+        }),
+        
         Item = new JSClass('Item', Eventable, {
             // Accessors ///////////////////////////////////////////////////////
             setId: function(v) {this.set('id', v, true);},
@@ -168,13 +234,7 @@
                 const failureMsg = this.getTemplateObject().doInteraction(this, character, interactionName);
                 
                 // Make sound if successful
-                if (!failureMsg) {
-                    const worldMap = getWorldMap(),
-                        {volume, sound} = worldMap.selectSoundRandomly(this.getSoundForInteraction(character, interactionName));
-                    if (sound) {
-                        worldMap.broadcastSound(this, 'item', sound, volume);
-                    }
-                }
+                if (!failureMsg && !this.destroyed) broadcastSound(this, character, interactionName);
                 
                 return failureMsg;
                 
@@ -222,7 +282,11 @@
         templates = {
             item_1:new ItemTemplate({name:'Item Number One', weight:4, volume:78}),
             item_2:new ItemTemplate({name:'Item Number Two', weight:7, volume:100}),
-            item_3:new ItemTemplate({name:'Item Number Three', weight:9, volume:50})
+            item_3:new ItemTemplate({name:'Item Number Three', weight:9, volume:50}),
+            
+            // Food
+            food_1:new FoodItemTemplate({name:'Mushroom Jerky', weight:0.25, volume:100, sustenance:25}),
+            food_2:new FoodItemTemplate({name:'Centipede Meat', weight:0.10, volume:25, sustenance:15}),
         },
         
         getTemplate = itemTemplateId => templates[itemTemplateId];
