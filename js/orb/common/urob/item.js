@@ -12,6 +12,12 @@
     const {Eventable} = tym,
         {Module:JSModule, Class:JSClass} = JS,
         
+        {
+            inventory:{
+                ERR_ITEM_NOT_FOUND, ERR_MAX_CAPACITY_EXCEEDED, ERR_MAX_WEIGHT_EXCEEDED, ERR_MAX_VOLUME_EXCEEDED
+            }
+        } = pkg,
+        
         getWorldMap = () => worldMap ??= require('../../server/WorldMap.js'),
         
         INTERACTION_DROP = 'drop',
@@ -95,13 +101,20 @@
                 const characterCell = character.getCell(),
                     itemCell = item.getInventory().getOwner();
                 if (characterCell && itemCell && characterCell === itemCell) {
-                    if (character.addItem(item)) {
-                        item.doExpositionAfterInteraction(character, interactionName, true);
-                    } else {
-                        return 'Can\'t ' + interactionName + ' the ' + item.getName(character) + ' because it can\'t be added to your inventory.';
+                    switch(character.addItem(item)) {
+                        case ERR_ITEM_NOT_FOUND:
+                            return "Can't " + interactionName + ' the ' + item.getName(character) + " because it can't be found.";
+                        case ERR_MAX_CAPACITY_EXCEEDED:
+                            return "Can't " + interactionName + ' the ' + item.getName(character) + " because it would exceed the maximum capacity of your inventory.";
+                        case ERR_MAX_WEIGHT_EXCEEDED:
+                            return "Can't " + interactionName + ' the ' + item.getName(character) + " because it would exceed the maximum weight of your inventory.";
+                        case ERR_MAX_VOLUME_EXCEEDED:
+                            return "Can't " + interactionName + ' the ' + item.getName(character) + " because it would exceed the maximum volume of your inventory.";
+                        default:
+                            item.doExpositionAfterInteraction(character, interactionName, true);
                     }
                 } else {
-                    return 'Can\'t ' + interactionName + ' the ' + item.getName(character) + ' because it\'s not here.';
+                    return "Can't " + interactionName + ' the ' + item.getName(character) + " because it's not here.";
                 }
             },
             
@@ -109,13 +122,20 @@
                 const characterCell = character.getCell(),
                     itemOwner = item.getInventory().getOwner();
                 if (characterCell && itemOwner && character === itemOwner) {
-                    if (characterCell.addItem(item)) {
-                        item.doExpositionAfterInteraction(character, interactionName, true);
-                    } else {
-                        return 'Can\'t ' + interactionName + ' the ' + item.getName(character) + ' because it can\'t be added to this location.';
+                    switch(characterCell.addItem(item)) {
+                        case ERR_ITEM_NOT_FOUND:
+                            return "Can't " + interactionName + ' the ' + item.getName(character) + " because it can't be found.";
+                        case ERR_MAX_CAPACITY_EXCEEDED:
+                            return "Can't " + interactionName + ' the ' + item.getName(character) + " because it would exceed the maximum capacity of this location.";
+                        case ERR_MAX_WEIGHT_EXCEEDED:
+                            return "Can't " + interactionName + ' the ' + item.getName(character) + " because it would exceed the maximum weight of this location.";
+                        case ERR_MAX_VOLUME_EXCEEDED:
+                            return "Can't " + interactionName + ' the ' + item.getName(character) + " because it would exceed the maximum volume of this location.";
+                        default:
+                            item.doExpositionAfterInteraction(character, interactionName, true);
                     }
                 } else {
-                    return 'Can\'t ' + interactionName + ' the ' + item.getName(character) + ' because you don\'t seem to have it.';
+                    return "Can't " + interactionName + ' the ' + item.getName(character) + " because you don't seem to have it.";
                 }
             },
             

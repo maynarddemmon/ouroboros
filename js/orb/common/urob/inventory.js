@@ -12,6 +12,11 @@
     const {Eventable} = tym,
         {Module:JSModule, Class:JSClass} = JS,
         
+        ERR_ITEM_NOT_FOUND = 0;
+        ERR_MAX_CAPACITY_EXCEEDED = -1,
+        ERR_MAX_WEIGHT_EXCEEDED = -2,
+        ERR_MAX_VOLUME_EXCEEDED = -3,
+        
         Inventory = new JSClass('Inventory', Eventable, {
             extend: {
                 ITEM_MODEL_CLASS:null
@@ -66,27 +71,30 @@
                     const newTotalCapacity = this.getTotalCapacity() + item.getCapacityNeeded(),
                         newTotalWeight = this.getTotalWeight() + item.getWeight(),
                         newTotalVolume = this.getTotalVolume() + item.getVolume();
-                    if (newTotalCapacity <= this.getMaxCapacity() && 
-                        newTotalWeight <= this.getMaxWeight() && 
-                        newTotalVolume <= this.getMaxVolume()
-                    ) {
-                        this.totalCapacity = newTotalCapacity;
-                        this.totalWeight = newTotalWeight;
-                        this.totalVolume = newTotalVolume;
-                        this._items[item.getId()] = item;
-                        
-                        const oldInventory = item.getInventory();
-                        if (oldInventory !== this) {
-                            oldInventory.removeItem(itemId);
-                            item.setInventory(this);
-                        }
-                        
-                        if (this.isNotLoading()) this.notifyForAdd(item);
-                        
-                        return true;
+                    if (newTotalCapacity > this.getMaxCapacity()) {
+                        return ERR_MAX_CAPACITY_EXCEEDED;
+                    } else if (newTotalWeight > this.getMaxWeight()) {
+                        return ERR_MAX_WEIGHT_EXCEEDED;
+                    } else if (newTotalVolume > this.getMaxVolume()) {
+                        return ERR_MAX_VOLUME_EXCEEDED;
                     }
+                    
+                    this.totalCapacity = newTotalCapacity;
+                    this.totalWeight = newTotalWeight;
+                    this.totalVolume = newTotalVolume;
+                    this._items[item.getId()] = item;
+                    
+                    const oldInventory = item.getInventory();
+                    if (oldInventory !== this) {
+                        oldInventory.removeItem(itemId);
+                        item.setInventory(this);
+                    }
+                    
+                    if (this.isNotLoading()) this.notifyForAdd(item);
+                    
+                    return true;
                 }
-                return false;
+                return ERR_ITEM_NOT_FOUND;
             },
             getItem: function(itemId) {
                 return this.getAllItems()[itemId];
@@ -153,6 +161,11 @@
         });
     
     pkg.inventory = {
+        ERR_ITEM_NOT_FOUND:ERR_ITEM_NOT_FOUND,
+        ERR_MAX_CAPACITY_EXCEEDED:ERR_MAX_CAPACITY_EXCEEDED,
+        ERR_MAX_WEIGHT_EXCEEDED:ERR_MAX_WEIGHT_EXCEEDED,
+        ERR_MAX_VOLUME_EXCEEDED:ERR_MAX_VOLUME_EXCEEDED,
+        
         InventoryContainer: new JSModule('InventoryContainer', {
             getInventoryClass: () => Inventory,
             getInventory: function() {

@@ -167,8 +167,8 @@
             
             doMove: function(type, params) {
                 if (this.canMove()) {
-                    // Pre-emptive indefinite lock. Will be updated once the
-                    // server handles the character's movement.
+                    // Pre-emptive indefinite lock. Will be updated once the server handles the 
+                    // character's movement.
                     this.lockMove = Number.MAX_SAFE_INTEGER;
                     
                     pkg.websocket.sendTypedMessage(type, {id:this.id, clientLockType:'lockMove', ...params});
@@ -179,8 +179,8 @@
             
             doAction: function(type, params) {
                 if (this.canAct()) {
-                    // Pre-emptive indefinite lock. Will be updated once the
-                    // server handles the character's action.
+                    // Pre-emptive indefinite lock. Will be updated once the server handles the 
+                    // character's action.
                     this.lockAct = Number.MAX_SAFE_INTEGER;
                     
                     pkg.websocket.sendTypedMessage(type, {id:this.id, clientLockType:'lockAct', ...params});
@@ -191,8 +191,8 @@
             
             doFree: function(type, params) {
                 if (this.canFree()) {
-                    // Pre-emptive indefinite lock. Will be updated once the
-                    // server handles the character's action.
+                    // Pre-emptive indefinite lock. Will be updated once the server handles the 
+                    // character's action.
                     this.lockFree = Number.MAX_SAFE_INTEGER;
                     
                     pkg.websocket.sendTypedMessage(type, {id:this.id, clientLockType:'lockFree', ...params});
