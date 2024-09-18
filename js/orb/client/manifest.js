@@ -15,10 +15,11 @@ JS.Packages(file => {
     file(ORB_ROOT + '../common/urob/greek.js').provides('urob.greek').requires('urob');
     file(ORB_ROOT + '../common/urob/StatModel.js').provides('urob.stat').requires('urob');
     file(ORB_ROOT + '../common/urob/composition.js').provides('urob.composition').requires('urob');
-    file(ORB_ROOT + '../common/urob/fixture.js').provides('urob.fixture').requires('urob.facing');
+    file(ORB_ROOT + '../common/urob/thing.js').provides('urob.thing').requires('urob');
+    file(ORB_ROOT + '../common/urob/fixture.js').provides('urob.fixture').requires('urob.facing','urob.thing');
     file(ORB_ROOT + '../common/urob/MapModel.js').provides('urob.map').requires('urob');
     file(ORB_ROOT + '../common/urob/Inventory.js').provides('urob.inventory').requires('urob');
-    file(ORB_ROOT + '../common/urob/Item.js').provides('urob.item').requires('urob.inventory');
+    file(ORB_ROOT + '../common/urob/item.js').provides('urob.item').requires('urob.inventory','urob.thing');
     file(ORB_ROOT + '../common/urob/CellModel.js').provides('urob.cell').requires('urob.inventory','urob.item');
     file(ORB_ROOT + '../common/urob/EntityModel.js').provides('urob.entity').requires('urob.inventory','urob.item');
     

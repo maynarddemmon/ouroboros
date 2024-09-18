@@ -14,7 +14,8 @@
         
         {
             getPhraseWithArticle,
-            facing:{NORTH, SOUTH, EAST, WEST}
+            facing:{NORTH, SOUTH, EAST, WEST},
+            thing:{ThingTemplate, Thing}
         } = pkg,
         
         getWorldMap = () => worldMap ??= require('../../server/WorldMap.js'),
@@ -40,19 +41,12 @@
         
         fixtures = new Map(),
         
-        FixtureTemplate = new JSClass('FixtureTemplate', Eventable, {
+        FixtureTemplate = new JSClass('FixtureTemplate', ThingTemplate, {
             init: function(attrs) {
                 attrs.adjacentSupported ??= false;
                 
                 this.callSuper(attrs);
             },
-            
-            setName: function(v) {this.set('name', v, true);},
-            getName: function(fixture, character) {return this.name;},
-            getSimpleName: function(fixture, character) {return this.name;},
-            
-            setStates: function(v) {this.set('states', v, true);},
-            getStates: function() {return this.states;},
             
             setEffects: function(v) {this.set('effects', v, true);},
             getEffects: function() {return this.effects;},
@@ -62,22 +56,9 @@
             
             
             // Methods /////////////////////////////////////////////////////////
-            getInteractions: (fixture, character, adjacent) => [],
-            getLockPropertyForInteraction: (fixture, character, interactionName) => 'lockAct',
-            getSoundForInteraction: (fixture, character, interactionName) => null,
             affectValue: (fixture, attrName, value) => value,
             
-            // Server Only
-            /** Optionally returns an error message. */
-            doInteraction: (fixture, character, interactionName) => {},
-            
-            doExpositionBeforeInteraction: (fixture, character, interactionName, willSucceed) => {},
-            doExpositionAfterInteraction: (fixture, character, interactionName, succeeded) => {},
-            
             // Client Only
-            describe: function(fixture, character, isAppend) {
-                return isAppend ? this.getName(fixture, character) : getPhraseWithArticle(this.getName(fixture, character));
-            },
             getUrl: (fixture, character) => IMAGE_PREFIX + 'box.png'
         }),
         
@@ -90,7 +71,7 @@
             },
             
             getInteractions: function(fixture, character, adjacent) {
-                const retval = this.callSuper(fixture, character);
+                const retval = this.callSuper(fixture, character, adjacent);
                 if (!adjacent || this.isAdjacentSupported()) {
                     retval.push(fixture.getStateByName(STATE_OPEN) ? INTERACTION_CLOSE : INTERACTION_OPEN);
                 }
@@ -159,7 +140,7 @@
             },
             
             getInteractions: function(fixture, character, adjacent) {
-                const retval = this.callSuper(fixture, character);
+                const retval = this.callSuper(fixture, character, adjacent);
                 if (!adjacent) retval.push(fixture.getStateByName(STATE_LOCKED) ? INTERACTION_UNLOCK : INTERACTION_LOCK);
                 return retval;
             },
@@ -221,7 +202,7 @@
             include:[FaceableFixture],
             
             getInteractions: function(fixture, character, adjacent) {
-                const retval = this.callSuper(fixture, character);
+                const retval = this.callSuper(fixture, character, adjacent);
                 if (!adjacent) retval.push(INTERACTION_ROTATE_CLOCKWISE, INTERACTION_ROTATE_COUNTER_CLOCKWISE);
                 return retval;
             },
@@ -342,7 +323,7 @@
             
             // Methods /////////////////////////////////////////////////////////
             getInteractions: function(fixture, character, adjacent) {
-                const retval = this.callSuper(fixture, character);
+                const retval = this.callSuper(fixture, character, adjacent);
                 if (!adjacent) retval.push(INTERACTION_ENTER);
                 return retval;
             },
@@ -408,7 +389,7 @@
             
             // Methods /////////////////////////////////////////////////////////
             getInteractions: function(fixture, character, adjacent) {
-                const retval = this.callSuper(fixture, character);
+                const retval = this.callSuper(fixture, character, adjacent);
                 if (!adjacent) {
                     const direction = fixture.getStateByName(STATE_STAIR_DIRECTION);
                     if (direction !== 'down') retval.push(INTERACTION_ASCEND);
@@ -550,24 +531,21 @@
         getFixtureById:fixtureId => fixtures.get(fixtureId),
         clearFixtureCache: () => {fixtures.clear();},
         
-        CommonFixtureModel: new JSClass('CommonFixtureModel', Eventable, {
+        CommonFixtureModel: new JSClass('CommonFixtureModel', Thing, {
             include:[ValueAffectorMixin],
             
             
             // Life Cycle //////////////////////////////////////////////////////
             destroy: function() {
-                if (this.face) {
-                    this.unregisterEffects(this.face);
-                } else if (this.cell) {
-                    this.unregisterEffects(this.cell);
-                }
+                this.unregisterEffects(this.fixtureContainer);
                 this.callSuper();
             },
             
             
             // Accessors ///////////////////////////////////////////////////////
-            setId: function(v) {this.set('id', v, true);},
-            getId: function() {return this.id;},
+            getCell: function() {return this.fixtureContainer.getCell();},
+            
+            getTemplateObject: function() {return getTemplate(this.getTemplate());},
             
             setFixtureContainer: function(v) {
                 if (this.fixtureContainer) this.unregisterEffects(this.fixtureContainer);
@@ -575,46 +553,12 @@
                 this.registerEffects(this.fixtureContainer);
             },
             
-            getCell: function() {return this.fixtureContainer.getCell();},
-            
-            setTemplate: function(v) {this.set('template', v, true);},
-            getTemplate: function() {return this.template;},
-            getTemplateObject: function() {return getTemplate(this.getTemplate());},
-            
-            getStateObject: function() {return this.state ??= {};},
-            setStateByName: function(stateName, value) {this.getStateObject()[stateName] = value;},
-            getStateByName: function(stateName) {return this.getStateObject()[stateName];},
-            
             getTemplateUrl: function(character) {
                 return this.getTemplateObject().getUrl(this, character);
             },
             
             
             // Methods /////////////////////////////////////////////////////////
-            getInteractions: function(character) {
-                return this.getTemplateObject().getInteractions(this, character);
-            },
-            
-            describe: function(character) {
-                return this.getTemplateObject().describe(this, character);
-            },
-            
-            getName: function(character) {
-                return this.getTemplateObject().getName(this, character);
-            },
-            
-            getSimpleName: function(character) {
-                return this.getTemplateObject().getSimpleName(this, character);
-            },
-            
-            getLockPropertyForInteraction: function(character, interactionName) {
-                return this.getTemplateObject().getLockPropertyForInteraction?.(this, character, interactionName);
-            },
-            
-            getSoundForInteraction: function(character, interactionName) {
-                return this.getTemplateObject().getSoundForInteraction(this, character, interactionName);
-            },
-            
             doInteraction: function(character, interactionName) {
                 const failureMsg = this.getTemplateObject().doInteraction(this, character, interactionName);
                 
@@ -630,13 +574,6 @@
                 return failureMsg;
             },
             
-            doExpositionBeforeInteraction: function(character, interactionName, willSucceed) {
-                return this.getTemplateObject().doExpositionBeforeInteraction(this, character, interactionName, willSucceed);
-            },
-            doExpositionAfterInteraction: function(character, interactionName, succeeded) {
-                return this.getTemplateObject().doExpositionAfterInteraction(this, character, interactionName, succeeded);
-            },
-            
             affectValue: function(attrName, value) {
                 const template = this.getTemplateObject();
                 return template ? template.affectValue(this, attrName, value) : this.callSuper(value);
@@ -644,25 +581,10 @@
             
             
             // Persistence and Serialization ///////////////////////////////////
-            getAsData: function(cfg) {
-                const retval = this.callSuper?.(cfg) ?? {};
-                retval.id = this.id;
-                retval.t = this.template;
-                if (this.state != null) retval.state = this.state;
-                return retval;
-            },
-            
             updateFromData: function(datum) {
-                this.callSuper?.(datum);
-                
-                this.setId(datum.id);
-                this.setTemplate(datum.t);
-                this.state = datum.state;
-                
+                this.callSuper(datum);
                 this.setFixtureContainer(datum.fixtureContainer);
-                
                 fixtures.set(this.id, this);
-                
                 return this;
             }
         }),

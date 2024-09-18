@@ -16,7 +16,8 @@
             pluralize,
             inventory:{
                 ERR_ITEM_NOT_FOUND, ERR_MAX_CAPACITY_EXCEEDED, ERR_MAX_WEIGHT_EXCEEDED, ERR_MAX_VOLUME_EXCEEDED
-            }
+            },
+            thing:{ThingTemplate, Thing}
         } = pkg,
         
         getWorldMap = () => worldMap ??= require('../../server/WorldMap.js'),
@@ -39,25 +40,12 @@
         
         isItemInCharacterInventory = (item, character) => item.getInventory().isOwner(character),
         
-        ItemTemplate = new JSClass('ItemTemplate', Eventable, {
-            setName: function(v) {this.set('name', v, true);},
-            getName: function(item, character) {return this.name;},
-            getSimpleName: function(item, character) {return this.name;},
-            
-            setStates: function(v) {this.set('states', v, true);},
-            getStates: function() {return this.states;},
-            
-            setWeight: function(v) {this.set('weight', v, true);},
-            getWeight: function(item, character) {return this.weight;},
-            
-            setVolume: function(v) {this.set('volume', v, true);},
-            getVolume: function(item, character) {return this.volume;},
-            
+        ItemTemplate = new JSClass('ItemTemplate', ThingTemplate, {
             getCapacityNeeded: function(item, character) {return 1;},
             
             
             // Methods /////////////////////////////////////////////////////////
-            getInteractions: (item, character) => [isItemInCharacterInventory(item, character) ? INTERACTION_DROP : INTERACTION_PICK_UP],
+            getInteractions: (item, character, adjacent) => [isItemInCharacterInventory(item, character) ? INTERACTION_DROP : INTERACTION_PICK_UP],
             getLockPropertyForInteraction: function(item, character, interactionName) {
                 switch (interactionName) {
                     case INTERACTION_PICK_UP: return 'lockAct';
@@ -88,7 +76,6 @@
                 }
             },
             
-            doExpositionBeforeInteraction: (item, character, interactionName, willSucceed) => {},
             doExpositionAfterInteraction: function(item, character, interactionName, succeeded) {
                 if (succeeded) {
                     const simpleExpositionFunc = (actionWordSelf, actionWordOther) => {
@@ -144,17 +131,14 @@
                 } else {
                     return "Can't " + interactionName + ' the ' + item.getName(character) + " because you don't seem to have it.";
                 }
-            },
-            
-            // Client Only
-            describe: (item, character) => item.getName(character)
+            }
         }),
         
         /** An Item that an Entity can "eat". */
         EatableItem = new JSModule('EatableItem', {
             // Methods /////////////////////////////////////////////////////////
-            getInteractions: function(item, character) {
-                const retval = this.callSuper(item, character);
+            getInteractions: function(item, character, adjacent) {
+                const retval = this.callSuper(item, character, adjacent);
                 if (isItemInCharacterInventory(item, character)) retval.push(INTERACTION_EAT);
                 return retval;
             },
@@ -248,8 +232,8 @@
             
             
             // Methods /////////////////////////////////////////////////////////
-            getInteractions: function(item, character) {
-                const retval = this.callSuper(item, character);
+            getInteractions: function(item, character, adjacent) {
+                const retval = this.callSuper(item, character, adjacent);
                 
                 // Remove "eat" if no charges remain.
                 let charges = item.getStateByName(STATE_CHARGES) ?? 0;
@@ -281,107 +265,37 @@
             }
         }),
         
-        Item = new JSClass('Item', Eventable, {
+        Item = new JSClass('Item', Thing, {
             // Accessors ///////////////////////////////////////////////////////
-            setId: function(v) {this.set('id', v, true);},
-            getId: function() {return this.id;},
-            
             getCell: function() {return this.getInventory().getCell();},
+            getTemplateObject: function() {return getTemplate(this.getTemplate());},
             
             setInventory: function(v) {this._inventory = v;},
             getInventory: function() {return this._inventory},
-            
-            setName: function(v) {this.set('n', v, true);},
-            getName: function(character) {
-                return this.n != null ? this.n : this.getTemplateObject().getName(this, character);
-            },
-            
-            getSimpleName: function(character) {
-                return this.n != null ? this.n : this.getTemplateObject().getSimpleName(this, character);
-            },
-            
-            setWeight: function(v) {this.set('w', v, true);},
-            getWeight: function(character) {
-                return this.w != null ? this.w : this.getTemplateObject().getWeight(this, character);
-            },
-            
-            setVolume: function(v) {this.set('v', v, true);},
-            getVolume: function(character) {
-                return this.v != null ? this.v : this.getTemplateObject().getVolume(this, character);
-            },
             
             setCapacityNeeded: function(v) {this.set('c', v, true);},
             getCapacityNeeded: function(character) {
                 return this.c != null ? this.c : this.getTemplateObject().getCapacityNeeded(this, character);
             },
             
-            setTemplate: function(v) {this.set('t', v, true);},
-            getTemplate: function() {return this.t;},
-            getTemplateObject: function() {return getTemplate(this.getTemplate());},
-            
-            getStateObject: function() {return this.state ??= {};},
-            setStateByName: function(stateName, value) {this.getStateObject()[stateName] = value;},
-            getStateByName: function(stateName) {return this.getStateObject()[stateName];},
-            
             
             // Item Methods ////////////////////////////////////////////////////
-            getInteractions: function(character) {
-                return this.getTemplateObject().getInteractions(this, character);
-            },
-            
-            getLockPropertyForInteraction: function(character, interactionName) {
-                return this.getTemplateObject().getLockPropertyForInteraction(this, character, interactionName);
-            },
-            
-            getSoundForInteraction: function(character, interactionName) {
-                return this.getTemplateObject().getSoundForInteraction(this, character, interactionName);
-            },
-            
             doInteraction: function(character, interactionName) {
                 return this.getTemplateObject().doInteraction(this, character, interactionName);
-            },
-            doExpositionBeforeInteraction: function(character, interactionName, willSucceed) {
-                return this.getTemplateObject().doExpositionBeforeInteraction(this, character, interactionName, willSucceed);
-            },
-            doExpositionAfterInteraction: function(character, interactionName, succeeded) {
-                return this.getTemplateObject().doExpositionAfterInteraction(this, character, interactionName, succeeded);
-            },
-            
-            describe: function(character) {
-                return this.getTemplateObject().describe(this, character);
             },
             
             
             // Persistence and Serialization ///////////////////////////////////
             getAsData: function(cfg) {
-                const retval = {
-                    id:this.id,
-                    t:this.t
-                };
-                
-                if (this.state != null) retval.state = this.state;
-                
-                // Serialize overridden attributes.
-                for (const attrName of ['n','w','v','c']) {
-                    if (this[attrName] != null) retval[attrName] = this[attrName];
-                }
-                
+                const retval = this.callSuper(cfg);
+                if (this.c != null) retval.c = this.c;
                 return retval;
             },
             
             updateFromData: function(datum) {
-                this.setId(datum.id);
-                this.setTemplate(datum.t);
-                
-                this.state = datum.state;
-                
-                if (datum.n != null) this.setName(datum.n);
-                if (datum.w != null) this.setWeight(datum.w);
-                if (datum.v != null) this.setVolume(datum.v);
+                this.callSuper(datum);
                 if (datum.c != null) this.setCapacityNeeded(datum.c);
-                
                 items.set(this.id, this);
-                
                 return this;
             }
         }),

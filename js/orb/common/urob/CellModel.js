@@ -74,7 +74,7 @@
                 if (fixtures?.size > 0) {
                     for (const [fixtureId, fixture] of fixtures) {
                         retval ??= {};
-                        retval[fixtureId] = fixture.getInteractions(fixture, character, adjacent);
+                        retval[fixtureId] = fixture.getInteractions(character, adjacent);
                     }
                 }
                 return retval;

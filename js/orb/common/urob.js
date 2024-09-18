@@ -81,6 +81,7 @@
             //               permission: required from account.js
             //                   facing: required from facing.js
             //              composition: required from composition.js
+            //                    thing: required from thing.js
             //                  fixture: required from fixture.js
             //    cellOffsetsByDistance: required from cellOffsets.js
             //        getVisibilityPath: required from cellOffsets.js
@@ -218,6 +219,7 @@
         require('./urob/facing.js');
         require('./urob/StatModel.js');
         require('./urob/composition.js');
+        require('./urob/thing.js');
         require('./urob/fixture.js');
         require('./urob/MapModel.js');
         require('./urob/inventory.js');
