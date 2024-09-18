@@ -75,20 +75,21 @@ const orb = global.orb,
     }),
     
     FixtureModel = new JSClass('FixtureModel', CommonFixtureModel, {
-        init: function(attrs) {
-            const id = attrs.id ??= orb.getFixtureGuid();
-            this.callSuper(attrs);
-            fixtures[id] = this;
-        },
-        
         setStateByName: function(stateName, value) {
             this.callSuper(stateName, value);
             if (this.inited) {
                 const cell = this.getCell() ?? this.getFace()?.getCell();
                 cell?.notifyAllVisualChangeListenersThatCellChanged();
             }
+        },
+        
+        updateFromData: function(datum) {
+            const id = datum.id ??= orb.getFixtureGuid();
+            return fixtures[id] = this.callSuper?.(datum);
         }
     }),
+    
+    makeFixtureFromDatum = datum => (new FixtureModel()).updateFromData(datum),
     
     FaceModel = new JSClass('FaceModel', CommonFaceModel, {
         setC: function(v) {
@@ -96,7 +97,7 @@ const orb = global.orb,
             if (this.inited) this.getCell()?.notifyAllVisualChangeListenersThatCellChanged();
         },
         
-        makeFixtureFromDatum: datum => new FixtureModel(datum),
+        makeFixtureFromDatum:makeFixtureFromDatum
     }),
     
     notifyForInventoryAction = (inventory, item, action) => {
@@ -187,7 +188,7 @@ const orb = global.orb,
         },
         
         // Fixtures //
-        makeFixtureFromDatum: datum => new FixtureModel(datum),
+        makeFixtureFromDatum:makeFixtureFromDatum,
         
         // Entities //
         getEntitiesMap: function() {return this.entities ??= new Map();},

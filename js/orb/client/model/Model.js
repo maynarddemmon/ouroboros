@@ -28,9 +28,9 @@
         // Fixture:start
         getFixtureData = () => fixtureData ??= {},
         makeFixtureFromDatum = datum => {
-            const fixture = new CommonFixtureModel(datum);
-            getFixtureData()[fixture.getId()] = fixture;
-            return fixture;
+            const fixtureModel = (new CommonFixtureModel()).updateFromData(datum);
+            getFixtureData()[fixtureModel.getId()] = fixtureModel;
+            return fixtureModel;
         },
         // Fixture:end
         

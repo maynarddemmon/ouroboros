@@ -550,28 +550,6 @@
             
             
             // Life Cycle //////////////////////////////////////////////////////
-            /** Fixtures will have either a face or a cell but not both. The cell for a face
-                can be accessed via the face. */
-            init: function(attrs) {
-                const face = attrs.face,
-                    cell = attrs.cell;
-                if (face) {
-                    this.setFace(face);
-                } else if (cell) {
-                    this.setCell(cell);
-                }
-                delete attrs.face;
-                delete attrs.cell;
-                
-                this.callSuper(attrs);
-                
-                if (this.face) {
-                    this.registerEffects(this.face);
-                } else if (this.cell) {
-                    this.registerEffects(this.cell);
-                }
-            },
-            
             destroy: function() {
                 if (this.face) {
                     this.unregisterEffects(this.face);
@@ -587,16 +565,16 @@
             getId: function() {return this.id;},
             
             setFace: function(v) {
-                if (this.inited && this.face) this.unregisterEffects(this.face);
+                if (this.face) this.unregisterEffects(this.face);
                 this.set('face', v, true);
-                if (this.inited) this.registerEffects(this.face);
+                this.registerEffects(this.face);
             },
             getFace: function() {return this.face;},
             
             setCell: function(v) {
-                if (this.inited && this.cell) this.unregisterEffects(this.cell);
+                if (this.cell) this.unregisterEffects(this.cell);
                 this.set('cell', v, true);
-                if (this.inited) this.registerEffects(this.cell);
+                this.registerEffects(this.cell);
             },
             getCell: function() {return this.cell ?? this.face.getCell();},
             
@@ -665,9 +643,25 @@
             // Persistence and Serialization ///////////////////////////////////
             getAsData: function(cfg) {
                 const retval = this.callSuper?.(cfg) ?? {};
-                retval.template = this.template;
+                retval.t = this.template;
                 if (this.state != null) retval.state = this.state;
                 return retval;
+            },
+            
+            updateFromData: function(datum) {
+                this.callSuper?.(datum);
+                
+                this.setId(datum.id);
+                this.setTemplate(datum.t);
+                this.state = datum.state;
+                
+                if (datum.face) {
+                    this.setFace(datum.face);
+                } else if (datum.cell) {
+                    this.setCell(datum.cell);
+                }
+                
+                return this;
             }
         }),
         
