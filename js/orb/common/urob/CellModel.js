@@ -74,7 +74,7 @@
                 if (fixtures?.size > 0) {
                     for (const [fixtureId, fixture] of fixtures) {
                         retval ??= {};
-                        retval[fixtureId] = fixture.getTemplateObject().getInteractions?.(fixture, character, adjacent);
+                        retval[fixtureId] = fixture.getInteractions(fixture, character, adjacent);
                     }
                 }
                 return retval;
@@ -85,34 +85,29 @@
             getAsData: function(cfg) {
                 const retval = this.callSuper?.(cfg) ?? {};
                 
-                let fixturesData;
                 const fixtures = this.fixtures;
                 if (fixtures?.size > 0) {
-                    fixturesData = {};
-                    for (const [fixtureId, fixture] of fixtures) {
-                        fixturesData[fixtureId] = fixture.getAsData(cfg);
+                    const fixtureData = retval.fix = [];
+                    for (const fixture of fixtures.values()) {
+                        fixtureData.push(fixture.getAsData(cfg));
                     }
                 }
-                if (fixturesData) retval.fix = fixturesData;
                 
                 return retval;
             },
             
             updateFromData: function(datum) {
                 this.callSuper?.(datum);
-                if (datum.fix != null) {
-                    const fixturesData = datum.fix;
-                    for (const fixtureId in fixturesData) {
-                        this.addFixture(this.makeFixtureFromDatum(this.prepareFixtureDatum(fixturesData[fixtureId], fixtureId)));
+                const fixturesData = datum.fix;
+                if (fixturesData != null) {
+                    for (const fixtureDatum of fixturesData) {
+                        fixtureDatum.fixtureContainer = this;
+                        this.addFixture(this.makeFixtureFromDatum(fixtureDatum));
                     }
                 }
                 return this;
             },
-            makeFixtureFromDatum: datum => {/* Subclasses must implement. */},
-            prepareFixtureDatum: (datum, fixtureId) => {
-                datum.id = fixtureId;
-                return datum;
-            }
+            makeFixtureFromDatum: datum => {/* Subclasses must implement. */}
         }),
         
         makeFaceForCell = (cell, datum) => {
@@ -290,22 +285,12 @@
                 this.setT(datum.t);
                 this.setB(datum.b);
                 return this;
-            },
-            
-            prepareFixtureDatum: function(datum, fixtureId) {
-                datum.cell = this;
-                return this.callSuper(datum, fixtureId);
             }
         });
     
     pkg.cell = {
         CommonFaceModel: new JSClass('CommonFaceModel', Eventable, {
             include:[FixtureContainerMixin, CompositionTemplateProxyMixin],
-            
-            prepareFixtureDatum: function(datum, fixtureId) {
-                datum.face = this;
-                return this.callSuper(datum, fixtureId);
-            },
             
             setCell: function(v) {this.set('cell', v, true);},
             getCell: function() {return this.cell;}

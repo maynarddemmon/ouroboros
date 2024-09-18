@@ -564,19 +564,13 @@
             setId: function(v) {this.set('id', v, true);},
             getId: function() {return this.id;},
             
-            setFace: function(v) {
-                if (this.face) this.unregisterEffects(this.face);
-                this.set('face', v, true);
-                this.registerEffects(this.face);
+            setFixtureContainer: function(v) {
+                if (this.fixtureContainer) this.unregisterEffects(this.fixtureContainer);
+                this.set('fixtureContainer', v, true);
+                this.registerEffects(this.fixtureContainer);
             },
-            getFace: function() {return this.face;},
             
-            setCell: function(v) {
-                if (this.cell) this.unregisterEffects(this.cell);
-                this.set('cell', v, true);
-                this.registerEffects(this.cell);
-            },
-            getCell: function() {return this.cell ?? this.face.getCell();},
+            getCell: function() {return this.fixtureContainer.getCell();},
             
             setTemplate: function(v) {this.set('template', v, true);},
             getTemplate: function() {return this.template;},
@@ -592,6 +586,10 @@
             
             
             // Methods /////////////////////////////////////////////////////////
+            getInteractions: function(character) {
+                return this.getTemplateObject().getInteractions(this, character);
+            },
+            
             describe: function(character) {
                 return this.getTemplateObject().describe(this, character);
             },
@@ -643,6 +641,7 @@
             // Persistence and Serialization ///////////////////////////////////
             getAsData: function(cfg) {
                 const retval = this.callSuper?.(cfg) ?? {};
+                retval.id = this.id;
                 retval.t = this.template;
                 if (this.state != null) retval.state = this.state;
                 return retval;
@@ -655,11 +654,7 @@
                 this.setTemplate(datum.t);
                 this.state = datum.state;
                 
-                if (datum.face) {
-                    this.setFace(datum.face);
-                } else if (datum.cell) {
-                    this.setCell(datum.cell);
-                }
+                this.setFixtureContainer(datum.fixtureContainer);
                 
                 return this;
             }

@@ -604,13 +604,14 @@
         },
         
         handleSoundMessage: socketMsg => {
-            const {locId, from, type, volume, message} = socketMsg,
+            const {locId, from, type, volume} = socketMsg,
                 AUDIBLE_THRESHOLD = 0.5,
                 effectiveVolume = gameMap.propogateValue(locId, volume, AUDIBLE_THRESHOLD, locArrToId(character.getLocArr()));
             if (effectiveVolume <= AUDIBLE_THRESHOLD) {
                 // Sound to low to hear.
                 return;
             }
+            let message = socketMsg.message;
             
             const isFixtureSource = type === 'fixture',
                 isItemSource = type === 'item',

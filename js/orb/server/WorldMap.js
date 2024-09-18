@@ -77,10 +77,7 @@ const orb = global.orb,
     FixtureModel = new JSClass('FixtureModel', CommonFixtureModel, {
         setStateByName: function(stateName, value) {
             this.callSuper(stateName, value);
-            if (this.inited) {
-                const cell = this.getCell() ?? this.getFace()?.getCell();
-                cell?.notifyAllVisualChangeListenersThatCellChanged();
-            }
+            if (this.inited) this.getCell()?.notifyAllVisualChangeListenersThatCellChanged();
         },
         
         updateFromData: function(datum) {
