@@ -195,7 +195,7 @@
             
             leftPadNumber: tym.leftPadNumber,
             
-            formatNumber: num => formatNumberWithSeparator(num, '', -1, ',', '.'),
+            formatNumber: (num, fixed=-1) => formatNumberWithSeparator(num, '', fixed, ',', '.'),
             // End: String Manipulation and Formatting
             
             getNatuarlNumberFromNum: num => {

@@ -462,6 +462,8 @@
                 
                 if (action === 'add') {
                     inventoryContainer.addItem(inventoryContainer.makeItemFromData(itemDatum));
+                } else if (action === 'update') {
+                    inventoryContainer.updateItem(itemDatum);
                 } else if (action === 'remove') {
                     inventoryContainer.removeItem(itemDatum.id)
                 } else {

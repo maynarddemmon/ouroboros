@@ -99,6 +99,21 @@ const orb = global.orb,
         makeFixtureFromDatum: datum => new FixtureModel(datum),
     }),
     
+    notifyForInventoryAction = (inventory, item, action) => {
+        if (isReady) {
+            const cell = inventory.getCell(),
+                cellId = cell.getId();
+            for (const character of cell.getVisualChangeListeners()) {
+                sendMsgToCharacter(character, TYPE_ALTER_INVENTORY, {
+                    inventoryType:'cell',
+                    action:action,
+                    id:cellId, 
+                    item:item.getAsData({character:character})
+                });
+            }
+        }
+    },
+    
     InventoryModel = new JSClass('InventoryModel', Inventory, {
         init: function(attrs) {
             // All CellModels will have the same configuration for inventory
@@ -109,34 +124,9 @@ const orb = global.orb,
             this.callSuper(attrs);
         },
         
-        notifyForAdd: function(item) {
-            if (isReady) {
-                const cell = this.getCell(),
-                    cellId = cell.getId();
-                for (const character of cell.getVisualChangeListeners()) {
-                    sendMsgToCharacter(character, TYPE_ALTER_INVENTORY, {
-                        inventoryType:'cell',
-                        action:'add',
-                        id:cellId, 
-                        item:item.getAsData({character:character})
-                    });
-                }
-            }
-        },
-        notifyForRemove: function(item) {
-            if (isReady) {
-                const cell = this.getCell(),
-                    cellId = cell.getId();
-                for (const character of cell.getVisualChangeListeners()) {
-                    sendMsgToCharacter(character, TYPE_ALTER_INVENTORY, {
-                        inventoryType:'cell',
-                        action:'remove',
-                        id:cellId, 
-                        item:item.getAsData({character:character})
-                    });
-                }
-            }
-        },
+        notifyForAdd: function(item) {notifyForInventoryAction(this, item, 'add');},
+        notifyForUpdate: function(item) {notifyForInventoryAction(this, item, 'update');},
+        notifyForRemove: function(item) {notifyForInventoryAction(this, item, 'remove');},
         
         getAsData: function(cfg) {
             const retval = this.callSuper(cfg);

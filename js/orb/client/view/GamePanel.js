@@ -136,7 +136,7 @@
         },
         
         makeWeightAndVolumeClause = (item) => {
-            return ' <span style="color:#999;">(' + item.getWeight() + 'wt, ' + item.getVolume() + 'vol)</span>';
+            return ' <span style="color:#999;">(' + formatNumber(item.getWeight(), 2) + 'wt, ' + formatNumber(item.getVolume(), 2) + 'vol)</span>';
         },
         
         getFixtureClause = (character, fixtureIds) => {

@@ -63,6 +63,15 @@
             },
             getItemClass: () => Inventory.ITEM_MODEL_CLASS,
             
+            updateItem: function(itemDatum) {
+                const item = this.getItem(itemDatum.id);
+                if (item) {
+                    item.updateFromData(itemDatum);
+                    if (this.isNotLoading()) this.notifyForUpdate(item);
+                    return item;
+                }
+            },
+            
             addItem: function(item) {
                 const itemId = item.getId(),
                     existingItem = this.getItem(itemId);
@@ -117,6 +126,7 @@
             },
             
             notifyForAdd: item => {/* Subclasses to implement as needed. */},
+            notifyForUpdate: item => {/* Subclasses to implement as needed. */},
             notifyForRemove: item => {/* Subclasses to implement as needed. */},
             
             
@@ -175,6 +185,7 @@
             
             // Inventory Wrapper Functions
             addItem: function(item) {return this.getInventory().addItem(item);},
+            updateItem: function(itemDatum) {return this.getInventory().updateItem(itemDatum);},
             getItem: function(itemId) {return this.getInventory().getItem(itemId);},
             getAllItems: function() {return this.getInventory().getAllItems();},
             removeItem: function(itemId) {return this.getInventory().removeItem(itemId);},

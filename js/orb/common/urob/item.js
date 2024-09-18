@@ -13,6 +13,7 @@
         {Module:JSModule, Class:JSClass} = JS,
         
         {
+            pluralize,
             inventory:{
                 ERR_ITEM_NOT_FOUND, ERR_MAX_CAPACITY_EXCEEDED, ERR_MAX_WEIGHT_EXCEEDED, ERR_MAX_VOLUME_EXCEEDED
             }
@@ -20,10 +21,13 @@
         
         getWorldMap = () => worldMap ??= require('../../server/WorldMap.js'),
         
+        STATE_CHARGES = 'charges',
+        
         INTERACTION_DROP = 'drop',
         INTERACTION_PICK_UP = 'pick up',
-        
         INTERACTION_EAT = 'eat',
+        INTERACTION_DISCHARGE = 'discharge',
+        INTERACTION_RECHARGE = 'recharge',
         
         items = new Map(),
         
@@ -39,6 +43,9 @@
             setName: function(v) {this.set('name', v, true);},
             getName: function(item, character) {return this.name;},
             getSimpleName: function(item, character) {return this.name;},
+            
+            setStates: function(v) {this.set('states', v, true);},
+            getStates: function() {return this.states;},
             
             setWeight: function(v) {this.set('weight', v, true);},
             getWeight: function(item, character) {return this.weight;},
@@ -143,6 +150,7 @@
             describe: (item, character) => item.getName(character)
         }),
         
+        /** An Item that an Entity can "eat". */
         EatableItem = new JSModule('EatableItem', {
             // Methods /////////////////////////////////////////////////////////
             getInteractions: function(item, character) {
@@ -178,6 +186,43 @@
             doInteractionEat: (item, character, interactionName) => {/** Subclasses to implement. */}
         }),
         
+        /** An Item that contains zero or more charges. */
+        ChargeableItem = new JSModule('ChargeableItem', {
+            init: function(attrs) {
+                attrs.states ??= [];
+                attrs.states[STATE_CHARGES] = 'int';
+                
+                this.callSuper(attrs);
+            },
+            
+            setChargeWeight: function(v) {this.set('chargeWeight', v, true);},
+            getChargeWeight: function(item, character) {return this.chargeWeight;},
+            
+            setChargeVolume: function(v) {this.set('chargeVolume', v, true);},
+            getChargeVolume: function(item, character) {return this.chargeVolume;},
+            
+            setChargeMax: function(v) {this.set('chargeMax', v, true);},
+            getChargeMax: function(item, character) {return this.chargeMax;},
+            
+            setDestroyWhenDepleted: function(v) {this.set('destroyWhenDepleted', v, true);},
+            getDestroyWhenDepleted: function(item, character) {return this.destroyWhenDepleted;},
+            
+            getWeight: function(item, character) {
+                return this.callSuper(item, character) + 
+                    (item.getStateByName(STATE_CHARGES) ?? 0) * this.getChargeWeight();
+            },
+            
+            getVolume: function(item, character) {
+                return this.callSuper(item, character) + 
+                    (item.getStateByName(STATE_CHARGES) ?? 0) * this.getChargeVolume();
+            },
+            
+            describe: function(item, character) {
+                const charges = item.getStateByName(STATE_CHARGES) ?? 0;
+                return this.callSuper(item, character) + ' (' + charges + ' ' + pluralize(charges, 'charge') + ')';
+            }
+        }),
+        
         FoodItemTemplate = new JSClass('FoodItemTemplate', ItemTemplate, {
             include:[EatableItem],
             
@@ -191,10 +236,48 @@
                 const somaRecovered = character.soma.adjValue(this.getSustenance());
                 item.doExpositionAfterInteraction(character, interactionName, true);
                 broadcastSound(item, character, interactionName);
-                character.sendExposition('You recover ' + somaRecovered + ' soma from eating the food.', 'narrative');
+                character.sendExposition('You recover ' + somaRecovered + ' soma from eating the ' + item.getSimpleName() + '.', 'narrative');
                 
                 item.getInventory().removeItem(item.getId());
                 item.destroy();
+            }
+        }),
+        
+        ChargeableFoodItemTemplate = new JSClass('ChargeableFoodItemTemplate', FoodItemTemplate, {
+            include:[ChargeableItem],
+            
+            
+            // Methods /////////////////////////////////////////////////////////
+            getInteractions: function(item, character) {
+                const retval = this.callSuper(item, character);
+                
+                // Remove "eat" if no charges remain.
+                let charges = item.getStateByName(STATE_CHARGES) ?? 0;
+                if (charges === 0) {
+                    const idx = retval.indexOf(INTERACTION_EAT);
+                    if (idx !== -1) retval.splice(idx, 1);
+                }
+                
+                return retval;
+            },
+            
+            doInteractionEat: function(item, character, interactionName) {
+                let charges = item.getStateByName(STATE_CHARGES) ?? 0;
+                if (charges > 0) {
+                    const somaRecovered = character.soma.adjValue(this.getSustenance());
+                    item.setStateByName(STATE_CHARGES, --charges);
+                    
+                    item.doExpositionAfterInteraction(character, interactionName, true);
+                    broadcastSound(item, character, interactionName);
+                    character.sendExposition('You recover ' + somaRecovered + ' soma from eating some of the ' + item.getSimpleName() + '.', 'narrative');
+                    
+                    if (charges === 0 && this.getDestroyWhenDepleted()) {
+                        item.getInventory().removeItem(item.getId());
+                        item.destroy();
+                    }
+                } else {
+                    character.sendExposition('There is nothing left to eat of the ' + item.getSimpleName() + '.', 'narrative');
+                }
             }
         }),
         
@@ -236,6 +319,10 @@
             getTemplate: function() {return this.t;},
             getTemplateObject: function() {return getTemplate(this.getTemplate());},
             
+            getStateObject: function() {return this.state ??= {};},
+            setStateByName: function(stateName, value) {this.getStateObject()[stateName] = value;},
+            getStateByName: function(stateName) {return this.getStateObject()[stateName];},
+            
             
             // Item Methods ////////////////////////////////////////////////////
             getInteractions: function(character) {
@@ -251,13 +338,7 @@
             },
             
             doInteraction: function(character, interactionName) {
-                const failureMsg = this.getTemplateObject().doInteraction(this, character, interactionName);
-                
-                // Make sound if successful
-                if (!failureMsg && !this.destroyed) broadcastSound(this, character, interactionName);
-                
-                return failureMsg;
-                
+                return this.getTemplateObject().doInteraction(this, character, interactionName);
             },
             doExpositionBeforeInteraction: function(character, interactionName, willSucceed) {
                 return this.getTemplateObject().doExpositionBeforeInteraction(this, character, interactionName, willSucceed);
@@ -278,6 +359,8 @@
                     t:this.t
                 };
                 
+                if (this.state != null) retval.state = this.state;
+                
                 // Serialize overridden attributes.
                 for (const attrName of ['n','w','v','c']) {
                     if (this[attrName] != null) retval[attrName] = this[attrName];
@@ -289,6 +372,8 @@
             updateFromData: function(datum) {
                 this.setId(datum.id);
                 this.setTemplate(datum.t);
+                
+                this.state = datum.state;
                 
                 if (datum.n != null) this.setName(datum.n);
                 if (datum.w != null) this.setWeight(datum.w);
@@ -306,7 +391,18 @@
             
             // Food
             food_1:new FoodItemTemplate({name:'Mushroom Jerky', weight:0.25, volume:100, sustenance:25}),
-            food_2:new FoodItemTemplate({name:'Centipede Meat', weight:0.10, volume:25, sustenance:15}),
+            food_2:new FoodItemTemplate({name:'Centipede Jerky', weight:0.10, volume:25, sustenance:15}),
+            
+            food_3:new ChargeableFoodItemTemplate({
+                name:'Kibble', destroyWhenDepleted:true,
+                weight:0, volume:0, chargeWeight:0.05, chargeVolume:5, 
+                sustenance:5
+            }),
+            food_4:new ChargeableFoodItemTemplate({
+                name:'Giant Spider Carcass', destroyWhenDepleted:false,
+                weight:5, volume:100, chargeWeight:0.1, chargeVolume:25, maxCharges:50, 
+                sustenance:15
+            }),
         },
         
         getTemplate = itemTemplateId => templates[itemTemplateId];

@@ -56,6 +56,10 @@
             makeFixtureFromDatum:makeFixtureFromDatum,
         }),
         
+        notifyForCellInventoryAction = (inventory, item) => {
+            if (inventory.getOwner() === model.getCharacterInPlay()?.getCell()) pkg.gamePanel.updateCellInventory();
+        },
+        
         CellInventoryModel = new JSClass('CellInventoryModel', Inventory, {
             init: function(attrs) {
                 // cell inventory on client side should not enforce any restrictions so max everything.
@@ -63,20 +67,19 @@
                 this.callSuper(attrs);
             },
             
-            notifyForAdd: function(item) {
-                if (this.getOwner() === model.getCharacterInPlay()?.getCell()) pkg.gamePanel.updateCellInventory();
-            },
-            notifyForRemove: function(item) {
-                if (this.getOwner() === model.getCharacterInPlay()?.getCell()) pkg.gamePanel.updateCellInventory();
-            },
+            notifyForAdd: function(item) {notifyForCellInventoryAction(this, item);},
+            notifyForUpdate: function(item) {notifyForCellInventoryAction(this, item);},
+            notifyForRemove: function(item) {notifyForCellInventoryAction(this, item);}
         }),
+        
+        notifyForEntityInventoryAction = (inventory, item) => {
+            if (inventory.getOwner() === model.getCharacterInPlay()) pkg.gamePanel.updateCharacterInventory();
+        },
+        
         EntityInventoryModel = new JSClass('EntityInventoryModel', Inventory, {
-            notifyForAdd: function(item) {
-                if (this.getOwner() === model.getCharacterInPlay()) pkg.gamePanel.updateCharacterInventory();
-            },
-            notifyForRemove: function(item) {
-                if (this.getOwner() === model.getCharacterInPlay()) pkg.gamePanel.updateCharacterInventory();
-            },
+            notifyForAdd: function(item) {notifyForEntityInventoryAction(this, item);},
+            notifyForUpdate: function(item) {notifyForEntityInventoryAction(this, item);},
+            notifyForRemove: function(item) {notifyForEntityInventoryAction(this, item);}
         }),
         
         ItemModel = new JSClass('ItemModel', Item, {

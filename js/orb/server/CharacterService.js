@@ -63,31 +63,23 @@ const orb = global.orb,
         include:[DerivedMaxStatModelMixin]
     }),
     
+    notifyForInventoryAction = (inventory, item, action) => {
+        const entity = inventory.getOwner(),
+            username = entity.isA(Character) ? entity.getUserId() : null;
+        if (username) {
+            getAccountService().addMessageToUser(username, {type:TYPE_ALTER_INVENTORY, msg:{
+                inventoryType:'character',
+                action:action,
+                id:entity.getId(), 
+                item:item.getAsData({character:entity})
+            }});
+        }
+    },
+    
     InventoryModel = new JSClass('InventoryModel', Inventory, {
-        notifyForAdd: function(item) {
-            const entity = this.getOwner(),
-                username = entity.isA(Character) ? entity.getUserId() : null;
-            if (username) {
-                getAccountService().addMessageToUser(username, {type:TYPE_ALTER_INVENTORY, msg:{
-                    inventoryType:'character',
-                    action:'add',
-                    id:entity.getId(), 
-                    item:item.getAsData({character:entity})
-                }});
-            }
-        },
-        notifyForRemove: function(item) {
-            const entity = this.getOwner(),
-                username = entity.isA(Character) ? entity.getUserId() : null;
-            if (username) {
-                getAccountService().addMessageToUser(username, {type:TYPE_ALTER_INVENTORY, msg:{
-                    inventoryType:'character',
-                    action:'remove',
-                    id:entity.getId(), 
-                    item:item.getAsData({character:entity})
-                }});
-            }
-        },
+        notifyForAdd: function(item) {notifyForInventoryAction(this, item, 'add');},
+        notifyForUpdate: function(item) {notifyForInventoryAction(this, item, 'update');},
+        notifyForRemove: function(item) {notifyForInventoryAction(this, item, 'remove');},
         
         getAsData: function(cfg) {
             const retval = this.callSuper(cfg);
@@ -108,6 +100,11 @@ const orb = global.orb,
         updateFromData: function(datum) {
             datum.id ??= orb.getItemGuid();
             this.callSuper(datum);
+        },
+        
+        setStateByName: function(stateName, value) {
+            this.callSuper(stateName, value);
+            if (this.inited) this.getInventory().notifyForUpdate(this);
         }
     }),
     
