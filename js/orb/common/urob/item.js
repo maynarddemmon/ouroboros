@@ -381,6 +381,8 @@
                 if (datum.c != null) this.setCapacityNeeded(datum.c);
                 
                 items.set(this.id, this);
+                
+                return this;
             }
         }),
         

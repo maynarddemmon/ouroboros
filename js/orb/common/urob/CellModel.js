@@ -102,12 +102,11 @@
                 if (fixturesData != null) {
                     for (const fixtureDatum of fixturesData) {
                         fixtureDatum.fixtureContainer = this;
-                        this.addFixture(this.makeFixtureFromDatum(fixtureDatum));
+                        this.addFixture((new CommonCellModel.FIXTURE_MODEL_CLASS()).updateFromData(fixtureDatum));
                     }
                 }
                 return this;
-            },
-            makeFixtureFromDatum: datum => {/* Subclasses must implement. */}
+            }
         }),
         
         makeFaceForCell = (cell, datum) => {
@@ -123,7 +122,8 @@
             extend: {
                 // Set by the client and server so the appropriate face class is instantated.
                 FACE_MODEL_CLASS:null,
-                INVENTORY_MODEL_CLASS:null
+                INVENTORY_MODEL_CLASS:null,
+                FIXTURE_MODEL_CLASS:null
             },
             
             getInventoryClass: () => CommonCellModel.INVENTORY_MODEL_CLASS,

@@ -35,7 +35,6 @@ const orb = global.orb,
     
     maps = {},
     cells = {},
-    fixtures = {},
     
     MapModel = new JSClass('MapModel', CommonMapModel, {
         // Methods /////////////////////////////////////////////////////////////
@@ -82,19 +81,15 @@ const orb = global.orb,
         
         updateFromData: function(datum) {
             const id = datum.id ??= orb.getFixtureGuid();
-            return fixtures[id] = this.callSuper?.(datum);
+            return this.callSuper?.(datum);
         }
     }),
-    
-    makeFixtureFromDatum = datum => (new FixtureModel()).updateFromData(datum),
     
     FaceModel = new JSClass('FaceModel', CommonFaceModel, {
         setC: function(v) {
             this.callSuper(v);
             if (this.inited) this.getCell()?.notifyAllVisualChangeListenersThatCellChanged();
-        },
-        
-        makeFixtureFromDatum:makeFixtureFromDatum
+        }
     }),
     
     notifyForInventoryAction = (inventory, item, action) => {
@@ -183,9 +178,6 @@ const orb = global.orb,
             this.callSuper(v);
             if (this.inited) this.notifyAllVisualChangeListenersThatCellChanged();
         },
-        
-        // Fixtures //
-        makeFixtureFromDatum:makeFixtureFromDatum,
         
         // Entities //
         getEntitiesMap: function() {return this.entities ??= new Map();},
@@ -484,8 +476,6 @@ const orb = global.orb,
         getCell:getCell,
         getCellByLocArr:getCellByLocArr,
         
-        getFixtureById:fixtureId => fixtures[fixtureId],
-        
         getMapDataForCharacter: character => {
             // Send all mapData since it doesn't hurt and it's needed when a character changes maps.
             const mapData = {};
@@ -616,3 +606,4 @@ const orb = global.orb,
 
 CommonCellModel.FACE_MODEL_CLASS = FaceModel;
 CommonCellModel.INVENTORY_MODEL_CLASS = InventoryModel;
+CommonCellModel.FIXTURE_MODEL_CLASS = FixtureModel;

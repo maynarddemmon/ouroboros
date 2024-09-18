@@ -55,7 +55,9 @@
                 TYPE_EXIT_WORLD, TYPE_ALTER_CELL, TYPE_CHANGE_FACING, TYPE_VOCALIZE,
                 TYPE_INTERACT_WITH_FIXTURE, TYPE_INTERACT_WITH_ITEM
             },
-            entity:{experienceByLevel, minExperienceForLevel}
+            entity:{experienceByLevel, minExperienceForLevel},
+            fixture:{getFixtureById},
+            item:{getItemById}
         } = global.urob,
         
         {
@@ -143,7 +145,7 @@
             const accum = [];
             for (const fixtureId in fixtureIds) {
                 accum.push(
-                    model.getFixtureById(fixtureId).describe(character) +
+                    getFixtureById(fixtureId).describe(character) +
                     makeInteractionsClause(fixtureIds[fixtureId], fixtureId, 'doFixtureLink')
                 );
             }
@@ -545,7 +547,7 @@
             for (const label of ['Capacity','Weight','Volume']) {
                 const total = inventory['total' + label],
                     max = inventory['max' + label];
-                accum.push(label + ': ' + total + '/' + max + ' ' + formatAsPercentage(total/max));
+                accum.push(label + ': ' + formatNumber(total, 2) + '/' + formatNumber(max, 2) + ' ' + formatAsPercentage(total/max));
             }
             
             let txt = accum.join(' - ');
@@ -562,8 +564,8 @@
             myLocItemInfo.setText(getLocItemInfo());
         }, 50),
         
-        doFixtureLink: (fixtureId, interactionName) => doXLink(TYPE_INTERACT_WITH_FIXTURE, model.getFixtureById(fixtureId), interactionName),
-        doItemLink: (itemId, interactionName) => doXLink(TYPE_INTERACT_WITH_ITEM, model.getItemById(itemId), interactionName),
+        doFixtureLink: (fixtureId, interactionName) => doXLink(TYPE_INTERACT_WITH_FIXTURE, getFixtureById(fixtureId), interactionName),
+        doItemLink: (itemId, interactionName) => doXLink(TYPE_INTERACT_WITH_ITEM, getItemById(itemId), interactionName),
         
         /** @private */
         _keyDown: event => {

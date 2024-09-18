@@ -15,7 +15,8 @@
             locArrToId, getVisibilityPath, cellOffsetsByDistance,
             getCompositionTemplate,
             facing:{NORTH, SOUTH, EAST, WEST, SELF, getOppositeDirection},
-            fixture:{STATE_FACING}
+            fixture:{STATE_FACING, getFixtureById},
+            item:{getItemById}
         } = urob,
         
         {
@@ -620,9 +621,9 @@
             // Determine the source of the sound
             let soundSource;
             if (isFixtureSource) {
-                soundSource = model.getFixtureById(from);
+                soundSource = getFixtureById(from);
             } else if (isItemSource) {
-                soundSource = model.getItemById(from);
+                soundSource = getItemById(from);
             } else {
                 soundSource = model.getEntityById(from);
             }

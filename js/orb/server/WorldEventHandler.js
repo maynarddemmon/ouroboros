@@ -9,6 +9,7 @@ const orb = global.orb,
         locIdToArr, isValidLocArr, locArrToId,
         permission:{PERM_CREATOR},
         facing:{NORTH, SOUTH, EAST, WEST, UP, DOWN, SELF},
+        fixture:{getFixtureById},
         greek:{
             ATTR_TIME, ATTR_DIRECTION,
             
@@ -283,7 +284,7 @@ const orb = global.orb,
                             if (fixtureContainerData) {
                                 const interactionsArray = fixtureContainerData[targetId];
                                 if (interactionsArray) {
-                                    fixture = worldMap.getFixtureById(targetId);
+                                    fixture = getFixtureById(targetId);
                                     for (const iaName of interactionsArray) {
                                         if (iaName === interactionName) {
                                             matchedInteractionName = true;

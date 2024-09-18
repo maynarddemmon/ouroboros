@@ -38,6 +38,8 @@
         INTERACTION_ASCEND = 'ascend',
         INTERACTION_DESCEND = 'descend',
         
+        fixtures = new Map(),
+        
         FixtureTemplate = new JSClass('FixtureTemplate', Eventable, {
             init: function(attrs) {
                 attrs.adjacentSupported ??= false;
@@ -545,6 +547,9 @@
     pkg.fixture = {
         STATE_FACING:STATE_FACING,
         
+        getFixtureById:fixtureId => fixtures.get(fixtureId),
+        clearFixtureCache: () => {fixtures.clear();},
+        
         CommonFixtureModel: new JSClass('CommonFixtureModel', Eventable, {
             include:[ValueAffectorMixin],
             
@@ -655,6 +660,8 @@
                 this.state = datum.state;
                 
                 this.setFixtureContainer(datum.fixtureContainer);
+                
+                fixtures.set(this.id, this);
                 
                 return this;
             }

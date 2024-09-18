@@ -1,8 +1,7 @@
 (pkg => {
     let worldClockIntervalId,
         mapData,
-        cellData,
-        fixtureData;
+        cellData;
     
     const JSClass = JS.Class,
         {Node, Eventable} = myt,
@@ -10,7 +9,6 @@
         {
             locArrToId,
             facing:{COMPASS_FIELDS},
-            fixture:{CommonFixtureModel},
             greek:{TYPE_MOVE},
             map:{CommonMapModel},
             entity:{
@@ -19,20 +17,12 @@
             },
             cell:{CommonFaceModel, CommonCellModel},
             inventory:{Inventory},
-            item:{Item, getItemById, clearItemCache}
+            fixture:{CommonFixtureModel, clearFixtureCache},
+            item:{Item, clearItemCache}
         } = urob,
         
         getMapData = () => mapData ??= {},
         getCellData = () => cellData ??= {},
-        
-        // Fixture:start
-        getFixtureData = () => fixtureData ??= {},
-        makeFixtureFromDatum = datum => {
-            const fixtureModel = (new CommonFixtureModel()).updateFromData(datum);
-            getFixtureData()[fixtureModel.getId()] = fixtureModel;
-            return fixtureModel;
-        },
-        // Fixture:end
         
         // Entity:start
         entityData = {},
@@ -51,10 +41,6 @@
         // Entity:end
         
         characters = [],
-        
-        FaceModel = new JSClass('FaceModel', CommonFaceModel, {
-            makeFixtureFromDatum:makeFixtureFromDatum,
-        }),
         
         notifyForCellInventoryAction = (inventory, item) => {
             if (inventory.getOwner() === model.getCharacterInPlay()?.getCell()) pkg.gamePanel.updateCellInventory();
@@ -82,10 +68,6 @@
             notifyForRemove: function(item) {notifyForEntityInventoryAction(this, item);}
         }),
         
-        ItemModel = new JSClass('ItemModel', Item, {
-            
-        }),
-        
         CellModel = new JSClass('CellModel', CommonCellModel, {
             init: function(attrs) {
                 this.partsSeen = new Set();
@@ -110,9 +92,6 @@
             selfOrPartHasBeenSeen: function(part) {
                 return this.hasBeenSeen() || this.partHasBeenSeen(part);
             },
-            
-            // Fixtures //
-            makeFixtureFromDatum:makeFixtureFromDatum,
             
             
             // Persistence and Serialization ///////////////////////////////////
@@ -282,14 +261,6 @@
             },
             // Map:end
             
-            // Fixture:start
-            getFixtureById: fixtureId => fixtureData[fixtureId],
-            // Fixture:end
-            
-            // Item:start
-            getItemById:getItemById,
-            // Item:end
-            
             // Cell:start
             makeUnknownCell: locId => (new CellModel()).updateFromData({locId:locId, c:'unk'}),
             getCell: locId => cellData[locId],
@@ -331,7 +302,7 @@
                 mapData = {};
                 model.fireEvent('mapsChanged');
                 cellData = {};
-                fixtureData = {};
+                clearFixtureCache();
                 clearItemCache();
                 // Purge non-Characters.
                 for (const entityId in entityData) {
@@ -344,8 +315,9 @@
             }
         });
     
-    CommonCellModel.FACE_MODEL_CLASS = FaceModel;
+    CommonCellModel.FACE_MODEL_CLASS = CommonFaceModel;
     CommonCellModel.INVENTORY_MODEL_CLASS = CellInventoryModel;
+    CommonCellModel.FIXTURE_MODEL_CLASS = CommonFixtureModel;
     CommonEntityModelMixin.INVENTORY_MODEL_CLASS = EntityInventoryModel;
-    Inventory.ITEM_MODEL_CLASS = ItemModel;
+    Inventory.ITEM_MODEL_CLASS = Item;
 })(orb);
