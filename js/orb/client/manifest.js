@@ -18,7 +18,7 @@ JS.Packages(file => {
     file(ORB_ROOT + '../common/urob/fixture.js').provides('urob.fixture').requires('urob.facing');
     file(ORB_ROOT + '../common/urob/MapModel.js').provides('urob.map').requires('urob');
     file(ORB_ROOT + '../common/urob/Inventory.js').provides('urob.inventory').requires('urob');
-    file(ORB_ROOT + '../common/urob/Item.js').provides('urob.item').requires('urob');
+    file(ORB_ROOT + '../common/urob/Item.js').provides('urob.item').requires('urob.inventory');
     file(ORB_ROOT + '../common/urob/CellModel.js').provides('urob.cell').requires('urob.inventory','urob.item');
     file(ORB_ROOT + '../common/urob/EntityModel.js').provides('urob.entity').requires('urob.inventory','urob.item');
     

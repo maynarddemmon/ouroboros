@@ -198,36 +198,6 @@
             }
         }),
         
-        // Matter, Energy, Light lookup table for missing Cells
-        // FIXME: there are not enough composition types to fill this out correctly
-        MEL_LOOKUP: [
-            [ // Earth
-                [ // Fire
-                    ['s1'],['f1'],['v1'] // Light, Shadow, Void
-                ],[ // Water
-                    ['s1'],['w1'],['v2'] // Light, Shadow, Void
-                ],[ // Void
-                    ['s1'],['s1'],['v1'] // Light, Shadow, Void
-                ]
-            ],[ // Air
-                [ // Fire
-                    ['a1'],['f1'],['v1'] // Light, Shadow, Void
-                ],[ // Water
-                    ['a2'],['w1'],['v2'] // Light, Shadow, Void
-                ],[ // Void
-                    ['a1'],['a2'],['v1'] // Light, Shadow, Void
-                ]
-            ],[ // Void
-                [ // Fire
-                    ['v1'],['f1'],['v1'] // Light, Shadow, Void
-                ],[ // Water
-                    ['v2'],['w1'],['v2'] // Light, Shadow, Void
-                ],[ // Void
-                    ['v1'],['v2'],['v1'] // Light, Shadow, Void
-                ]
-            ],
-        ],
-        
         getTemplates: () => templates,
         getTemplate: getTemplate
     };

@@ -1,6 +1,5 @@
 (pkg => {
     let worldClockIntervalId,
-        mapData,
         cellData;
     
     const JSClass = JS.Class,
@@ -10,7 +9,7 @@
             locArrToId,
             facing:{COMPASS_FIELDS},
             greek:{TYPE_MOVE},
-            map:{CommonMapModel},
+            map:{makeMapsFromData, clearMapCache, getAsData:getMapsAsData},
             entity:{
                 CommonEntityModelMixin, CommonCharacterModelMixin,
                 CORE_STAT_NAMES, ABILITY_NAMES, DERIVED_STAT_NAMES
@@ -21,7 +20,6 @@
             item:{Item, clearItemCache}
         } = urob,
         
-        getMapData = () => mapData ??= {},
         getCellData = () => cellData ??= {},
         
         // Entity:start
@@ -251,12 +249,8 @@
             // Time:end
             
             // Map:start
-            getMap: mapId => mapData[mapId],
-            storeMapData: data => {
-                const mapData = getMapData();
-                for (const mapId in data) {
-                    mapData[mapId] = (new CommonMapModel()).updateFromData(data[mapId]);
-                }
+            storeMapData: mapData => {
+                makeMapsFromData(mapData);
                 model.fireEvent('mapsChanged');
             },
             // Map:end
@@ -299,7 +293,7 @@
             },
             
             cleanupOnExitWorld: () => {
-                mapData = {};
+                clearMapCache();
                 model.fireEvent('mapsChanged');
                 cellData = {};
                 clearFixtureCache();

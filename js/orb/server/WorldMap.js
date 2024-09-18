@@ -12,10 +12,9 @@ const orb = global.orb,
     {
         locArrToId, cellOffsetsByDistance, locIdToMapId,
         facing:{NORTH, SOUTH, EAST, WEST},
-        composition:{MEL_LOOKUP},
         fixture:{CommonFixtureModel},
         greek:{TYPE_CELL_DATA, TYPE_SOUND, TYPE_EXPOSITION, TYPE_ALTER_INVENTORY},
-        map:{CommonMapModel},
+        map:{makeMapsFromData, getMapById, getAsData:getMapsAsData},
         cell:{CommonFaceModel, CommonCellModel},
         inventory:{Inventory}
     } = global.urob,
@@ -33,45 +32,7 @@ const orb = global.orb,
     FILENAME_MAPS = 'maps',
     FILENAME_CELLS = 'cells',
     
-    maps = {},
     cells = {},
-    
-    MapModel = new JSClass('MapModel', CommonMapModel, {
-        // Methods /////////////////////////////////////////////////////////////
-        getMissingCellComposition: function() {
-            const elements = this.getElements();
-            
-            let matter = getRandomInt(1,100),
-                energy = getRandomInt(1,100),
-                life = getRandomInt(1,100);
-            
-            if (matter <= elements.earth) {
-                matter = 0;
-            } else if (matter <= elements.earth + elements.air) {
-                matter = 1;
-            } else {
-                matter = 2;
-            }
-            
-            if (energy <= elements.fire) {
-                energy = 0;
-            } else if (energy <= elements.fire + elements.water) {
-                energy = 1;
-            } else {
-                energy = 2;
-            }
-            
-            if (life <= elements.light) {
-                life = 0;
-            } else if (life <= elements.light + elements.shadow) {
-                life = 1;
-            } else {
-                life = 2;
-            }
-            
-            return MEL_LOOKUP[matter][energy][life];
-        }
-    }),
     
     FixtureModel = new JSClass('FixtureModel', CommonFixtureModel, {
         setStateByName: function(stateName, value) {
@@ -289,20 +250,13 @@ const orb = global.orb,
         }
     }),
     
-    getMap = mapId => maps[mapId],
-    setMap = (mapId, map) => {
-        maps[mapId] = map;
-        map.mapId = mapId;
-        return map;
-    },
-    
     makeAndSetCellFromDatum = (locId, datum) => setCell(locId, (new CellModel()).updateFromData(datum)),
     
     makeAndSetMissingCell = locId => {
         let comp;
-        const map = getMap(locIdToMapId(locId));
-        if (map) {
-            comp = map.getMissingCellComposition();
+        const mapModel = getMapById(locIdToMapId(locId));
+        if (mapModel) {
+            comp = mapModel.getMissingCellComposition();
         } else {
             switch (getRandomInt(0,1)) {
                 case 0: comp = 'v1'; break;
@@ -425,23 +379,14 @@ const orb = global.orb,
     live = (resolve, reject) => {
         console.log('Restoring World Maps...');
         
-        let jsonData = orb.readDataFile(FILENAME_MAPS);
-        if (jsonData) {
-            const mapData = jsonData || {};
-            for (const mapId in mapData) {
-                setMap(mapId, (new MapModel()).updateFromData(mapData[mapId]));
-            }
-            console.log('  Loaded ' + objectKeys(maps).length + ' maps.');
-        }
+        const mapData = orb.readDataFile(FILENAME_MAPS) || {};
+        console.log('  Loaded ' + makeMapsFromData(mapData) + ' maps.');
         
-        jsonData = orb.readDataFile(FILENAME_CELLS);
-        if (jsonData) {
-            const cellData = jsonData || {};
-            for (const locId in cellData) {
-                makeAndSetCellFromDatum(locId, cellData[locId]);
-            }
-            console.log('  Loaded ' + objectKeys(cells).length + ' cells.');
+        const cellData = orb.readDataFile(FILENAME_CELLS) || {};
+        for (const locId in cellData) {
+            makeAndSetCellFromDatum(locId, cellData[locId]);
         }
+        console.log('  Loaded ' + objectKeys(cells).length + ' cells.');
         
         isReady = true;
         
@@ -451,8 +396,7 @@ const orb = global.orb,
     die = (resolve, reject) => {
         console.log('Save World Maps');
         
-        const mapData = {};
-        for (const mapId in maps) mapData[mapId] = maps[mapId].getAsData({isSave:true});
+        const mapData = getMapsAsData({isSave:true});
         orb.saveDataToFile(FILENAME_MAPS, mapData);
         console.log('  Saved ' + objectKeys(mapData).length + '  maps.');
         
@@ -475,15 +419,6 @@ const orb = global.orb,
         
         getCell:getCell,
         getCellByLocArr:getCellByLocArr,
-        
-        getMapDataForCharacter: character => {
-            // Send all mapData since it doesn't hurt and it's needed when a character changes maps.
-            const mapData = {};
-            for (const mapId in maps) {
-                mapData[mapId] = maps[mapId].getAsData({character:character});
-            }
-            return mapData;
-        },
         
         // Start:Listener Management
         clearListenersForCharacter: character => {

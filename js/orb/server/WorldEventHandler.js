@@ -10,6 +10,7 @@ const orb = global.orb,
         permission:{PERM_CREATOR},
         facing:{NORTH, SOUTH, EAST, WEST, UP, DOWN, SELF},
         fixture:{getFixtureById},
+        map:{getMapDataForCharacter},
         greek:{
             ATTR_TIME, ATTR_DIRECTION,
             
@@ -128,7 +129,7 @@ const orb = global.orb,
                 
                 if (character) {
                     addMessageToUser(username, {type:TYPE_ENTER_WORLD, msg:{character:character.getAsData()}});
-                    addMessageToUser(username, {type:TYPE_MAP_DATA, msg:worldMap.getMapDataForCharacter(character)});
+                    addMessageToUser(username, {type:TYPE_MAP_DATA, msg:getMapDataForCharacter(character)});
                     
                     worldMap.clearListenersForCharacter(character);
                     const newCell = worldMap.getCellByLocArr(character.getLocArr());

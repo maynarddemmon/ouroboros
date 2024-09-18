@@ -57,7 +57,8 @@
             },
             entity:{experienceByLevel, minExperienceForLevel},
             fixture:{getFixtureById},
-            item:{getItemById}
+            item:{getItemById},
+            map:{getMapById}
         } = global.urob,
         
         {
@@ -75,8 +76,8 @@
         getMapInfo = cell => {
             const locArr = cell.getLocArr(),
                 mapId = locArr[0],
-                mapObj = model.getMap(mapId);
-            return (mapObj ? mapObj.getName() : 'Pocket Dimension ' + mapId) + ' - Level ' + locArr[3];
+                mapModel = getMapById(mapId);
+            return (mapModel ? mapModel.getName() : 'Pocket Dimension ' + mapId) + ' - Level ' + locArr[3];
         },
         
         getLocInfo = cell => {
