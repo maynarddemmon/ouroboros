@@ -101,7 +101,7 @@
                 const fixturesData = datum.fix;
                 if (fixturesData != null) {
                     for (const fixtureDatum of fixturesData) {
-                        fixtureDatum.fixtureContainer = this;
+                        fixtureDatum.thingContainer = this;
                         this.addFixture((new CommonCellModel.FIXTURE_MODEL_CLASS()).updateFromData(fixtureDatum));
                     }
                 }

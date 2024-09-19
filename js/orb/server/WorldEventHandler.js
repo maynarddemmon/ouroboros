@@ -280,10 +280,10 @@ const orb = global.orb,
                         // Get the interactions on the server side and lookup the requested
                         // targetId and interactionName within it.
                         const interactions = character.getCell().getInteractions(character);
-                        for (const fixtureContainerKey in interactions) {
-                            const fixtureContainerData = interactions[fixtureContainerKey];
-                            if (fixtureContainerData) {
-                                const interactionsArray = fixtureContainerData[targetId];
+                        for (const thingContainerKey in interactions) {
+                            const thingContainerData = interactions[thingContainerKey];
+                            if (thingContainerData) {
+                                const interactionsArray = thingContainerData[targetId];
                                 if (interactionsArray) {
                                     fixture = getFixtureById(targetId);
                                     for (const iaName of interactionsArray) {

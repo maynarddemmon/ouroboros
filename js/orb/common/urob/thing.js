@@ -13,8 +13,10 @@
         {Module:JSModule, Class:JSClass} = JS,
         
         {
-            getPhraseWithArticle
+            pluralize, getPhraseWithArticle
         } = pkg,
+        
+        STATE_CHARGES = 'charges',
         
         gramsToPounds = grams => grams / 453.592,
         
@@ -24,8 +26,9 @@
             oil:  {name:'oil',   hardness:0, density:0.97, description:""},
             
             // Organic
-            flesh: {name:'flesh', hardness:0, density:0.95, description:""},
-            fungus:{name:'fungus', hardness:0, density:0.9, description:""},
+            flesh:    {name:'flesh',     hardness:0, density:0.95, description:""},
+            fungus:   {name:'fungus',    hardness:0, density:0.9, description:""},
+            vegetable:{name:'vegetable', hardness:0, density:0.9, description:""},
             
             // Wood
             pinewood:{name:'pine',     hardness:4, density:0.5,  description:""},
@@ -203,6 +206,65 @@
     pkg.thing = {
         ThingTemplate:ThingTemplate,
         Thing:Thing,
+        
+        STATE_CHARGES:STATE_CHARGES,
+        
+        /** A Thing that contains zero or more charges. */
+        ChargeableTemplate: new JSModule('ChargeableTemplate', {
+            init: function(attrs) {
+                attrs.states ??= [];
+                attrs.states[STATE_CHARGES] = 'int';
+                
+                this.callSuper(attrs);
+            },
+            
+            setChargeWeight: function(v) {this.set('chargeWeight', v, true);},
+            getChargeWeight: function(thing, character) {return this.chargeWeight;},
+            
+            setChargeVolume: function(v) {this.set('chargeVolume', v, true);},
+            getChargeVolume: function(thing, character) {return this.chargeVolume;},
+            
+            setChargeMax: function(v) {this.set('chargeMax', v, true);},
+            getChargeMax: function(thing, character) {return this.chargeMax;},
+            
+            setDestroyWhenDepleted: function(v) {this.set('destroyWhenDepleted', v, true);},
+            getDestroyWhenDepleted: function(thing, character) {return this.destroyWhenDepleted;},
+            
+            getWeight: function(thing, character) {
+                const baseWeight = this.callSuper(thing, character),
+                    chargeWeight = this.getChargeWeight();
+                if (baseWeight == null && chargeWeight == null) {
+                    return null;
+                } else {
+                    return baseWeight + (thing.getStateByName(STATE_CHARGES) ?? 0) * (chargeWeight ?? 0);
+                }
+            },
+            
+            getVolume: function(thing, character) {
+                return this.callSuper(thing, character) + 
+                    (thing.getStateByName(STATE_CHARGES) ?? 0) * this.getChargeVolume();
+            },
+            
+            describe: function(thing, character) {
+                const charges = thing.getStateByName(STATE_CHARGES) ?? 0;
+                return this.callSuper(thing, character) + ' (' + charges + ' ' + pluralize(charges, 'charge') + ')';
+            },
+            
+            handleDepletion: function(thing, character, interactionName) {
+                const charges = thing.getStateByName(STATE_CHARGES) ?? 0;
+                if (charges === 0 && this.getDestroyWhenDepleted()) {
+                    const id = thing.getId();
+                    if (thing.isA(pkg.item.Item)) {
+                        // Item case
+                        thing.getInventory().removeItemById(id);
+                    } else if (thing.isA(pkg.fixture.CommonFixtureModel)) {
+                        // Fixture case
+                        thing.getThingContainer().removeFixtureById(id);
+                    }
+                    thing.destroy();
+                }
+            }
+        }),
         
         material:MATERIALS
     };

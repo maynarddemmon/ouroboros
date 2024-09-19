@@ -465,7 +465,7 @@
                 } else if (action === 'update') {
                     inventoryContainer.updateItem(itemDatum);
                 } else if (action === 'remove') {
-                    inventoryContainer.removeItem(itemDatum.id)
+                    inventoryContainer.removeItemById(itemDatum.id)
                 } else {
                     console.log('unexpected action', action);
                     return;

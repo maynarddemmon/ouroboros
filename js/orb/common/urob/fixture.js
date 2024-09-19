@@ -496,7 +496,7 @@
                 }
             }]),
             
-            crate_1:new FixtureTemplate({name:'wooden crate'})
+            crate_1:new FixtureTemplate({name:'wooden crate'}),
         },
         
         getTemplate = fixtureTemplateId => templates[fixtureTemplateId],
@@ -535,21 +535,22 @@
             
             // Life Cycle //////////////////////////////////////////////////////
             destroy: function() {
-                this.unregisterEffects(this.fixtureContainer);
+                this.unregisterEffects(this.thingContainer);
                 this.callSuper();
             },
             
             
             // Accessors ///////////////////////////////////////////////////////
-            getCell: function() {return this.fixtureContainer.getCell();},
+            getCell: function() {return this.thingContainer.getCell();},
             
             getTemplateObject: function() {return getTemplate(this.getTemplate());},
             
-            setFixtureContainer: function(v) {
-                if (this.fixtureContainer) this.unregisterEffects(this.fixtureContainer);
-                this.set('fixtureContainer', v, true);
-                this.registerEffects(this.fixtureContainer);
+            setThingContainer: function(v) {
+                if (this.thingContainer) this.unregisterEffects(this.thingContainer);
+                this.set('thingContainer', v, true);
+                this.registerEffects(this.thingContainer);
             },
+            getThingContainer: function() {return this.thingContainer;},
             
             getTemplateUrl: function(character) {
                 return this.getTemplateObject().getUrl(this, character);
@@ -564,9 +565,7 @@
                 if (!failureMsg) {
                     const worldMap = getWorldMap(),
                         {volume, sound} = worldMap.selectSoundRandomly(this.getSoundForInteraction(character, interactionName));
-                    if (sound) {
-                        worldMap.broadcastSound(this, 'fixture', sound, volume);
-                    }
+                    if (sound) worldMap.broadcastSound(this, 'fixture', sound, volume);
                 }
                 
                 return failureMsg;
@@ -581,7 +580,7 @@
             // Persistence and Serialization ///////////////////////////////////
             updateFromData: function(datum) {
                 this.callSuper(datum);
-                this.setFixtureContainer(datum.fixtureContainer);
+                this.setThingContainer(datum.thingContainer);
                 fixtures.set(this.id, this);
                 return this;
             }

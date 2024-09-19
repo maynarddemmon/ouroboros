@@ -95,7 +95,7 @@
                     
                     const oldInventory = item.getInventory();
                     if (oldInventory !== this) {
-                        oldInventory.removeItem(itemId);
+                        oldInventory.removeItemById(itemId);
                         item.setInventory(this);
                     }
                     
@@ -111,7 +111,7 @@
             getAllItems: function() {
                 return this._items ??= {};
             },
-            removeItem: function(itemId) {
+            removeItemById: function(itemId) {
                 const item = this.getItem(itemId);
                 if (item) {
                     this.totalCapacity -= item.getCapacityNeeded();
@@ -188,7 +188,7 @@
             updateItem: function(itemDatum) {return this.getInventory().updateItem(itemDatum);},
             getItem: function(itemId) {return this.getInventory().getItem(itemId);},
             getAllItems: function() {return this.getInventory().getAllItems();},
-            removeItem: function(itemId) {return this.getInventory().removeItem(itemId);},
+            removeItemById: function(itemId) {return this.getInventory().removeItemById(itemId);},
             makeItemFromData: function(itemDatum) {return this.getInventory().makeItemFromData(itemDatum);},
             
             

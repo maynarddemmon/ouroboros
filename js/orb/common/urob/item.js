@@ -13,16 +13,13 @@
         {Module:JSModule, Class:JSClass} = JS,
         
         {
-            pluralize,
             inventory:{
                 ERR_ITEM_NOT_FOUND, ERR_MAX_CAPACITY_EXCEEDED, ERR_MAX_WEIGHT_EXCEEDED, ERR_MAX_VOLUME_EXCEEDED
             },
-            thing:{ThingTemplate, Thing}
+            thing:{ThingTemplate, Thing, ChargeableTemplate, STATE_CHARGES}
         } = pkg,
         
         getWorldMap = () => worldMap ??= require('../../server/WorldMap.js'),
-        
-        STATE_CHARGES = 'charges',
         
         INTERACTION_DROP = 'drop',
         INTERACTION_PICK_UP = 'pick up',
@@ -139,7 +136,7 @@
             // Methods /////////////////////////////////////////////////////////
             getInteractions: function(item, character, adjacent) {
                 const retval = this.callSuper(item, character, adjacent);
-                if (isItemInCharacterInventory(item, character)) retval.push(INTERACTION_EAT);
+                retval.push(INTERACTION_EAT);
                 return retval;
             },
             getLockPropertyForInteraction: function(item, character, interactionName) {
@@ -170,43 +167,6 @@
             doInteractionEat: (item, character, interactionName) => {/** Subclasses to implement. */}
         }),
         
-        /** An Item that contains zero or more charges. */
-        ChargeableItem = new JSModule('ChargeableItem', {
-            init: function(attrs) {
-                attrs.states ??= [];
-                attrs.states[STATE_CHARGES] = 'int';
-                
-                this.callSuper(attrs);
-            },
-            
-            setChargeWeight: function(v) {this.set('chargeWeight', v, true);},
-            getChargeWeight: function(item, character) {return this.chargeWeight;},
-            
-            setChargeVolume: function(v) {this.set('chargeVolume', v, true);},
-            getChargeVolume: function(item, character) {return this.chargeVolume;},
-            
-            setChargeMax: function(v) {this.set('chargeMax', v, true);},
-            getChargeMax: function(item, character) {return this.chargeMax;},
-            
-            setDestroyWhenDepleted: function(v) {this.set('destroyWhenDepleted', v, true);},
-            getDestroyWhenDepleted: function(item, character) {return this.destroyWhenDepleted;},
-            
-            getWeight: function(item, character) {
-                return this.callSuper(item, character) + 
-                    (item.getStateByName(STATE_CHARGES) ?? 0) * this.getChargeWeight();
-            },
-            
-            getVolume: function(item, character) {
-                return this.callSuper(item, character) + 
-                    (item.getStateByName(STATE_CHARGES) ?? 0) * this.getChargeVolume();
-            },
-            
-            describe: function(item, character) {
-                const charges = item.getStateByName(STATE_CHARGES) ?? 0;
-                return this.callSuper(item, character) + ' (' + charges + ' ' + pluralize(charges, 'charge') + ')';
-            }
-        }),
-        
         FoodItemTemplate = new JSClass('FoodItemTemplate', ItemTemplate, {
             include:[EatableItem],
             
@@ -222,13 +182,13 @@
                 broadcastSound(item, character, interactionName);
                 character.sendExposition('You recover ' + somaRecovered + ' soma from eating the ' + item.getSimpleName() + '.', 'narrative');
                 
-                item.getInventory().removeItem(item.getId());
+                item.getInventory().removeItemById(item.getId());
                 item.destroy();
             }
         }),
         
         ChargeableFoodItemTemplate = new JSClass('ChargeableFoodItemTemplate', FoodItemTemplate, {
-            include:[ChargeableItem],
+            include:[ChargeableTemplate],
             
             
             // Methods /////////////////////////////////////////////////////////
@@ -255,17 +215,40 @@
                     broadcastSound(item, character, interactionName);
                     character.sendExposition('You recover ' + somaRecovered + ' soma from eating some of the ' + item.getSimpleName() + '.', 'narrative');
                     
-                    if (charges === 0 && this.getDestroyWhenDepleted()) {
-                        item.getInventory().removeItem(item.getId());
-                        item.destroy();
-                    }
+                    this.handleDepletion(item, character, interactionName);
                 } else {
                     character.sendExposition('There is nothing left to eat of the ' + item.getSimpleName() + '.', 'narrative');
                 }
             }
         }),
         
-        Item = new JSClass('Item', Thing, {
+        templates = {
+            item_1:new ItemTemplate({name:'short sword', volume:150, material:'bronze'}),
+            item_2:new ItemTemplate({name:'club', volume:500, material:'ironwood'}),
+            item_3:new ItemTemplate({name:'dagger', volume:65, material:'steel'}),
+            item_4:new ItemTemplate({name:'long sword', volume:300, material:'steel'}),
+            
+            // Food
+            food_1:new FoodItemTemplate({name:'Mushroom Jerky', volume:25, material:'fungus', sustenance:20}),
+            food_2:new FoodItemTemplate({name:'Centipede Jerky', volume:25, material:'flesh', sustenance:25}),
+            
+            food_3:new ChargeableFoodItemTemplate({
+                name:'Kibble', destroyWhenDepleted:true, material:'vegetable',
+                volume:0, chargeVolume:5, sustenance:4
+            }),
+            food_4:new ChargeableFoodItemTemplate({
+                name:'Giant Spider Carcass', destroyWhenDepleted:false, material:'flesh',
+                volume:100, chargeVolume:15, maxCharges:50, sustenance:15
+            }),
+        },
+        
+        getTemplate = itemTemplateId => templates[itemTemplateId];
+    
+    pkg.item = {
+        getItemById:itemId => items.get(itemId),
+        clearItemCache: () => {items.clear();},
+        
+        Item:new JSClass('Item', Thing, {
             // Accessors ///////////////////////////////////////////////////////
             getCell: function() {return this.getInventory().getCell();},
             getTemplateObject: function() {return getTemplate(this.getTemplate());},
@@ -299,35 +282,6 @@
                 return this;
             }
         }),
-        
-        templates = {
-            item_1:new ItemTemplate({name:'sword', volume:130, material:'bronze'}),
-            item_2:new ItemTemplate({name:'club', volume:140, material:'ironwood'}),
-            item_3:new ItemTemplate({name:'dagger', volume:65, material:'steel'}),
-            
-            // Food
-            food_1:new FoodItemTemplate({name:'Mushroom Jerky', volume:25, material:'fungus', sustenance:20}),
-            food_2:new FoodItemTemplate({name:'Centipede Jerky', volume:25, material:'flesh', sustenance:25}),
-            
-            food_3:new ChargeableFoodItemTemplate({
-                name:'Kibble', destroyWhenDepleted:true,
-                weight:0, volume:0, chargeWeight:0.05, chargeVolume:5, 
-                sustenance:5
-            }),
-            food_4:new ChargeableFoodItemTemplate({
-                name:'Giant Spider Carcass', destroyWhenDepleted:false,
-                weight:5, volume:100, chargeWeight:0.1, chargeVolume:25, maxCharges:50, 
-                sustenance:15
-            }),
-        },
-        
-        getTemplate = itemTemplateId => templates[itemTemplateId];
-    
-    pkg.item = {
-        getItemById:itemId => items.get(itemId),
-        clearItemCache: () => {items.clear();},
-        
-        Item:Item,
         
         getTemplates: () => templates,
         getTemplate: getTemplate
