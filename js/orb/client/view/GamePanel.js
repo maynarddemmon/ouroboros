@@ -138,8 +138,12 @@
             return '';
         },
         
-        makeWeightAndVolumeClause = (item) => {
-            return ' <span style="color:#999;">(' + formatNumber(item.getWeight(), 2) + 'wt, ' + formatNumber(item.getVolume(), 2) + 'vol)</span>';
+        makeWeightVolumeMaterialClause = (item) => {
+            const materialObj = item.getMaterialObject();
+            return ' <span style="color:#999;">(' + 
+                (materialObj ? materialObj.name + ', ' : '') +
+                formatNumber(item.getWeight(), 2) + 'wt, ' + 
+                formatNumber(item.getVolume(), 2) + 'vol)</span>';
         },
         
         getFixtureClause = (character, fixtureIds) => {
@@ -155,7 +159,7 @@
         
         getItemClause = (item, character) => {
             return item.describe(character) + 
-                makeWeightAndVolumeClause(item) + 
+                makeWeightVolumeMaterialClause(item) + 
                 makeInteractionsClause(item.getInteractions(character), item.getId(), 'doItemLink');
         },
         

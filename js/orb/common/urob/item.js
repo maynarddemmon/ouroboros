@@ -301,13 +301,13 @@
         }),
         
         templates = {
-            item_1:new ItemTemplate({name:'Item Number One', weight:4, volume:78}),
-            item_2:new ItemTemplate({name:'Item Number Two', weight:7, volume:100}),
-            item_3:new ItemTemplate({name:'Item Number Three', weight:9, volume:50}),
+            item_1:new ItemTemplate({name:'sword', volume:130, material:'bronze'}),
+            item_2:new ItemTemplate({name:'club', volume:140, material:'ironwood'}),
+            item_3:new ItemTemplate({name:'dagger', volume:65, material:'steel'}),
             
             // Food
-            food_1:new FoodItemTemplate({name:'Mushroom Jerky', weight:0.25, volume:100, sustenance:25}),
-            food_2:new FoodItemTemplate({name:'Centipede Jerky', weight:0.10, volume:25, sustenance:15}),
+            food_1:new FoodItemTemplate({name:'Mushroom Jerky', volume:25, material:'fungus', sustenance:20}),
+            food_2:new FoodItemTemplate({name:'Centipede Jerky', volume:25, material:'flesh', sustenance:25}),
             
             food_3:new ChargeableFoodItemTemplate({
                 name:'Kibble', destroyWhenDepleted:true,

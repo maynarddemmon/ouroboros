@@ -369,7 +369,7 @@ const orb = global.orb,
             // Initialize Inventory Value
             const inventoryDatum = datum.inv ??= {};
             inventoryDatum.mc = 10;
-            inventoryDatum.mw = this.str.getValue() * 8;
+            inventoryDatum.mw = this.str.getValue() * 5;
             inventoryDatum.mv = 100 * 100 * 100;
             
             return this.callSuper(datum);

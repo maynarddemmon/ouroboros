@@ -25,7 +25,6 @@
         STATE_OPEN = 'open',
         STATE_LOCKED = 'locked',
         STATE_FACING = 'facing',
-        STATE_MATERIAL = 'material',
         STATE_DESTINATION = 'destination',
         STATE_STAIR_DIRECTION = 'direction',
         
@@ -252,15 +251,14 @@
             include:[RotatableFixture],
             
             init: function(attrs) {
-                attrs.name ??= 'statute';
-                
-                attrs.states ??= [];
-                attrs.states[STATE_MATERIAL] = 'string';
-                
+                attrs.name ??= 'statue';
                 this.callSuper(attrs);
             },
             
-            getName: function(fixture, character) {return fixture.getStateByName(STATE_MATERIAL) + ' ' + this.callSuper();},
+            getName: function(fixture, character) {
+                const materialObj = fixture.getMaterialObject();
+                return (materialObj ? materialObj.name + ' ' : '') + this.callSuper();
+            },
             
             getSoundForInteraction: (fixture, character, interactionName) => {
                 return [
