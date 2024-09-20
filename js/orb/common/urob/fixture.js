@@ -16,8 +16,8 @@
             getPhraseWithArticle,
             facing:{NORTH, SOUTH, EAST, WEST},
             thing:{
-                ThingTemplate, Thing,
-                STATE_OPEN, STATE_LOCKED, STATE_FACING, STATE_DESTINATION, STATE_STAIR_DIRECTION,
+                ThingTemplate, Thing, TeleportTemplate,
+                STATE_OPEN, STATE_LOCKED, STATE_FACING, STATE_STAIR_DIRECTION,
                 
                 INTERACTION_ID_ASCEND,
                 INTERACTION_ID_CLOSE,
@@ -327,57 +327,7 @@
         }),
         
         PortalFixtureTemplate = new JSClass('PortalFixtureTemplate', FixtureTemplate, {
-            init: function(attrs) {
-                attrs.states ??= [];
-                attrs.states[STATE_DESTINATION] = 'string';
-                
-                this.callSuper(attrs);
-            },
-            
-            // Methods /////////////////////////////////////////////////////////
-            getInteractions: function(fixture, character, adjacent) {
-                const retval = this.callSuper(fixture, character, adjacent);
-                if (!adjacent) retval.push(INTERACTION_ENTER);
-                return retval;
-            },
-            getLockPropertyForInteraction: (fixture, character, interaction) => 'lockMove',
-            getSoundForInteraction: (fixture, character, interaction) => [[1, '*whoosh*', 2]],
-            doInteraction: function(fixture, character, interaction) {
-                if (interaction.id === INTERACTION_ID_ENTER) {
-                    character.doMove(
-                        fixture.getStateByName(STATE_DESTINATION), null, 
-                        'teleport-leave', 'teleport-arrive', 
-                        () => {
-                            fixture.doExpositionBeforeInteraction(character, interaction, true);
-                        },
-                        () => {
-                            fixture.doExpositionAfterInteraction(character, interaction, true);
-                        }
-                    );
-                    return;
-                }
-                return this.callSuper(fixture, character, interaction);
-            },
-            
-            doExpositionBeforeInteraction: (fixture, character, interaction, willSucceed) => {
-                if (willSucceed && interaction.id === INTERACTION_ID_ENTER) {
-                    const fixtureName = fixture.getName();
-                    character.sendExposition('You enter the ' + fixtureName + ' and your essence is torn apart. You are transported through higher dimensions for what seems an eternity. Until finally...', 'narrative');
-                    character.getCell().sendExposition(character.getName() + ' enters the ' + fixtureName + '.', 'visual', character);
-                    return;
-                }
-                this.callSuper(fixture, character, interaction, willSucceed);
-            },
-            
-            doExpositionAfterInteraction: (fixture, character, interaction, succeeded) => {
-                if (succeeded && interaction.id === INTERACTION_ID_ENTER) {
-                    const fixtureName = fixture.getName();
-                    character.sendExposition('You emerge from the ' + fixtureName + ' somewhere else.', 'narrative');
-                    character.getCell().sendExposition(character.getName() + ' emerges from the ' + fixtureName + '.', 'visual', character);
-                    return;
-                }
-                this.callSuper(fixture, character, interaction, succeeded);
-            },
+            include:[TeleportTemplate],
             
             getUrl: (fixture, character) => IMAGE_PREFIX + 'portal.png'
         }),
@@ -479,6 +429,7 @@
         }),
         
         templates = {
+            // Doors
             d1:new DoorFixtureTemplate({
                 name:'wooden door'
             },[{
@@ -498,6 +449,18 @@
             s1:new StatueFixtureTemplate(),
             p1:new PortalFixtureTemplate({name:'swirling silver portal'}),
             
+            /*puddle_1:new ChargeableFoodFixtureTemplate({
+                name:'puddle', destroyWhenDepleted:true, material:'water',
+                volume:0, chargeVolume:10, maxCharges:9000, sustenance:5,
+                soundsByInteractionId:{eat:[[1.0, '*slurp*', 1<<2]]}
+            }),
+            fountain_1:new ChargeableFoodFixtureTemplate({
+                name:'fountain', destroyWhenDepleted:false, material:'stone',
+                volume:100000, chargeVolume:10, maxCharges:18000, sustenance:5,
+                soundsByInteractionId:{eat:[[1.0, '*slurp*', 1<<2]]}
+            }),*/
+            
+            // Stairs
             stair_1:new StairFixtureTemplate({name:'spiral stairs'}),
             stair_2:new FaceableStairFixtureTemplate({name:'switchback stairs'}),
             stair_3:new FaceableStairFixtureTemplate({name:'stairs'}, [{

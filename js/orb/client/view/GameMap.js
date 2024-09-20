@@ -57,8 +57,9 @@
         
         /* z-index reference
              1: FaceView (bottom)
-             2: FaceViews (others)
-             3: FixturesViews
+             2: FixturesView (cell)
+             3: FaceViews (others)
+            
             10: _observedOverlay (shadow for obscured and not observed cells)
             20: EntityViews
             21: ChatBubbleViews
@@ -296,7 +297,6 @@
             initNode: function(parent, attrs) {
                 attrs.width = attrs.height = cellSize;
                 attrs.pointerEvents = 'none';
-                attrs.zIndex ??= 3;
                 this.callSuper(parent, attrs);
                 this.fixturesPool = new TrackActivesPool(FixtureView, this);
             },
@@ -321,7 +321,7 @@
                 attrs.width = attrs.height = cellSize + FACE_OVERAGE;
                 attrs.pointerEvents = 'none';
                 attrs.imageSize = 'contain';
-                attrs.zIndex ??= 2;
+                attrs.zIndex ??= 3;
                 
                 const rotation = attrs.rotation;
                 delete attrs.rotation;
@@ -359,7 +359,7 @@
                 this._eFace = new FaceView(this, {rotation:90});
                 this._wFace = new FaceView(this, {rotation:270});
                 
-                this._fixtures = new FixturesView(this);
+                this._fixtures = new FixturesView(this, {zIndex:2});
                 
                 this._observedOverlay = new View(this, {width:cellSize, height:cellSize, bgColor:'#0008', pointerEvents:'none', zIndex:10});
             },

@@ -17,7 +17,7 @@
                 ERR_ITEM_NOT_FOUND, ERR_MAX_CAPACITY_EXCEEDED, ERR_MAX_WEIGHT_EXCEEDED, ERR_MAX_VOLUME_EXCEEDED
             },
             thing:{
-                ThingTemplate, Thing, ChargeableTemplate, EatableTemplate, 
+                ThingTemplate, Thing, ChargeableTemplate, EatableTemplate, TeleportTemplate, 
                 STATE_CHARGES,
                 INTERACTION_ID_DROP, INTERACTION_ID_PICK_UP,
                 INTERACTION_DROP, INTERACTION_PICK_UP, INTERACTION_EAT,
@@ -74,6 +74,7 @@
                     case INTERACTION_ID_PICK_UP: return this.doInteractionPickUp(item, character, interaction);
                     case INTERACTION_ID_DROP:    return this.doInteractionDrop(item, character, interaction);
                 }
+                return this.callSuper(item, character, interaction);
             },
             
             doExpositionAfterInteraction: function(item, character, interaction, succeeded) {
@@ -190,11 +191,40 @@
             }
         }),
         
+        TeleportItemTemplate = new JSClass('TeleportItemTemplate', ItemTemplate, {
+            include:[TeleportTemplate]
+        }),
+        
+        ChargeableTeleportItemTemplate = new JSClass('ChargeableTeleportItemTemplate', TeleportItemTemplate, {
+            include:[ChargeableTemplate],
+            
+            doInteractionEnter: function(thing, character, interaction) {
+                let charges = thing.getStateByName(STATE_CHARGES) ?? 0;
+                if (charges > 0) {
+                    thing.setStateByName(STATE_CHARGES, --charges);
+                    this.callSuper(thing, character, interaction);
+                    this.handleDepletion(thing, character, interaction);
+                } else {
+                    thing.doExpositionAfterInteraction(character, interaction, false);
+                }
+            }
+        }),
+        
         templates = {
             item_1:new ItemTemplate({name:'short sword', volume:150, material:'bronze'}),
             item_2:new ItemTemplate({name:'club', volume:500, material:'ironwood'}),
             item_3:new ItemTemplate({name:'dagger', volume:65, material:'steel'}),
             item_4:new ItemTemplate({name:'long sword', volume:300, material:'steel'}),
+            
+            // Teleporter Items
+            stone_1:new TeleportItemTemplate({
+                name:'sphere', volume:75, material:'marble',
+                interactionLabels:{enter:'rub'},
+            }),
+            stone_2:new ChargeableTeleportItemTemplate({
+                name:'sphere', volume:75, destroyWhenDepleted:false, material:'granite',
+                interactionLabels:{enter:'rub'}, chargeVolume:0, maxCharges:10
+            }),
             
             // Food
             food_1:new FoodItemTemplate({

@@ -302,6 +302,82 @@
         INTERACTION_ROTATE_COUNTER_CLOCKWISE:INTERACTION_ROTATE_COUNTER_CLOCKWISE,
         INTERACTION_UNLOCK:INTERACTION_UNLOCK,
         
+        TeleportTemplate: new JSModule('TeleportTemplate', {
+            init: function(attrs) {
+                attrs.states ??= [];
+                attrs.states[STATE_DESTINATION] = 'string';
+                
+                this.callSuper(attrs);
+            },
+            
+            // Methods /////////////////////////////////////////////////////////
+            getInteractions: function(thing, character, adjacent) {
+                const retval = this.callSuper(thing, character, adjacent);
+                if (adjacent) {
+                    return retval;
+                } else {
+                    return this.addInteractionToReturnValue(thing, character, INTERACTION_ENTER, retval);
+                }
+            },
+            
+            getLockPropertyForInteraction: function(thing, character, interaction) {
+                if (interaction.id === INTERACTION_ID_ENTER) return 'lockMove';
+                return this.callSuper(thing, character, interaction);
+            },
+            
+            getSoundForInteraction: function(thing, character, interaction) {
+                const sounds = this.callSuper(thing, character, interaction);
+                if (sounds) return sounds;
+                
+                if (interaction.id === INTERACTION_ID_ENTER) return [[1, '*whoosh*', 2]];
+                return null;
+            },
+            
+            doInteraction: function(thing, character, interaction) {
+                if (interaction.id === INTERACTION_ID_ENTER) return this.doInteractionEnter(thing, character, interaction);
+                return this.callSuper(thing, character, interaction);
+            },
+            
+            doInteractionEnter: function(thing, character, interaction) {
+                const destination = thing.getStateByName(STATE_DESTINATION);
+                
+                if (destination) {
+                    character.doMove(
+                        destination, null, 
+                        'teleport-leave', 'teleport-arrive', 
+                        () => {thing.doExpositionBeforeInteraction(character, interaction, true);},
+                        () => {thing.doExpositionAfterInteraction(character, interaction, true);}
+                    );
+                } else {
+                    thing.doExpositionAfterInteraction(character, interaction, false);
+                }
+            },
+            
+            doExpositionBeforeInteraction: function(thing, character, interaction, willSucceed) {
+                if (willSucceed && interaction.id === INTERACTION_ID_ENTER) {
+                    const thingName = thing.getName();
+                    character.sendExposition('You enter the ' + thingName + ' and your essence is torn apart. You are transported through higher dimensions for what seems an eternity. Until finally...', 'narrative');
+                    character.getCell().sendExposition(character.getName() + ' enters the ' + thingName + '.', 'visual', character);
+                    return;
+                }
+                this.callSuper(thing, character, interaction, willSucceed);
+            },
+            
+            doExpositionAfterInteraction: function(thing, character, interaction, succeeded) {
+                if (interaction.id === INTERACTION_ID_ENTER) {
+                    const thingName = thing.getName();
+                    if (succeeded) {
+                        character.sendExposition('You emerge from the ' + thingName + ' somewhere else.', 'narrative');
+                        character.getCell().sendExposition(character.getName() + ' emerges from the ' + thingName + '.', 'visual', character);
+                    } else {
+                        character.sendExposition('You ' + interaction.label + ' the ' + thingName + ' and nothing happens.', 'narrative');
+                    }
+                    return;
+                }
+                this.callSuper(thing, character, interaction, succeeded);
+            }
+        }),
+        
         /** A Thing that an Entity can "eat". */
         EatableTemplate: new JSModule('EatableTemplate', {
             // Methods /////////////////////////////////////////////////////////
@@ -333,7 +409,7 @@
                         character.getCell().sendExposition(character.getName() + ' ' + interaction.label  + 's the ' + thingName + '.', 'visual', character);
                     }
                 }
-                this.callSuper?.(thing, character, interaction, succeeded);
+                this.callSuper(thing, character, interaction, succeeded);
             },
             
             doInteractionEat: (thing, character, interaction) => {/** Subclasses to implement. */}
