@@ -16,20 +16,15 @@
             inventory:{
                 ERR_ITEM_NOT_FOUND, ERR_MAX_CAPACITY_EXCEEDED, ERR_MAX_WEIGHT_EXCEEDED, ERR_MAX_VOLUME_EXCEEDED
             },
-            thing:{ThingTemplate, Thing, ChargeableTemplate, STATE_CHARGES}
+            thing:{
+                ThingTemplate, Thing, ChargeableTemplate, EatableTemplate, 
+                STATE_CHARGES,
+                INTERACTION_ID_DROP, INTERACTION_ID_PICK_UP,
+                INTERACTION_DROP, INTERACTION_PICK_UP, INTERACTION_EAT,
+            }
         } = pkg,
         
         getWorldMap = () => worldMap ??= require('../../server/WorldMap.js'),
-        
-        INTERACTION_ID_DROP = 'drop',
-        INTERACTION_ID_PICK_UP = 'pick up',
-        INTERACTION_ID_EAT = 'eat',
-        INTERACTION_ID_DISCHARGE = 'discharge',
-        INTERACTION_ID_RECHARGE = 'recharge',
-        
-        INTERACTION_DROP = {id:INTERACTION_ID_DROP, label:'drop'},
-        INTERACTION_PICK_UP = {id:INTERACTION_ID_PICK_UP, label:'pick up'},
-        INTERACTION_EAT = {id:INTERACTION_ID_EAT, label:'eat'},
         
         items = new Map(),
         
@@ -56,16 +51,18 @@
                 }
                 return this.callSuper?.(item, character, interaction);
             },
-            getSoundForInteraction: (item, character, interaction) => {
-                switch (interaction.id) {
-                    case INTERACTION_ID_DROP:
-                        return [
-                            // threshold in ascending order, sound, volume
-                            [0.6, '*plink*', 1<<2],  // 60% chance
-                            [0.8, '*thump*', 1<<3],  // 20% chance
-                            [0.9, '*thud*', 1<<4],  // 10% chance
-                            [1.0, '*clatter*', 1<<5] // 10% chance
-                        ];
+            getSoundForInteraction: function(item, character, interaction) {
+                const sounds = this.callSuper(item, character, interaction);
+                if (sounds) return sounds;
+                
+                if (interaction.id === INTERACTION_ID_DROP) {
+                    return [
+                        // threshold in ascending order, sound, volume
+                        [0.6, '*plink*', 1<<2],  // 60% chance
+                        [0.8, '*thump*', 1<<3],  // 20% chance
+                        [0.9, '*thud*', 1<<4],  // 10% chance
+                        [1.0, '*clatter*', 1<<5] // 10% chance
+                    ];
                 }
                 return null;
             },
@@ -85,6 +82,7 @@
                         const itemName = item.getSimpleName();
                         character.sendExposition('You ' + actionWordSelf + ' the ' + itemName + '.', 'narrative');
                         character.getCell().sendExposition(character.getName() + ' ' + actionWordOther + ' the ' + itemName + '.', 'visual', character);
+                        broadcastSound(item, character, interaction);
                     };
                     switch (interaction.id) {
                         case INTERACTION_ID_PICK_UP: simpleExpositionFunc(interaction.label, 'picked up'); return;
@@ -137,42 +135,8 @@
             }
         }),
         
-        /** An Item that an Entity can "eat". */
-        EatableItem = new JSModule('EatableItem', {
-            // Methods /////////////////////////////////////////////////////////
-            getInteractions: function(item, character, adjacent) {
-                return this.addInteractionToReturnValue(item, character, INTERACTION_EAT, this.callSuper(item, character, adjacent));
-            },
-            getLockPropertyForInteraction: function(item, character, interaction) {
-                if (interaction.id === INTERACTION_ID_EAT) return 'lockAct';
-                return this.callSuper(item, character, interaction);
-            },
-            getSoundForInteraction: function(item, character, interaction) {
-                if (interaction.id === INTERACTION_ID_EAT) return [[1.0, '*munch*', 1<<2]];
-                return this.callSuper(item, character, interaction);
-            },
-            
-            doInteraction: function(item, character, interaction) {
-                if (interaction.id === INTERACTION_ID_EAT) return this.doInteractionEat(item, character, interaction);
-                return this.callSuper(item, character, interaction);
-            },
-            
-            doExpositionAfterInteraction: function(item, character, interaction, succeeded) {
-                if (succeeded) {
-                    if (interaction.id === INTERACTION_ID_EAT) {
-                        const itemName = item.getSimpleName();
-                        character.sendExposition('You ' + interaction.label + ' the ' + itemName + '.', 'narrative');
-                        character.getCell().sendExposition(character.getName() + ' ' + interaction.label  + 's the ' + itemName + '.', 'visual', character);
-                    }
-                }
-                this.callSuper?.(item, character, interaction, succeeded);
-            },
-            
-            doInteractionEat: (item, character, interaction) => {/** Subclasses to implement. */}
-        }),
-        
         FoodItemTemplate = new JSClass('FoodItemTemplate', ItemTemplate, {
-            include:[EatableItem],
+            include:[EatableTemplate],
             
             // Accessors ///////////////////////////////////////////////////////
             setSustenance: function(v) {this.set('sustenance', v, true);},
@@ -233,21 +197,43 @@
             item_4:new ItemTemplate({name:'long sword', volume:300, material:'steel'}),
             
             // Food
-            food_1:new FoodItemTemplate({name:'Mushroom Jerky', volume:25, material:'fungus', sustenance:20}),
-            food_2:new FoodItemTemplate({name:'Centipede Jerky', volume:25, material:'flesh', sustenance:25}),
+            food_1:new FoodItemTemplate({
+                name:'Mushroom Jerky', volume:25, material:'fungus', sustenance:20
+            }),
+            food_2:new FoodItemTemplate({
+                name:'Centipede Jerky', volume:25, material:'flesh', sustenance:25
+            }),
             
-            drink_1:new FoodItemTemplate({name:'water', volume:10, material:'water', sustenance:5, interactionLabels:{eat:'drink'}}),
-            drink_2:new FoodItemTemplate({name:'beer', volume:10, material:'water', sustenance:8, interactionLabels:{eat:'drink'}}),
-            drink_3:new FoodItemTemplate({name:'wine', volume:10, material:'water', sustenance:8, interactionLabels:{eat:'drink'}}),
-            drink_4:new FoodItemTemplate({name:'mead', volume:10, material:'water', sustenance:10, interactionLabels:{eat:'drink'}}),
+            drink_1:new FoodItemTemplate({
+                name:'water', volume:10, material:'water', sustenance:5, 
+                interactionLabels:{eat:'drink'},
+                soundsByInteractionId:{eat:[[1.0, '*gulp*', 1<<2]]}
+            }),
+            drink_2:new FoodItemTemplate({
+                name:'beer', volume:10, material:'water', sustenance:8, 
+                interactionLabels:{eat:'chug'},
+                soundsByInteractionId:{eat:[[1.0, '*glug*', 1<<2]]}
+            }),
+            drink_3:new FoodItemTemplate({
+                name:'wine', volume:10, material:'water', sustenance:8, 
+                interactionLabels:{eat:'sip'},
+                soundsByInteractionId:{eat:[[1.0, '*sip*', 1<<2]]}
+            }),
+            drink_4:new FoodItemTemplate({
+                name:'mead', volume:10, material:'water', sustenance:10, 
+                interactionLabels:{eat:'sip'},
+                soundsByInteractionId:{eat:[[1.0, '*sip*', 1<<2]]}
+            }),
             
             food_3:new ChargeableFoodItemTemplate({
                 name:'Kibble', destroyWhenDepleted:true, material:'vegetable',
-                volume:0, chargeVolume:5, sustenance:4
+                volume:0, chargeVolume:5, sustenance:4,
+                soundsByInteractionId:{eat:[[1.0, '*crunch*', 1<<3]]}
             }),
             food_4:new ChargeableFoodItemTemplate({
                 name:'Giant Spider Carcass', destroyWhenDepleted:false, material:'flesh',
-                volume:100, chargeVolume:15, maxCharges:50, sustenance:15
+                volume:100, chargeVolume:15, maxCharges:50, sustenance:15,
+                soundsByInteractionId:{eat:[[1.0, '*slurp*', 1<<2]]}
             }),
         },
         

@@ -17,6 +17,39 @@
         } = pkg,
         
         STATE_CHARGES = 'charges',
+        STATE_OPEN = 'open',
+        STATE_LOCKED = 'locked',
+        STATE_FACING = 'facing',
+        STATE_DESTINATION = 'destination',
+        STATE_STAIR_DIRECTION = 'direction',
+        
+        INTERACTION_ID_ASCEND = 'ascend',
+        INTERACTION_ID_CLOSE = 'close',
+        INTERACTION_ID_DESCEND = 'descend',
+        INTERACTION_ID_DISCHARGE = 'discharge',
+        INTERACTION_ID_DROP = 'drop',
+        INTERACTION_ID_EAT = 'eat',
+        INTERACTION_ID_ENTER = 'enter',
+        INTERACTION_ID_LOCK = 'lock',
+        INTERACTION_ID_OPEN = 'open',
+        INTERACTION_ID_PICK_UP = 'pick up',
+        INTERACTION_ID_RECHARGE = 'recharge',
+        INTERACTION_ID_ROTATE_CLOCKWISE = 'rotate clockwise',
+        INTERACTION_ID_ROTATE_COUNTER_CLOCKWISE = 'rotate counter clockwise',
+        INTERACTION_ID_UNLOCK = 'unlock',
+        
+        INTERACTION_ASCEND = {id:INTERACTION_ID_ASCEND, label:'ascend'},
+        INTERACTION_CLOSE = {id:INTERACTION_ID_CLOSE, label:'close'},
+        INTERACTION_DESCEND = {id:INTERACTION_ID_DESCEND, label:'descend'},
+        INTERACTION_DROP = {id:INTERACTION_ID_DROP, label:'drop'},
+        INTERACTION_EAT = {id:INTERACTION_ID_EAT, label:'eat'},
+        INTERACTION_ENTER = {id:INTERACTION_ID_ENTER, label:'enter'},
+        INTERACTION_LOCK = {id:INTERACTION_ID_LOCK, label:'lock'},
+        INTERACTION_OPEN = {id:INTERACTION_ID_OPEN, label:'open'},
+        INTERACTION_PICK_UP = {id:INTERACTION_ID_PICK_UP, label:'pick up'},
+        INTERACTION_ROTATE_CLOCKWISE = {id:INTERACTION_ID_ROTATE_CLOCKWISE, label:'rotate clockwise'},
+        INTERACTION_ROTATE_COUNTER_CLOCKWISE = {id:INTERACTION_ID_ROTATE_COUNTER_CLOCKWISE, label:'rotate counter clockwise'},
+        INTERACTION_UNLOCK = {id:INTERACTION_ID_UNLOCK, label:'unlock'},
         
         gramsToPounds = grams => grams / 453.592,
         
@@ -81,6 +114,10 @@
             setInteractionLabels: function(v) {this.set('interactionLabels', v, true);},
             getInteractionLabels: function(thing, character) {return this.interactionLabels;},
             
+            setSoundsByInteractionId: function(v) {this.set('soundsByInteractionId', v, true);},
+            getSoundsByInteractionId: function(thing, character) {return this.soundsByInteractionId;},
+            
+            
             // Methods /////////////////////////////////////////////////////////
             describe: function(thing, character, isAppend) {
                 return isAppend ? thing.getName(character) : getPhraseWithArticle(thing.getName(character));
@@ -102,7 +139,14 @@
             },
             
             getLockPropertyForInteraction: (thing, character, interaction) => 'lockAct',
-            getSoundForInteraction: (thing, character, interaction) => null,
+            getSoundForInteraction: function(thing, character, interaction) {
+                const soundsByInteractionId = this.getSoundsByInteractionId();
+                if (soundsByInteractionId) {
+                    const customSounds = soundsByInteractionId[interaction.id];
+                    if (customSounds) return customSounds;
+                }
+                return null;
+            },
             
             /** Optionally returns an error message. */
             doInteraction: (thing, character, interaction) => {},
@@ -224,6 +268,76 @@
         Thing:Thing,
         
         STATE_CHARGES:STATE_CHARGES,
+        STATE_OPEN:STATE_OPEN,
+        STATE_LOCKED:STATE_LOCKED,
+        STATE_FACING:STATE_FACING,
+        STATE_DESTINATION:STATE_DESTINATION,
+        STATE_STAIR_DIRECTION:STATE_STAIR_DIRECTION,
+        
+        INTERACTION_ID_ASCEND:INTERACTION_ID_ASCEND,
+        INTERACTION_ID_CLOSE:INTERACTION_ID_CLOSE,
+        INTERACTION_ID_DESCEND:INTERACTION_ID_DESCEND,
+        INTERACTION_ID_DISCHARGE:INTERACTION_ID_DISCHARGE,
+        INTERACTION_ID_DROP:INTERACTION_ID_DROP,
+        INTERACTION_ID_EAT:INTERACTION_ID_EAT,
+        INTERACTION_ID_ENTER:INTERACTION_ID_ENTER,
+        INTERACTION_ID_LOCK:INTERACTION_ID_LOCK,
+        INTERACTION_ID_OPEN:INTERACTION_ID_OPEN,
+        INTERACTION_ID_PICK_UP:INTERACTION_ID_PICK_UP,
+        INTERACTION_ID_RECHARGE:INTERACTION_ID_RECHARGE,
+        INTERACTION_ID_ROTATE_CLOCKWISE:INTERACTION_ID_ROTATE_CLOCKWISE,
+        INTERACTION_ID_ROTATE_COUNTER_CLOCKWISE:INTERACTION_ID_ROTATE_COUNTER_CLOCKWISE,
+        INTERACTION_ID_UNLOCK:INTERACTION_ID_UNLOCK,
+        
+        INTERACTION_ASCEND:INTERACTION_ASCEND,
+        INTERACTION_CLOSE:INTERACTION_CLOSE,
+        INTERACTION_DESCEND:INTERACTION_DESCEND,
+        INTERACTION_DROP:INTERACTION_DROP,
+        INTERACTION_EAT:INTERACTION_EAT,
+        INTERACTION_ENTER:INTERACTION_ENTER,
+        INTERACTION_LOCK:INTERACTION_LOCK,
+        INTERACTION_OPEN:INTERACTION_OPEN,
+        INTERACTION_PICK_UP:INTERACTION_PICK_UP,
+        INTERACTION_ROTATE_CLOCKWISE:INTERACTION_ROTATE_CLOCKWISE,
+        INTERACTION_ROTATE_COUNTER_CLOCKWISE:INTERACTION_ROTATE_COUNTER_CLOCKWISE,
+        INTERACTION_UNLOCK:INTERACTION_UNLOCK,
+        
+        /** A Thing that an Entity can "eat". */
+        EatableTemplate: new JSModule('EatableTemplate', {
+            // Methods /////////////////////////////////////////////////////////
+            getInteractions: function(thing, character, adjacent) {
+                return this.addInteractionToReturnValue(thing, character, INTERACTION_EAT, this.callSuper(thing, character, adjacent));
+            },
+            getLockPropertyForInteraction: function(thing, character, interaction) {
+                if (interaction.id === INTERACTION_ID_EAT) return 'lockAct';
+                return this.callSuper(thing, character, interaction);
+            },
+            getSoundForInteraction: function(thing, character, interaction) {
+                const sounds = this.callSuper(thing, character, interaction);
+                if (sounds) return sounds;
+                
+                if (interaction.id === INTERACTION_ID_EAT) return [[1.0, '*munch*', 1<<2]];
+                return null;
+            },
+            
+            doInteraction: function(thing, character, interaction) {
+                if (interaction.id === INTERACTION_ID_EAT) return this.doInteractionEat(thing, character, interaction);
+                return this.callSuper(thing, character, interaction);
+            },
+            
+            doExpositionAfterInteraction: function(thing, character, interaction, succeeded) {
+                if (succeeded) {
+                    if (interaction.id === INTERACTION_ID_EAT) {
+                        const thingName = thing.getSimpleName();
+                        character.sendExposition('You ' + interaction.label + ' the ' + thingName + '.', 'narrative');
+                        character.getCell().sendExposition(character.getName() + ' ' + interaction.label  + 's the ' + thingName + '.', 'visual', character);
+                    }
+                }
+                this.callSuper?.(thing, character, interaction, succeeded);
+            },
+            
+            doInteractionEat: (thing, character, interaction) => {/** Subclasses to implement. */}
+        }),
         
         /** A Thing that contains zero or more charges. */
         ChargeableTemplate: new JSModule('ChargeableTemplate', {

@@ -15,38 +15,43 @@
         {
             getPhraseWithArticle,
             facing:{NORTH, SOUTH, EAST, WEST},
-            thing:{ThingTemplate, Thing}
+            thing:{
+                ThingTemplate, Thing,
+                STATE_OPEN, STATE_LOCKED, STATE_FACING, STATE_DESTINATION, STATE_STAIR_DIRECTION,
+                
+                INTERACTION_ID_ASCEND,
+                INTERACTION_ID_CLOSE,
+                INTERACTION_ID_DESCEND,
+                INTERACTION_ID_DISCHARGE,
+                INTERACTION_ID_DROP,
+                INTERACTION_ID_EAT,
+                INTERACTION_ID_ENTER,
+                INTERACTION_ID_LOCK,
+                INTERACTION_ID_OPEN,
+                INTERACTION_ID_PICK_UP,
+                INTERACTION_ID_RECHARGE,
+                INTERACTION_ID_ROTATE_CLOCKWISE,
+                INTERACTION_ID_ROTATE_COUNTER_CLOCKWISE,
+                INTERACTION_ID_UNLOCK,
+                
+                INTERACTION_ASCEND,
+                INTERACTION_CLOSE,
+                INTERACTION_DESCEND,
+                INTERACTION_DROP,
+                INTERACTION_EAT,
+                INTERACTION_ENTER,
+                INTERACTION_LOCK,
+                INTERACTION_OPEN,
+                INTERACTION_PICK_UP,
+                INTERACTION_ROTATE_CLOCKWISE,
+                INTERACTION_ROTATE_COUNTER_CLOCKWISE,
+                INTERACTION_UNLOCK,
+            }
         } = pkg,
         
         getWorldMap = () => worldMap ??= require('../../server/WorldMap.js'),
         
         IMAGE_PREFIX = '/img/fixture/',
-        
-        STATE_OPEN = 'open',
-        STATE_LOCKED = 'locked',
-        STATE_FACING = 'facing',
-        STATE_DESTINATION = 'destination',
-        STATE_STAIR_DIRECTION = 'direction',
-        
-        INTERACTION_ID_OPEN = 'open',
-        INTERACTION_ID_CLOSE = 'close',
-        INTERACTION_ID_LOCK = 'lock',
-        INTERACTION_ID_UNLOCK = 'unlock',
-        INTERACTION_ID_ROTATE_CLOCKWISE = 'rotate clockwise',
-        INTERACTION_ID_ROTATE_COUNTER_CLOCKWISE = 'rotate counter clockwise',
-        INTERACTION_ID_ENTER = 'enter',
-        INTERACTION_ID_ASCEND = 'ascend',
-        INTERACTION_ID_DESCEND = 'descend',
-        
-        INTERACTION_OPEN = {id:INTERACTION_ID_OPEN, label:'open'},
-        INTERACTION_CLOSE = {id:INTERACTION_ID_CLOSE, label:'close'},
-        INTERACTION_LOCK = {id:INTERACTION_ID_LOCK, label:'lock'},
-        INTERACTION_UNLOCK = {id:INTERACTION_ID_UNLOCK, label:'unlock'},
-        INTERACTION_ROTATE_CLOCKWISE = {id:INTERACTION_ID_ROTATE_CLOCKWISE, label:'rotate clockwise'},
-        INTERACTION_ROTATE_COUNTER_CLOCKWISE = {id:INTERACTION_ID_ROTATE_COUNTER_CLOCKWISE, label:'rotate counter clockwise'},
-        INTERACTION_ENTER = {id:INTERACTION_ID_ENTER, label:'enter'},
-        INTERACTION_ASCEND = {id:INTERACTION_ID_ASCEND, label:'ascend'},
-        INTERACTION_DESCEND = {id:INTERACTION_ID_DESCEND, label:'descend'},
         
         fixtures = new Map(),
         
