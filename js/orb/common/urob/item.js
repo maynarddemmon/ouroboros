@@ -21,17 +21,21 @@
         
         getWorldMap = () => worldMap ??= require('../../server/WorldMap.js'),
         
-        INTERACTION_DROP = 'drop',
-        INTERACTION_PICK_UP = 'pick up',
-        INTERACTION_EAT = 'eat',
-        INTERACTION_DISCHARGE = 'discharge',
-        INTERACTION_RECHARGE = 'recharge',
+        INTERACTION_ID_DROP = 'drop',
+        INTERACTION_ID_PICK_UP = 'pick up',
+        INTERACTION_ID_EAT = 'eat',
+        INTERACTION_ID_DISCHARGE = 'discharge',
+        INTERACTION_ID_RECHARGE = 'recharge',
+        
+        INTERACTION_DROP = {id:INTERACTION_ID_DROP, label:'drop'},
+        INTERACTION_PICK_UP = {id:INTERACTION_ID_PICK_UP, label:'pick up'},
+        INTERACTION_EAT = {id:INTERACTION_ID_EAT, label:'eat'},
         
         items = new Map(),
         
-        broadcastSound = (item, character, interactionName) => {
+        broadcastSound = (item, character, interaction) => {
             const worldMap = getWorldMap(),
-                {volume, sound} = worldMap.selectSoundRandomly(item.getSoundForInteraction(character, interactionName));
+                {volume, sound} = worldMap.selectSoundRandomly(item.getSoundForInteraction(character, interaction));
             if (sound) worldMap.broadcastSound(item, 'item', sound, volume);
         },
         
@@ -42,17 +46,19 @@
             
             
             // Methods /////////////////////////////////////////////////////////
-            getInteractions: (item, character, adjacent) => [isItemInCharacterInventory(item, character) ? INTERACTION_DROP : INTERACTION_PICK_UP],
-            getLockPropertyForInteraction: function(item, character, interactionName) {
-                switch (interactionName) {
-                    case INTERACTION_PICK_UP: return 'lockAct';
-                    case INTERACTION_DROP:    return 'lockFree';
-                }
-                return this.callSuper?.(item, character, interactionName);
+            getInteractions: function(item, character, adjacent) {
+                return this.addInteractionToReturnValue(item, character, isItemInCharacterInventory(item, character) ? INTERACTION_DROP : INTERACTION_PICK_UP);
             },
-            getSoundForInteraction: (item, character, interactionName) => {
-                switch (interactionName) {
-                    case INTERACTION_DROP:
+            getLockPropertyForInteraction: function(item, character, interaction) {
+                switch (interaction.id) {
+                    case INTERACTION_ID_PICK_UP: return 'lockAct';
+                    case INTERACTION_ID_DROP:    return 'lockFree';
+                }
+                return this.callSuper?.(item, character, interaction);
+            },
+            getSoundForInteraction: (item, character, interaction) => {
+                switch (interaction.id) {
+                    case INTERACTION_ID_DROP:
                         return [
                             // threshold in ascending order, sound, volume
                             [0.6, '*plink*', 1<<2],  // 60% chance
@@ -66,67 +72,67 @@
             
             // Server Only
             /** Optionally returns an error message. */
-            doInteraction: function(item, character, interactionName) {
-                switch (interactionName) {
-                    case INTERACTION_PICK_UP: return this.doInteractionPickUp(item, character, interactionName);
-                    case INTERACTION_DROP:    return this.doInteractionDrop(item, character, interactionName);
+            doInteraction: function(item, character, interaction) {
+                switch (interaction.id) {
+                    case INTERACTION_ID_PICK_UP: return this.doInteractionPickUp(item, character, interaction);
+                    case INTERACTION_ID_DROP:    return this.doInteractionDrop(item, character, interaction);
                 }
             },
             
-            doExpositionAfterInteraction: function(item, character, interactionName, succeeded) {
+            doExpositionAfterInteraction: function(item, character, interaction, succeeded) {
                 if (succeeded) {
                     const simpleExpositionFunc = (actionWordSelf, actionWordOther) => {
                         const itemName = item.getSimpleName();
                         character.sendExposition('You ' + actionWordSelf + ' the ' + itemName + '.', 'narrative');
                         character.getCell().sendExposition(character.getName() + ' ' + actionWordOther + ' the ' + itemName + '.', 'visual', character);
                     };
-                    switch (interactionName) {
-                        case INTERACTION_PICK_UP: simpleExpositionFunc(interactionName, 'picked up'); return;
-                        case INTERACTION_DROP: simpleExpositionFunc(interactionName, 'dropped'); return;
+                    switch (interaction.id) {
+                        case INTERACTION_ID_PICK_UP: simpleExpositionFunc(interaction.label, 'picked up'); return;
+                        case INTERACTION_ID_DROP: simpleExpositionFunc(interaction.label, 'dropped'); return;
                     }
                 }
-                this.callSuper?.(item, character, interactionName, succeeded);
+                this.callSuper?.(item, character, interaction, succeeded);
             },
             
-            doInteractionPickUp: (item, character, interactionName) => {
+            doInteractionPickUp: (item, character, interaction) => {
                 const characterCell = character.getCell(),
                     itemCell = item.getInventory().getOwner();
                 if (characterCell && itemCell && characterCell === itemCell) {
                     switch(character.addItem(item)) {
                         case ERR_ITEM_NOT_FOUND:
-                            return "Can't " + interactionName + ' the ' + item.getName(character) + " because it can't be found.";
+                            return "Can't " + interaction.label + ' the ' + item.getName(character) + " because it can't be found.";
                         case ERR_MAX_CAPACITY_EXCEEDED:
-                            return "Can't " + interactionName + ' the ' + item.getName(character) + " because it would exceed the maximum capacity of your inventory.";
+                            return "Can't " + interaction.label + ' the ' + item.getName(character) + " because it would exceed the maximum capacity of your inventory.";
                         case ERR_MAX_WEIGHT_EXCEEDED:
-                            return "Can't " + interactionName + ' the ' + item.getName(character) + " because it would exceed the maximum weight of your inventory.";
+                            return "Can't " + interaction.label + ' the ' + item.getName(character) + " because it would exceed the maximum weight of your inventory.";
                         case ERR_MAX_VOLUME_EXCEEDED:
-                            return "Can't " + interactionName + ' the ' + item.getName(character) + " because it would exceed the maximum volume of your inventory.";
+                            return "Can't " + interaction.label + ' the ' + item.getName(character) + " because it would exceed the maximum volume of your inventory.";
                         default:
-                            item.doExpositionAfterInteraction(character, interactionName, true);
+                            item.doExpositionAfterInteraction(character, interaction, true);
                     }
                 } else {
-                    return "Can't " + interactionName + ' the ' + item.getName(character) + " because it's not here.";
+                    return "Can't " + interaction.label + ' the ' + item.getName(character) + " because it's not here.";
                 }
             },
             
-            doInteractionDrop: (item, character, interactionName) => {
+            doInteractionDrop: (item, character, interaction) => {
                 const characterCell = character.getCell(),
                     itemOwner = item.getInventory().getOwner();
                 if (characterCell && itemOwner && character === itemOwner) {
                     switch(characterCell.addItem(item)) {
                         case ERR_ITEM_NOT_FOUND:
-                            return "Can't " + interactionName + ' the ' + item.getName(character) + " because it can't be found.";
+                            return "Can't " + interaction.label + ' the ' + item.getName(character) + " because it can't be found.";
                         case ERR_MAX_CAPACITY_EXCEEDED:
-                            return "Can't " + interactionName + ' the ' + item.getName(character) + " because it would exceed the maximum capacity of this location.";
+                            return "Can't " + interaction.label + ' the ' + item.getName(character) + " because it would exceed the maximum capacity of this location.";
                         case ERR_MAX_WEIGHT_EXCEEDED:
-                            return "Can't " + interactionName + ' the ' + item.getName(character) + " because it would exceed the maximum weight of this location.";
+                            return "Can't " + interaction.label + ' the ' + item.getName(character) + " because it would exceed the maximum weight of this location.";
                         case ERR_MAX_VOLUME_EXCEEDED:
-                            return "Can't " + interactionName + ' the ' + item.getName(character) + " because it would exceed the maximum volume of this location.";
+                            return "Can't " + interaction.label + ' the ' + item.getName(character) + " because it would exceed the maximum volume of this location.";
                         default:
-                            item.doExpositionAfterInteraction(character, interactionName, true);
+                            item.doExpositionAfterInteraction(character, interaction, true);
                     }
                 } else {
-                    return "Can't " + interactionName + ' the ' + item.getName(character) + " because you don't seem to have it.";
+                    return "Can't " + interaction.label + ' the ' + item.getName(character) + " because you don't seem to have it.";
                 }
             }
         }),
@@ -135,36 +141,34 @@
         EatableItem = new JSModule('EatableItem', {
             // Methods /////////////////////////////////////////////////////////
             getInteractions: function(item, character, adjacent) {
-                const retval = this.callSuper(item, character, adjacent);
-                retval.push(INTERACTION_EAT);
-                return retval;
+                return this.addInteractionToReturnValue(item, character, INTERACTION_EAT, this.callSuper(item, character, adjacent));
             },
-            getLockPropertyForInteraction: function(item, character, interactionName) {
-                if (interactionName === INTERACTION_EAT) return 'lockAct';
-                return this.callSuper(item, character, interactionName);
+            getLockPropertyForInteraction: function(item, character, interaction) {
+                if (interaction.id === INTERACTION_ID_EAT) return 'lockAct';
+                return this.callSuper(item, character, interaction);
             },
-            getSoundForInteraction: function(item, character, interactionName) {
-                if (interactionName === INTERACTION_EAT) return [[1.0, '*munch*', 1<<2]];
-                return this.callSuper(item, character, interactionName);
+            getSoundForInteraction: function(item, character, interaction) {
+                if (interaction.id === INTERACTION_ID_EAT) return [[1.0, '*munch*', 1<<2]];
+                return this.callSuper(item, character, interaction);
             },
             
-            doInteraction: function(item, character, interactionName) {
-                if (interactionName === INTERACTION_EAT) return this.doInteractionEat(item, character, interactionName);
-                return this.callSuper(item, character, interactionName);
+            doInteraction: function(item, character, interaction) {
+                if (interaction.id === INTERACTION_ID_EAT) return this.doInteractionEat(item, character, interaction);
+                return this.callSuper(item, character, interaction);
             },
             
-            doExpositionAfterInteraction: function(item, character, interactionName, succeeded) {
+            doExpositionAfterInteraction: function(item, character, interaction, succeeded) {
                 if (succeeded) {
-                    if (interactionName === INTERACTION_EAT) {
+                    if (interaction.id === INTERACTION_ID_EAT) {
                         const itemName = item.getSimpleName();
-                        character.sendExposition('You ' + interactionName + ' the ' + itemName + '.', 'narrative');
-                        character.getCell().sendExposition(character.getName() + ' ' + interactionName + 's the ' + itemName + '.', 'visual', character);
+                        character.sendExposition('You ' + interaction.label + ' the ' + itemName + '.', 'narrative');
+                        character.getCell().sendExposition(character.getName() + ' ' + interaction.label  + 's the ' + itemName + '.', 'visual', character);
                     }
                 }
-                this.callSuper?.(item, character, interactionName, succeeded);
+                this.callSuper?.(item, character, interaction, succeeded);
             },
             
-            doInteractionEat: (item, character, interactionName) => {/** Subclasses to implement. */}
+            doInteractionEat: (item, character, interaction) => {/** Subclasses to implement. */}
         }),
         
         FoodItemTemplate = new JSClass('FoodItemTemplate', ItemTemplate, {
@@ -176,11 +180,11 @@
             
             
             // Methods /////////////////////////////////////////////////////////
-            doInteractionEat: function(item, character, interactionName) {
+            doInteractionEat: function(item, character, interaction) {
                 const somaRecovered = character.soma.adjValue(this.getSustenance());
-                item.doExpositionAfterInteraction(character, interactionName, true);
-                broadcastSound(item, character, interactionName);
-                character.sendExposition('You recover ' + somaRecovered + ' soma from eating the ' + item.getSimpleName() + '.', 'narrative');
+                item.doExpositionAfterInteraction(character, interaction, true);
+                broadcastSound(item, character, interaction);
+                character.sendExposition('You recover ' + somaRecovered + ' soma from ' + interaction.label + 'ing the ' + item.getSimpleName() + '.', 'narrative');
                 
                 item.getInventory().removeItemById(item.getId());
                 item.destroy();
@@ -205,19 +209,19 @@
                 return retval;
             },
             
-            doInteractionEat: function(item, character, interactionName) {
+            doInteractionEat: function(item, character, interaction) {
                 let charges = item.getStateByName(STATE_CHARGES) ?? 0;
                 if (charges > 0) {
                     const somaRecovered = character.soma.adjValue(this.getSustenance());
                     item.setStateByName(STATE_CHARGES, --charges);
                     
-                    item.doExpositionAfterInteraction(character, interactionName, true);
-                    broadcastSound(item, character, interactionName);
-                    character.sendExposition('You recover ' + somaRecovered + ' soma from eating some of the ' + item.getSimpleName() + '.', 'narrative');
+                    item.doExpositionAfterInteraction(character, interaction, true);
+                    broadcastSound(item, character, interaction);
+                    character.sendExposition('You recover ' + somaRecovered + ' soma from ' + interaction.label + 'ing some of the ' + item.getSimpleName() + '.', 'narrative');
                     
-                    this.handleDepletion(item, character, interactionName);
+                    this.handleDepletion(item, character, interaction);
                 } else {
-                    character.sendExposition('There is nothing left to eat of the ' + item.getSimpleName() + '.', 'narrative');
+                    character.sendExposition('There is nothing left to ' + interaction.label + ' of the ' + item.getSimpleName() + '.', 'narrative');
                 }
             }
         }),
@@ -231,6 +235,11 @@
             // Food
             food_1:new FoodItemTemplate({name:'Mushroom Jerky', volume:25, material:'fungus', sustenance:20}),
             food_2:new FoodItemTemplate({name:'Centipede Jerky', volume:25, material:'flesh', sustenance:25}),
+            
+            drink_1:new FoodItemTemplate({name:'water', volume:10, material:'water', sustenance:5, interactionLabels:{eat:'drink'}}),
+            drink_2:new FoodItemTemplate({name:'beer', volume:10, material:'water', sustenance:8, interactionLabels:{eat:'drink'}}),
+            drink_3:new FoodItemTemplate({name:'wine', volume:10, material:'water', sustenance:8, interactionLabels:{eat:'drink'}}),
+            drink_4:new FoodItemTemplate({name:'mead', volume:10, material:'water', sustenance:10, interactionLabels:{eat:'drink'}}),
             
             food_3:new ChargeableFoodItemTemplate({
                 name:'Kibble', destroyWhenDepleted:true, material:'vegetable',
@@ -263,8 +272,8 @@
             
             
             // Item Methods ////////////////////////////////////////////////////
-            doInteraction: function(character, interactionName) {
-                return this.getTemplateObject().doInteraction(this, character, interactionName);
+            doInteraction: function(character, interaction) {
+                return this.getTemplateObject().doInteraction(this, character, interaction);
             },
             
             

@@ -100,12 +100,13 @@
             }
         },
         
-        doXLink = (type, targetObj, interactionName) => {
+        doXLink = (type, targetObj, interaction) => {
             if (targetObj) {
-                const targetId = targetObj.getId();
+                const targetId = targetObj.getId(),
+                    interactionId = interaction.id;
                 let doXFuncName,
                     cooldownName;
-                switch (targetObj.getLockPropertyForInteraction(character, interactionName)) {
+                switch (targetObj.getLockPropertyForInteraction(character, interactionId)) {
                     case 'lockAct':
                         doXFuncName = 'doAction';
                         cooldownName = 'action';
@@ -120,9 +121,9 @@
                         break;
                 }
                 
-                if (!character[doXFuncName](type, {targetId:targetId, interactionName:interactionName})) {
+                if (!character[doXFuncName](type, {targetId:targetId, interactionId:interactionId})) {
                     gameMap.animateEntity(character.getId());
-                    gamePanel.appendToChatLog('<i>You must wait for your ' + cooldownName + ' cooldown before you can ' + interactionName + ' the ' + targetObj.getName(character) + '.</i>');
+                    gamePanel.appendToChatLog('<i>You must wait for your ' + cooldownName + ' cooldown before you can ' + interaction.label + ' the ' + targetObj.getName(character) + '.</i>');
                 }
             }
         },
@@ -131,7 +132,7 @@
             if (interactions) {
                 const accum = [];
                 for (const interaction of interactions) {
-                    accum.push('<a href="#" onclick="orb.gamePanel.' + methodName + "('" + id + "','" + interaction + '\'); return false;">' + interaction + '</a>');
+                    accum.push('<a href="#" onclick="orb.gamePanel.' + methodName + "('" + id + "',{id:\'" + interaction.id + '\',label:\'' + interaction.label + '\'}); return false;">' + interaction.label + '</a>');
                 }
                 if (accum.length > 0) return ' [' + concatenateList(accum, true) + ']';
             }
@@ -569,8 +570,8 @@
             myLocItemInfo.setText(getLocItemInfo());
         }, 50),
         
-        doFixtureLink: (fixtureId, interactionName) => doXLink(TYPE_INTERACT_WITH_FIXTURE, getFixtureById(fixtureId), interactionName),
-        doItemLink: (itemId, interactionName) => doXLink(TYPE_INTERACT_WITH_ITEM, getItemById(itemId), interactionName),
+        doFixtureLink: (fixtureId, interaction) => doXLink(TYPE_INTERACT_WITH_FIXTURE, getFixtureById(fixtureId), interaction),
+        doItemLink: (itemId, interaction) => doXLink(TYPE_INTERACT_WITH_ITEM, getItemById(itemId), interaction),
         
         /** @private */
         _keyDown: event => {

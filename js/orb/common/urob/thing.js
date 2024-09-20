@@ -78,6 +78,8 @@
             setMaterial: function(v) {this.set('material', v, true);},
             getMaterial: function(thing, character) {return this.material;},
             
+            setInteractionLabels: function(v) {this.set('interactionLabels', v, true);},
+            getInteractionLabels: function(thing, character) {return this.interactionLabels;},
             
             // Methods /////////////////////////////////////////////////////////
             describe: function(thing, character, isAppend) {
@@ -85,13 +87,27 @@
             },
             
             getInteractions: (thing, character, adjacent) => [],
-            getLockPropertyForInteraction: (thing, character, interactionName) => 'lockAct',
-            getSoundForInteraction: (thing, character, interactionName) => null,
+            getInteractionLabel: function(thing, character, interaction) {
+                const interactionLabels = this.getInteractionLabels();
+                if (interactionLabels) {
+                    const customLabel = interactionLabels[interaction.id];
+                    if (customLabel) return customLabel;
+                }
+                return interaction.label;
+            },
+            addInteractionToReturnValue: function(thing, character, interaction, retval) {
+                retval ??= [];
+                retval.push({id:interaction.id, label:this.getInteractionLabel(thing, character, interaction)});
+                return retval;
+            },
+            
+            getLockPropertyForInteraction: (thing, character, interaction) => 'lockAct',
+            getSoundForInteraction: (thing, character, interaction) => null,
             
             /** Optionally returns an error message. */
-            doInteraction: (thing, character, interactionName) => {},
-            doExpositionBeforeInteraction: (thing, character, interactionName, willSucceed) => {},
-            doExpositionAfterInteraction: (thing, character, interactionName, succeeded) => {},
+            doInteraction: (thing, character, interaction) => {},
+            doExpositionBeforeInteraction: (thing, character, interaction, willSucceed) => {},
+            doExpositionAfterInteraction: (thing, character, interaction, succeeded) => {},
         }),
         
         
@@ -154,20 +170,20 @@
                 return this.getTemplateObject().getInteractions(this, character, adjacent);
             },
             
-            getLockPropertyForInteraction: function(character, interactionName) {
-                return this.getTemplateObject().getLockPropertyForInteraction?.(this, character, interactionName);
+            getLockPropertyForInteraction: function(character, interaction) {
+                return this.getTemplateObject().getLockPropertyForInteraction?.(this, character, interaction);
             },
             
-            getSoundForInteraction: function(character, interactionName) {
-                return this.getTemplateObject().getSoundForInteraction(this, character, interactionName);
+            getSoundForInteraction: function(character, interaction) {
+                return this.getTemplateObject().getSoundForInteraction(this, character, interaction);
             },
             
-            doExpositionBeforeInteraction: function(character, interactionName, willSucceed) {
-                return this.getTemplateObject().doExpositionBeforeInteraction(this, character, interactionName, willSucceed);
+            doExpositionBeforeInteraction: function(character, interaction, willSucceed) {
+                return this.getTemplateObject().doExpositionBeforeInteraction(this, character, interaction, willSucceed);
             },
             
-            doExpositionAfterInteraction: function(character, interactionName, succeeded) {
-                return this.getTemplateObject().doExpositionAfterInteraction(this, character, interactionName, succeeded);
+            doExpositionAfterInteraction: function(character, interaction, succeeded) {
+                return this.getTemplateObject().doExpositionAfterInteraction(this, character, interaction, succeeded);
             },
             
             
@@ -250,7 +266,7 @@
                 return this.callSuper(thing, character) + ' (' + charges + ' ' + pluralize(charges, 'charge') + ')';
             },
             
-            handleDepletion: function(thing, character, interactionName) {
+            handleDepletion: function(thing, character, interaction) {
                 const charges = thing.getStateByName(STATE_CHARGES) ?? 0;
                 if (charges === 0 && this.getDestroyWhenDepleted()) {
                     const id = thing.getId();

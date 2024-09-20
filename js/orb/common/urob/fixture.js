@@ -28,15 +28,25 @@
         STATE_DESTINATION = 'destination',
         STATE_STAIR_DIRECTION = 'direction',
         
-        INTERACTION_OPEN = 'open',
-        INTERACTION_CLOSE = 'close',
-        INTERACTION_LOCK = 'lock',
-        INTERACTION_UNLOCK = 'unlock',
-        INTERACTION_ROTATE_CLOCKWISE = 'rotate clockwise',
-        INTERACTION_ROTATE_COUNTER_CLOCKWISE = 'rotate counter clockwise',
-        INTERACTION_ENTER = 'enter',
-        INTERACTION_ASCEND = 'ascend',
-        INTERACTION_DESCEND = 'descend',
+        INTERACTION_ID_OPEN = 'open',
+        INTERACTION_ID_CLOSE = 'close',
+        INTERACTION_ID_LOCK = 'lock',
+        INTERACTION_ID_UNLOCK = 'unlock',
+        INTERACTION_ID_ROTATE_CLOCKWISE = 'rotate clockwise',
+        INTERACTION_ID_ROTATE_COUNTER_CLOCKWISE = 'rotate counter clockwise',
+        INTERACTION_ID_ENTER = 'enter',
+        INTERACTION_ID_ASCEND = 'ascend',
+        INTERACTION_ID_DESCEND = 'descend',
+        
+        INTERACTION_OPEN = {id:INTERACTION_ID_OPEN, label:'open'},
+        INTERACTION_CLOSE = {id:INTERACTION_ID_CLOSE, label:'close'},
+        INTERACTION_LOCK = {id:INTERACTION_ID_LOCK, label:'lock'},
+        INTERACTION_UNLOCK = {id:INTERACTION_ID_UNLOCK, label:'unlock'},
+        INTERACTION_ROTATE_CLOCKWISE = {id:INTERACTION_ID_ROTATE_CLOCKWISE, label:'rotate clockwise'},
+        INTERACTION_ROTATE_COUNTER_CLOCKWISE = {id:INTERACTION_ID_ROTATE_COUNTER_CLOCKWISE, label:'rotate counter clockwise'},
+        INTERACTION_ENTER = {id:INTERACTION_ID_ENTER, label:'enter'},
+        INTERACTION_ASCEND = {id:INTERACTION_ID_ASCEND, label:'ascend'},
+        INTERACTION_DESCEND = {id:INTERACTION_ID_DESCEND, label:'descend'},
         
         fixtures = new Map(),
         
@@ -79,17 +89,17 @@
             describe: function(fixture, character, isAppend) {
                 return getPhraseWithArticle(fixture.getStateByName(STATE_OPEN) ? 'open' : 'closed', isAppend) + ' ' + this.callSuper(fixture, character, true);
             },
-            doInteraction: function(fixture, character, interactionName) {
-                switch (interactionName) {
-                    case INTERACTION_CLOSE:
+            doInteraction: function(fixture, character, interaction) {
+                switch (interaction.id) {
+                    case INTERACTION_ID_CLOSE:
                         if (fixture.getStateByName(STATE_OPEN)) {
-                            fixture.doExpositionBeforeInteraction(character, interactionName, true);
+                            fixture.doExpositionBeforeInteraction(character, interaction, true);
                             fixture.setStateByName(STATE_OPEN, false);
                             return;
                         } else {
                             return 'Can\'t close the ' + this.getName(fixture, character) + ' because it\'s already closed.';
                         }
-                    case INTERACTION_OPEN:
+                    case INTERACTION_ID_OPEN:
                         if (fixture.getStateByName(STATE_OPEN)) {
                             return 'Can\'t open the ' + this.getName(fixture, character) + ' because it\'s already open.';
                         } else {
@@ -97,36 +107,36 @@
                                 return 'Can\'t open the ' + this.getName(fixture, character) + ' because it appears to be locked.';
                             } else {
                                 fixture.setStateByName(STATE_OPEN, true);
-                                fixture.doExpositionAfterInteraction(character, interactionName, true);
+                                fixture.doExpositionAfterInteraction(character, interaction, true);
                                 return;
                             }
                         }
                 }
-                return this.callSuper(fixture, character, interactionName);
+                return this.callSuper(fixture, character, interaction);
             },
-            doExpositionBeforeInteraction: function(fixture, character, interactionName, willSucceed) {
+            doExpositionBeforeInteraction: function(fixture, character, interaction, willSucceed) {
                 if (willSucceed) {
-                    switch (interactionName) {
-                        case INTERACTION_CLOSE:
+                    switch (interaction.id) {
+                        case INTERACTION_ID_CLOSE:
                             const fixtureName = fixture.getSimpleName();
-                            character.sendExposition('You ' + interactionName + ' the ' + fixtureName + '.', 'narrative');
-                            character.getCell().sendExposition(character.getName() + ' ' + interactionName + 'ed the ' + fixtureName + '.', 'visual', character);
+                            character.sendExposition('You ' + interaction.label + ' the ' + fixtureName + '.', 'narrative');
+                            character.getCell().sendExposition(character.getName() + ' ' + interaction.label + 'ed the ' + fixtureName + '.', 'visual', character);
                             return;
                     }
                 }
-                this.callSuper(fixture, character, interactionName, succeeded);
+                this.callSuper(fixture, character, interaction, succeeded);
             },
-            doExpositionAfterInteraction: function(fixture, character, interactionName, succeeded) {
+            doExpositionAfterInteraction: function(fixture, character, interaction, succeeded) {
                 if (succeeded) {
-                    switch (interactionName) {
-                        case INTERACTION_OPEN:
+                    switch (interaction.id) {
+                        case INTERACTION_ID_OPEN:
                             const fixtureName = fixture.getSimpleName();
-                            character.sendExposition('You ' + interactionName + ' the ' + fixtureName + '.', 'narrative');
-                            character.getCell().sendExposition(character.getName() + ' ' + interactionName + 'ed the ' + fixtureName + '.', 'visual', character);
+                            character.sendExposition('You ' + interaction.label + ' the ' + fixtureName + '.', 'narrative');
+                            character.getCell().sendExposition(character.getName() + ' ' + interaction.label + 'ed the ' + fixtureName + '.', 'visual', character);
                             return;
                     }
                 }
-                this.callSuper(fixture, character, interactionName, succeeded);
+                this.callSuper(fixture, character, interaction, succeeded);
             }
         }),
         
@@ -146,39 +156,39 @@
             describe: function(fixture, character, isAppend) {
                 return getPhraseWithArticle(fixture.getStateByName(STATE_LOCKED) ? 'locked' : 'unlocked', isAppend) + ' ' + this.callSuper(fixture, character, true);
             },
-            doInteraction: function(fixture, character, interactionName) {
-                switch (interactionName) {
-                    case INTERACTION_UNLOCK:
+            doInteraction: function(fixture, character, interaction) {
+                switch (interaction.id) {
+                    case INTERACTION_ID_UNLOCK:
                         if (fixture.getStateByName(STATE_LOCKED)) {
                             fixture.setStateByName(STATE_LOCKED, false);
-                            fixture.doExpositionAfterInteraction(character, interactionName, true);
+                            fixture.doExpositionAfterInteraction(character, interaction, true);
                             return;
                         } else {
-                            return 'Can\'t unlock the ' + this.getName(fixture, character) + ' because it\'s already unlocked.';
+                            return 'Can\'t ' + interaction.label + ' the ' + this.getName(fixture, character) + ' because it\'s already unlocked.';
                         }
-                    case INTERACTION_LOCK:
+                    case INTERACTION_ID_LOCK:
                         if (fixture.getStateByName(STATE_LOCKED)) {
-                            return 'Can\'t lock the ' + this.getName(fixture, character) + ' because it\'s already locked.';
+                            return 'Can\'t '+ interaction.label + ' the ' + this.getName(fixture, character) + ' because it\'s already locked.';
                         } else {
                             fixture.setStateByName(STATE_LOCKED, true);
-                            fixture.doExpositionAfterInteraction(character, interactionName, true);
+                            fixture.doExpositionAfterInteraction(character, interaction, true);
                             return;
                         }
                 }
-                return this.callSuper(fixture, character, interactionName);
+                return this.callSuper(fixture, character, interaction);
             },
-            doExpositionAfterInteraction: function(fixture, character, interactionName, succeeded) {
+            doExpositionAfterInteraction: function(fixture, character, interaction, succeeded) {
                 if (succeeded) {
-                    switch (interactionName) {
-                        case INTERACTION_UNLOCK:
-                        case INTERACTION_LOCK:
+                    switch (interaction.id) {
+                        case INTERACTION_ID_UNLOCK:
+                        case INTERACTION_ID_LOCK:
                             const fixtureName = fixture.getSimpleName();
-                            character.sendExposition('You ' + interactionName + ' the ' + fixtureName + '.', 'narrative');
-                            character.getCell().sendExposition(character.getName() + ' ' + interactionName + 'ed the ' + fixtureName + '.', 'visual', character);
+                            character.sendExposition('You ' + interaction.label + ' the ' + fixtureName + '.', 'narrative');
+                            character.getCell().sendExposition(character.getName() + ' ' + interaction.label + 'ed the ' + fixtureName + '.', 'visual', character);
                             return;
                     }
                 }
-                this.callSuper(fixture, character, interactionName, succeeded);
+                this.callSuper(fixture, character, interaction, succeeded);
             }
         }),
         
@@ -205,43 +215,43 @@
                 if (!adjacent) retval.push(INTERACTION_ROTATE_CLOCKWISE, INTERACTION_ROTATE_COUNTER_CLOCKWISE);
                 return retval;
             },
-            doInteraction: function(fixture, character, interactionName) {
-                switch (interactionName) {
-                    case INTERACTION_ROTATE_CLOCKWISE:
+            doInteraction: function(fixture, character, interaction) {
+                switch (interaction.id) {
+                    case INTERACTION_ID_ROTATE_CLOCKWISE:
                         switch (fixture.getStateByName(STATE_FACING)) {
                             case NORTH: fixture.setStateByName(STATE_FACING, EAST); break;
                             case EAST: fixture.setStateByName(STATE_FACING, SOUTH); break;
                             case SOUTH: fixture.setStateByName(STATE_FACING, WEST); break;
                             case WEST: fixture.setStateByName(STATE_FACING, NORTH); break;
                         }
-                        fixture.doExpositionAfterInteraction(character, interactionName, true);
+                        fixture.doExpositionAfterInteraction(character, interaction, true);
                         return;
-                    case INTERACTION_ROTATE_COUNTER_CLOCKWISE:
+                    case INTERACTION_ID_ROTATE_COUNTER_CLOCKWISE:
                         switch (fixture.getStateByName(STATE_FACING)) {
                             case NORTH: fixture.setStateByName(STATE_FACING, WEST); break;
                             case EAST: fixture.setStateByName(STATE_FACING, NORTH); break;
                             case SOUTH: fixture.setStateByName(STATE_FACING, EAST); break;
                             case WEST: fixture.setStateByName(STATE_FACING, SOUTH); break;
                         }
-                        fixture.doExpositionAfterInteraction(character, interactionName, true);
+                        fixture.doExpositionAfterInteraction(character, interaction, true);
                         return;
                 }
-                return this.callSuper(fixture, character, interactionName);
+                return this.callSuper(fixture, character, interaction);
             },
             
-            doExpositionAfterInteraction: function(fixture, character, interactionName, succeeded) {
+            doExpositionAfterInteraction: function(fixture, character, interaction, succeeded) {
                 if (succeeded) {
                     const expositionFunc = directionTxt => {
                         const fixtureName = fixture.getSimpleName();
                         character.sendExposition('You rotate the ' + fixtureName + ' ' + directionTxt + '.', 'narrative');
                         character.getCell().sendExposition(character.getName() + ' rotates the ' + fixtureName + ' ' + directionTxt + '.', 'visual', character);
                     };
-                    switch (interactionName) {
-                        case INTERACTION_ROTATE_CLOCKWISE: expositionFunc('clockwise'); return;
-                        case INTERACTION_ROTATE_COUNTER_CLOCKWISE: expositionFunc('counter clockwise'); return;
+                    switch (interaction.id) {
+                        case INTERACTION_ID_ROTATE_CLOCKWISE: expositionFunc('clockwise'); return;
+                        case INTERACTION_ID_ROTATE_COUNTER_CLOCKWISE: expositionFunc('counter clockwise'); return;
                     }
                 }
-                this.callSuper(fixture, character, interactionName, succeeded);
+                this.callSuper(fixture, character, interaction, succeeded);
             }
         }),
         
@@ -260,7 +270,7 @@
                 return (materialObj ? materialObj.name + ' ' : '') + this.callSuper();
             },
             
-            getSoundForInteraction: (fixture, character, interactionName) => {
+            getSoundForInteraction: (fixture, character, interaction) => {
                 return [
                     // threshold in ascending order, sound, volume
                     [0.6, '*grinding*', 1<<5],  // 60% chance
@@ -294,18 +304,18 @@
                 return value;
             },
             
-            getSoundForInteraction: (fixture, character, interactionName) => {
-                switch (interactionName) {
-                    case INTERACTION_CLOSE:
+            getSoundForInteraction: (fixture, character, interaction) => {
+                switch (interaction.id) {
+                    case INTERACTION_ID_CLOSE:
                         return [
                             [0.25, '*soft thud*', 2],
                             [1, '*creak*', 3]
                         ];
-                    case INTERACTION_OPEN:
+                    case INTERACTION_ID_OPEN:
                         return [[1, '*creak*', 3]];
-                    case INTERACTION_UNLOCK:
+                    case INTERACTION_ID_UNLOCK:
                         return [[1, '*click*', 1]];
-                    case INTERACTION_LOCK:
+                    case INTERACTION_ID_LOCK:
                         return [[1, '*click*', 1]];
                 }
             }
@@ -325,43 +335,43 @@
                 if (!adjacent) retval.push(INTERACTION_ENTER);
                 return retval;
             },
-            getLockPropertyForInteraction: (fixture, character, interactionName) => 'lockMove',
-            getSoundForInteraction: (fixture, character, interactionName) => [[1, '*whoosh*', 2]],
-            doInteraction: function(fixture, character, interactionName) {
-                if (interactionName === INTERACTION_ENTER) {
+            getLockPropertyForInteraction: (fixture, character, interaction) => 'lockMove',
+            getSoundForInteraction: (fixture, character, interaction) => [[1, '*whoosh*', 2]],
+            doInteraction: function(fixture, character, interaction) {
+                if (interaction.id === INTERACTION_ID_ENTER) {
                     character.doMove(
                         fixture.getStateByName(STATE_DESTINATION), null, 
                         'teleport-leave', 'teleport-arrive', 
                         () => {
-                            fixture.doExpositionBeforeInteraction(character, interactionName, true);
+                            fixture.doExpositionBeforeInteraction(character, interaction, true);
                         },
                         () => {
-                            fixture.doExpositionAfterInteraction(character, interactionName, true);
+                            fixture.doExpositionAfterInteraction(character, interaction, true);
                         }
                     );
                     return;
                 }
-                return this.callSuper(fixture, character, interactionName);
+                return this.callSuper(fixture, character, interaction);
             },
             
-            doExpositionBeforeInteraction: (fixture, character, interactionName, willSucceed) => {
-                if (willSucceed && interactionName === INTERACTION_ENTER) {
+            doExpositionBeforeInteraction: (fixture, character, interaction, willSucceed) => {
+                if (willSucceed && interaction.id === INTERACTION_ID_ENTER) {
                     const fixtureName = fixture.getName();
                     character.sendExposition('You enter the ' + fixtureName + ' and your essence is torn apart. You are transported through higher dimensions for what seems an eternity. Until finally...', 'narrative');
                     character.getCell().sendExposition(character.getName() + ' enters the ' + fixtureName + '.', 'visual', character);
                     return;
                 }
-                this.callSuper(fixture, character, interactionName, willSucceed);
+                this.callSuper(fixture, character, interaction, willSucceed);
             },
             
-            doExpositionAfterInteraction: (fixture, character, interactionName, succeeded) => {
-                if (succeeded && interactionName === INTERACTION_ENTER) {
+            doExpositionAfterInteraction: (fixture, character, interaction, succeeded) => {
+                if (succeeded && interaction.id === INTERACTION_ID_ENTER) {
                     const fixtureName = fixture.getName();
                     character.sendExposition('You emerge from the ' + fixtureName + ' somewhere else.', 'narrative');
                     character.getCell().sendExposition(character.getName() + ' emerges from the ' + fixtureName + '.', 'visual', character);
                     return;
                 }
-                this.callSuper(fixture, character, interactionName, succeeded);
+                this.callSuper(fixture, character, interaction, succeeded);
             },
             
             getUrl: (fixture, character) => IMAGE_PREFIX + 'portal.png'
@@ -396,9 +406,9 @@
                 return retval;
             },
             
-            getLockPropertyForInteraction: (fixture, character, interactionName) => 'lockMove',
+            getLockPropertyForInteraction: (fixture, character, interaction) => 'lockMove',
             
-            doInteraction: function(fixture, character, interactionName) {
+            doInteraction: function(fixture, character, interaction) {
                 const doAscendOrDescend = isAscend => {
                     const direction = fixture.getStateByName(STATE_STAIR_DIRECTION);
                     if (direction !== (isAscend ? 'down' : 'up')) {
@@ -407,47 +417,47 @@
                         character.doMove(
                             locArr, null, 'move', 'move', 
                             () => {
-                                fixture.doExpositionBeforeInteraction(character, interactionName, true);
+                                fixture.doExpositionBeforeInteraction(character, interaction, true);
                             },
                             () => {
-                                fixture.doExpositionAfterInteraction(character, interactionName, true);
+                                fixture.doExpositionAfterInteraction(character, interaction, true);
                             }
                         );
                     }
                 };
                 
-                switch (interactionName) {
-                    case INTERACTION_ASCEND: doAscendOrDescend(true); return;
-                    case INTERACTION_DESCEND: doAscendOrDescend(false); return;
+                switch (interaction.id) {
+                    case INTERACTION_ID_ASCEND: doAscendOrDescend(true); return;
+                    case INTERACTION_ID_DESCEND: doAscendOrDescend(false); return;
                 }
-                return this.callSuper(fixture, character, interactionName);
+                return this.callSuper(fixture, character, interaction);
             },
             
-            doExpositionBeforeInteraction: (fixture, character, interactionName, willSucceed) => {
+            doExpositionBeforeInteraction: (fixture, character, interaction, willSucceed) => {
                 if (willSucceed) {
-                    switch (interactionName) {
-                        case INTERACTION_ASCEND:
-                        case INTERACTION_DESCEND:
+                    switch (interaction.id) {
+                        case INTERACTION_ID_ASCEND:
+                        case INTERACTION_ID_DESCEND:
                             const fixtureName = fixture.getSimpleName();
-                            character.sendExposition('You ' + interactionName + ' the ' + fixtureName + '.', 'narrative');
-                            character.getCell().sendExposition(character.getName() + ' ' + interactionName + 's the ' + fixtureName + '.', 'visual', character);
+                            character.sendExposition('You ' + interaction.label + ' the ' + fixtureName + '.', 'narrative');
+                            character.getCell().sendExposition(character.getName() + ' ' + interaction.label + 's the ' + fixtureName + '.', 'visual', character);
                             return;
                     }
                 }
-                this.callSuper(fixture, character, interactionName, willSucceed);
+                this.callSuper(fixture, character, interaction, willSucceed);
             },
             
-            doExpositionAfterInteraction: (fixture, character, interactionName, succeeded) => {
+            doExpositionAfterInteraction: (fixture, character, interaction, succeeded) => {
                 if (succeeded) {
-                    switch (interactionName) {
-                        case INTERACTION_ASCEND:
-                        case INTERACTION_DESCEND:
+                    switch (interaction.id) {
+                        case INTERACTION_ID_ASCEND:
+                        case INTERACTION_ID_DESCEND:
                             const fixtureName = fixture.getSimpleName();
-                            character.getCell().sendExposition(character.getName() + ' comes ' + (interactionName === INTERACTION_ASCEND ? 'up' : 'down') + ' the ' + fixtureName + '.', 'visual', character);
+                            character.getCell().sendExposition(character.getName() + ' comes ' + (interaction.id === INTERACTION_ID_ASCEND ? 'up' : 'down') + ' the ' + fixtureName + '.', 'visual', character);
                             return;
                     }
                 }
-                this.callSuper(fixture, character, interactionName, succeeded);
+                this.callSuper(fixture, character, interaction, succeeded);
             },
             
             getUrl: (fixture, character) => {
@@ -558,13 +568,13 @@
             
             
             // Methods /////////////////////////////////////////////////////////
-            doInteraction: function(character, interactionName) {
-                const failureMsg = this.getTemplateObject().doInteraction(this, character, interactionName);
+            doInteraction: function(character, interaction) {
+                const failureMsg = this.getTemplateObject().doInteraction(this, character, interaction);
                 
                 // Make sound if successful
                 if (!failureMsg) {
                     const worldMap = getWorldMap(),
-                        {volume, sound} = worldMap.selectSoundRandomly(this.getSoundForInteraction(character, interactionName));
+                        {volume, sound} = worldMap.selectSoundRandomly(this.getSoundForInteraction(character, interaction));
                     if (sound) worldMap.broadcastSound(this, 'fixture', sound, volume);
                 }
                 

@@ -270,15 +270,15 @@ const orb = global.orb,
         },
         
         [TYPE_INTERACT_WITH_FIXTURE]:event => {
-            const {targetId, interactionName} = event.msg;
+            const {targetId, interactionId} = event.msg;
             let fixture,
-                matchedInteractionName;
+                matchedInteraction;
             performAction(
                 event, 
                 (username, character) => {
-                    if (targetId && interactionName) {
+                    if (targetId && interactionId) {
                         // Get the interactions on the server side and lookup the requested
-                        // targetId and interactionName within it.
+                        // targetId and interactionId within it.
                         const interactions = character.getCell().getInteractions(character);
                         for (const thingContainerKey in interactions) {
                             const thingContainerData = interactions[thingContainerKey];
@@ -286,9 +286,9 @@ const orb = global.orb,
                                 const interactionsArray = thingContainerData[targetId];
                                 if (interactionsArray) {
                                     fixture = getFixtureById(targetId);
-                                    for (const iaName of interactionsArray) {
-                                        if (iaName === interactionName) {
-                                            matchedInteractionName = true;
+                                    for (const interaction of interactionsArray) {
+                                        if (interaction.id === interactionId) {
+                                            matchedInteraction = interaction;
                                             break;
                                         }
                                     }
@@ -297,8 +297,8 @@ const orb = global.orb,
                             }
                         }
                         
-                        if (fixture && matchedInteractionName) {
-                            return fixture.getLockPropertyForInteraction(character, interactionName) ?? 'lockAct';
+                        if (fixture && matchedInteraction) {
+                            return fixture.getLockPropertyForInteraction(character, interactionId) ?? 'lockAct';
                         } else {
                             addMessageToUser(username, {type:TYPE_ACTION_FAILED, code:ACTION_ERROR_CODES.ACTION_NOT_ALLOWED});
                         }
@@ -308,37 +308,37 @@ const orb = global.orb,
                 }, 
                 null, 
                 (username, character) => {
-                    const failureMsg = fixture.doInteraction(character, interactionName);
+                    const failureMsg = fixture.doInteraction(character, matchedInteraction);
                     if (failureMsg) addMessageToUser(username, {type:TYPE_ACTION_FAILED, msg:failureMsg});
                 }
             );
         },
         
         [TYPE_INTERACT_WITH_ITEM]:event => {
-            const {targetId, interactionName} = event.msg;
+            const {targetId, interactionId} = event.msg;
             let item,
-                matchedInteractionName;
+                matchedInteraction;
             performAction(
                 event, 
                 (username, character) => {
-                    if (targetId && interactionName) {
+                    if (targetId && interactionId) {
                         // Get the interactions on the server side and lookup the requested
-                        // targetId and interactionName within it.
+                        // targetId and interactionId within it.
                         item = character.getItem(targetId) ?? character.getCell().getItem(targetId);
                         if (item) {
                             const interactionsArray = item.getInteractions(character);
                             if (interactionsArray?.length > 0) {
-                                for (const iaName of interactionsArray) {
-                                    if (iaName === interactionName) {
-                                        matchedInteractionName = true;
+                                for (const interaction of interactionsArray) {
+                                    if (interaction.id === interactionId) {
+                                        matchedInteraction = interaction;
                                         break;
                                     }
                                 }
                             }
                         }
                         
-                        if (item && matchedInteractionName) {
-                            return item.getLockPropertyForInteraction(character, interactionName) ?? 'lockAct';
+                        if (item && matchedInteraction) {
+                            return item.getLockPropertyForInteraction(character, interactionId) ?? 'lockAct';
                         } else {
                             addMessageToUser(username, {type:TYPE_ACTION_FAILED, code:ACTION_ERROR_CODES.ACTION_NOT_ALLOWED});
                         }
@@ -348,7 +348,7 @@ const orb = global.orb,
                 }, 
                 null, 
                 (username, character) => {
-                    const failureMsg = item.doInteraction(character, interactionName);
+                    const failureMsg = item.doInteraction(character, matchedInteraction);
                     if (failureMsg) addMessageToUser(username, {type:TYPE_ACTION_FAILED, msg:failureMsg});
                 }
             );
