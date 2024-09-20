@@ -17,10 +17,10 @@
                 ERR_ITEM_NOT_FOUND, ERR_MAX_CAPACITY_EXCEEDED, ERR_MAX_WEIGHT_EXCEEDED, ERR_MAX_VOLUME_EXCEEDED
             },
             thing:{
-                ThingTemplate, Thing, ChargeableTemplate, EatableTemplate, TeleportTemplate, 
-                STATE_CHARGES,
+                ThingTemplate, Thing, ChargeableTemplate, EatableTemplate, FoodTemplate, ChargeableFoodTemplate, 
+                TeleportTemplate, ChargeableTeleportTemplate, 
                 INTERACTION_ID_DROP, INTERACTION_ID_PICK_UP,
-                INTERACTION_DROP, INTERACTION_PICK_UP, INTERACTION_EAT,
+                INTERACTION_DROP, INTERACTION_PICK_UP
             }
         } = pkg,
         
@@ -137,77 +137,19 @@
         }),
         
         FoodItemTemplate = new JSClass('FoodItemTemplate', ItemTemplate, {
-            include:[EatableTemplate],
-            
-            // Accessors ///////////////////////////////////////////////////////
-            setSustenance: function(v) {this.set('sustenance', v, true);},
-            getSustenance: function(item, character) {return this.sustenance;},
-            
-            
-            // Methods /////////////////////////////////////////////////////////
-            doInteractionEat: function(item, character, interaction) {
-                const somaRecovered = character.soma.adjValue(this.getSustenance());
-                item.doExpositionAfterInteraction(character, interaction, true);
-                broadcastSound(item, character, interaction);
-                character.sendExposition('You recover ' + somaRecovered + ' soma from ' + interaction.label + 'ing the ' + item.getSimpleName() + '.', 'narrative');
-                
-                item.getInventory().removeItemById(item.getId());
-                item.destroy();
-            }
+            include:[FoodTemplate]
         }),
         
-        ChargeableFoodItemTemplate = new JSClass('ChargeableFoodItemTemplate', FoodItemTemplate, {
-            include:[ChargeableTemplate],
-            
-            
-            // Methods /////////////////////////////////////////////////////////
-            getInteractions: function(item, character, adjacent) {
-                const retval = this.callSuper(item, character, adjacent);
-                
-                // Remove "eat" if no charges remain.
-                let charges = item.getStateByName(STATE_CHARGES) ?? 0;
-                if (charges === 0) {
-                    const idx = retval.indexOf(INTERACTION_EAT);
-                    if (idx !== -1) retval.splice(idx, 1);
-                }
-                
-                return retval;
-            },
-            
-            doInteractionEat: function(item, character, interaction) {
-                let charges = item.getStateByName(STATE_CHARGES) ?? 0;
-                if (charges > 0) {
-                    const somaRecovered = character.soma.adjValue(this.getSustenance());
-                    item.setStateByName(STATE_CHARGES, --charges);
-                    
-                    item.doExpositionAfterInteraction(character, interaction, true);
-                    broadcastSound(item, character, interaction);
-                    character.sendExposition('You recover ' + somaRecovered + ' soma from ' + interaction.label + 'ing some of the ' + item.getSimpleName() + '.', 'narrative');
-                    
-                    this.handleDepletion(item, character, interaction);
-                } else {
-                    character.sendExposition('There is nothing left to ' + interaction.label + ' of the ' + item.getSimpleName() + '.', 'narrative');
-                }
-            }
+        ChargeableFoodItemTemplate = new JSClass('ChargeableFoodItemTemplate', ItemTemplate, {
+            include:[ChargeableFoodTemplate]
         }),
         
         TeleportItemTemplate = new JSClass('TeleportItemTemplate', ItemTemplate, {
             include:[TeleportTemplate]
         }),
         
-        ChargeableTeleportItemTemplate = new JSClass('ChargeableTeleportItemTemplate', TeleportItemTemplate, {
-            include:[ChargeableTemplate],
-            
-            doInteractionEnter: function(thing, character, interaction) {
-                let charges = thing.getStateByName(STATE_CHARGES) ?? 0;
-                if (charges > 0) {
-                    thing.setStateByName(STATE_CHARGES, --charges);
-                    this.callSuper(thing, character, interaction);
-                    this.handleDepletion(thing, character, interaction);
-                } else {
-                    thing.doExpositionAfterInteraction(character, interaction, false);
-                }
-            }
+        ChargeableTeleportItemTemplate = new JSClass('ChargeableTeleportItemTemplate', ItemTemplate, {
+            include:[ChargeableTeleportTemplate]
         }),
         
         templates = {

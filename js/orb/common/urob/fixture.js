@@ -16,7 +16,7 @@
             getPhraseWithArticle,
             facing:{NORTH, SOUTH, EAST, WEST},
             thing:{
-                ThingTemplate, Thing, TeleportTemplate,
+                ThingTemplate, Thing, TeleportTemplate, ChargeableFoodTemplate,
                 STATE_OPEN, STATE_LOCKED, STATE_FACING, STATE_STAIR_DIRECTION,
                 
                 INTERACTION_ID_ASCEND,
@@ -332,6 +332,10 @@
             getUrl: (fixture, character) => IMAGE_PREFIX + 'portal.png'
         }),
         
+        ChargeableFoodFixtureTemplate = new JSClass('ChargeableFoodFixtureTemplate', FixtureTemplate, {
+            include:[ChargeableFoodTemplate]
+        }),
+        
         StairFixtureTemplate = new JSClass('StairFixtureTemplate', FixtureTemplate, {
             init: function(attrs) {
                 attrs.states ??= [];
@@ -449,16 +453,18 @@
             s1:new StatueFixtureTemplate(),
             p1:new PortalFixtureTemplate({name:'swirling silver portal'}),
             
-            /*puddle_1:new ChargeableFoodFixtureTemplate({
+            puddle_1:new ChargeableFoodFixtureTemplate({
                 name:'puddle', destroyWhenDepleted:true, material:'water',
                 volume:0, chargeVolume:10, maxCharges:9000, sustenance:5,
+                interactionLabels:{eat:'drink'},
                 soundsByInteractionId:{eat:[[1.0, '*slurp*', 1<<2]]}
             }),
             fountain_1:new ChargeableFoodFixtureTemplate({
                 name:'fountain', destroyWhenDepleted:false, material:'stone',
                 volume:100000, chargeVolume:10, maxCharges:18000, sustenance:5,
+                interactionLabels:{eat:'drink'},
                 soundsByInteractionId:{eat:[[1.0, '*slurp*', 1<<2]]}
-            }),*/
+            }),
             
             // Stairs
             stair_1:new StairFixtureTemplate({name:'spiral stairs'}),
@@ -540,7 +546,7 @@
                 const failureMsg = this.getTemplateObject().doInteraction(this, character, interaction);
                 
                 // Make sound if successful
-                if (!failureMsg) {
+                if (!failureMsg && !this.destroyed) {
                     const worldMap = getWorldMap(),
                         {volume, sound} = worldMap.selectSoundRandomly(this.getSoundForInteraction(character, interaction));
                     if (sound) worldMap.broadcastSound(this, 'fixture', sound, volume);

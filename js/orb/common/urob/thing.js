@@ -1,5 +1,5 @@
 (pkg => {
-    let tym, JS;
+    let tym, JS, worldMap;
     if (typeof module === 'object' && module.exports) {
         const imported = require('../../../../lib/tym.js');
         JS = imported.JS;
@@ -11,6 +11,8 @@
     
     const {Eventable} = tym,
         {Module:JSModule, Class:JSClass} = JS,
+        
+        getWorldMap = () => worldMap ??= require('../../server/WorldMap.js'),
         
         {
             pluralize, getPhraseWithArticle
@@ -93,6 +95,32 @@
             serpentine: {name:'serpentine', hardness:7,  density:10, description:""},
         },
         
+        broadcastSound = (thing, character, interaction) => {
+            const worldMap = getWorldMap(),
+                {volume, sound} = worldMap.selectSoundRandomly(thing.getSoundForInteraction(character, interaction));
+            if (sound) {
+                let type;
+                if (thing.isA(pkg.item.Item)) {
+                    type = 'item';
+                } else if (thing.isA(pkg.fixture.CommonFixtureModel)) {
+                    type = 'fixture';
+                }
+                worldMap.broadcastSound(thing, type, sound, volume);
+            }
+        },
+        
+        destroyThing = thing => {
+            const id = thing.getId();
+            if (thing.isA(pkg.item.Item)) {
+                // Item case
+                thing.getInventory().removeItemById(id);
+            } else if (thing.isA(pkg.fixture.CommonFixtureModel)) {
+                // Fixture case
+                thing.getThingContainer().removeFixtureById(id);
+            }
+            thing.destroy();
+        },
+        
         ThingTemplate = new JSClass('ThingTemplate', Eventable, {
             setName: function(v) {this.set('name', v, true);},
             getName: function(thing, character) {return this.name;},
@@ -154,6 +182,240 @@
             doExpositionAfterInteraction: (thing, character, interaction, succeeded) => {},
         }),
         
+        /** A Thing that contains zero or more charges. */
+        ChargeableTemplate = new JSModule('ChargeableTemplate', {
+            init: function(attrs) {
+                attrs.states ??= [];
+                attrs.states[STATE_CHARGES] = 'int';
+                
+                this.callSuper(attrs);
+            },
+            
+            setChargeWeight: function(v) {this.set('chargeWeight', v, true);},
+            getChargeWeight: function(thing, character) {return this.chargeWeight;},
+            
+            setChargeVolume: function(v) {this.set('chargeVolume', v, true);},
+            getChargeVolume: function(thing, character) {return this.chargeVolume;},
+            
+            setChargeMax: function(v) {this.set('chargeMax', v, true);},
+            getChargeMax: function(thing, character) {return this.chargeMax;},
+            
+            setDestroyWhenDepleted: function(v) {this.set('destroyWhenDepleted', v, true);},
+            getDestroyWhenDepleted: function(thing, character) {return this.destroyWhenDepleted;},
+            
+            getWeight: function(thing, character) {
+                const baseWeight = this.callSuper(thing, character),
+                    chargeWeight = this.getChargeWeight();
+                if (baseWeight == null && chargeWeight == null) {
+                    return null;
+                } else {
+                    return baseWeight + (thing.getStateByName(STATE_CHARGES) ?? 0) * (chargeWeight ?? 0);
+                }
+            },
+            
+            getVolume: function(thing, character) {
+                return this.callSuper(thing, character) + 
+                    (thing.getStateByName(STATE_CHARGES) ?? 0) * this.getChargeVolume();
+            },
+            
+            describe: function(thing, character) {
+                const charges = thing.getStateByName(STATE_CHARGES) ?? 0;
+                return this.callSuper(thing, character) + ' (' + charges + ' ' + pluralize(charges, 'charge') + ')';
+            },
+            
+            handleDepletion: function(thing, character, interaction) {
+                const charges = thing.getStateByName(STATE_CHARGES) ?? 0;
+                if (charges === 0 && this.getDestroyWhenDepleted()) destroyThing(thing);
+            }
+        }),
+        
+        /** A Thing that an Entity can "eat". */
+        EatableTemplate = new JSModule('EatableTemplate', {
+            // Methods /////////////////////////////////////////////////////////
+            getInteractions: function(thing, character, adjacent) {
+                return this.addInteractionToReturnValue(thing, character, INTERACTION_EAT, this.callSuper(thing, character, adjacent));
+            },
+            getLockPropertyForInteraction: function(thing, character, interaction) {
+                if (interaction.id === INTERACTION_ID_EAT) return 'lockAct';
+                return this.callSuper(thing, character, interaction);
+            },
+            getSoundForInteraction: function(thing, character, interaction) {
+                const sounds = this.callSuper(thing, character, interaction);
+                if (sounds) return sounds;
+                
+                if (interaction.id === INTERACTION_ID_EAT) return [[1.0, '*munch*', 1<<2]];
+                return null;
+            },
+            
+            doInteraction: function(thing, character, interaction) {
+                if (interaction.id === INTERACTION_ID_EAT) return this.doInteractionEat(thing, character, interaction);
+                return this.callSuper(thing, character, interaction);
+            },
+            
+            doExpositionAfterInteraction: function(thing, character, interaction, succeeded) {
+                if (succeeded) {
+                    if (interaction.id === INTERACTION_ID_EAT) {
+                        const thingName = thing.getSimpleName();
+                        character.sendExposition('You ' + interaction.label + ' the ' + thingName + '.', 'narrative');
+                        character.getCell().sendExposition(character.getName() + ' ' + interaction.label  + 's the ' + thingName + '.', 'visual', character);
+                    }
+                }
+                this.callSuper(thing, character, interaction, succeeded);
+            },
+            
+            doInteractionEat: (thing, character, interaction) => {/** Subclasses to implement. */}
+        }),
+        
+        FoodTemplate = new JSModule('FoodTemplate', {
+            include:[EatableTemplate],
+            
+            // Accessors ///////////////////////////////////////////////////////
+            setSustenance: function(v) {this.set('sustenance', v, true);},
+            getSustenance: function(thing, character) {return this.sustenance;},
+            
+            
+            // Methods /////////////////////////////////////////////////////////
+            doInteractionEat: function(thing, character, interaction) {
+                const somaRecovered = character.soma.adjValue(this.getSustenance());
+                thing.doExpositionAfterInteraction(character, interaction, true);
+                broadcastSound(thing, character, interaction);
+                character.sendExposition('You recover ' + somaRecovered + ' soma from ' + interaction.label + 'ing the ' + thing.getSimpleName() + '.', 'narrative');
+                
+                destroyThing(thing);
+            }
+        }),
+        
+        ChargeableFoodTemplate = new JSClass('ChargeableFoodTemplate', {
+            include:[ChargeableTemplate, FoodTemplate],
+            
+            
+            // Methods /////////////////////////////////////////////////////////
+            getInteractions: function(thing, character, adjacent) {
+                const retval = this.callSuper(thing, character, adjacent);
+                
+                // Remove "eat" if no charges remain.
+                let charges = thing.getStateByName(STATE_CHARGES) ?? 0;
+                if (charges === 0) {
+                    let i = retval.length;
+                    while (i) {
+                        const entry = retval[--i];
+                        if (entry.id === INTERACTION_ID_EAT) {
+                            retval.splice(i, 1);
+                            break;
+                        }
+                    }
+                }
+                
+                return retval;
+            },
+            
+            doInteractionEat: function(thing, character, interaction) {
+                let charges = thing.getStateByName(STATE_CHARGES) ?? 0;
+                if (charges > 0) {
+                    const somaRecovered = character.soma.adjValue(this.getSustenance());
+                    thing.setStateByName(STATE_CHARGES, --charges);
+                    
+                    thing.doExpositionAfterInteraction(character, interaction, true);
+                    broadcastSound(thing, character, interaction);
+                    character.sendExposition('You recover ' + somaRecovered + ' soma from ' + interaction.label + 'ing some of the ' + thing.getSimpleName() + '.', 'narrative');
+                    
+                    this.handleDepletion(thing, character, interaction);
+                } else {
+                    character.sendExposition('There is nothing left to ' + interaction.label + ' of the ' + thing.getSimpleName() + '.', 'narrative');
+                }
+            }
+        }),
+        
+        TeleportTemplate = new JSModule('TeleportTemplate', {
+            init: function(attrs) {
+                attrs.states ??= [];
+                attrs.states[STATE_DESTINATION] = 'string';
+                
+                this.callSuper(attrs);
+            },
+            
+            // Methods /////////////////////////////////////////////////////////
+            getInteractions: function(thing, character, adjacent) {
+                const retval = this.callSuper(thing, character, adjacent);
+                if (adjacent) {
+                    return retval;
+                } else {
+                    return this.addInteractionToReturnValue(thing, character, INTERACTION_ENTER, retval);
+                }
+            },
+            
+            getLockPropertyForInteraction: function(thing, character, interaction) {
+                if (interaction.id === INTERACTION_ID_ENTER) return 'lockMove';
+                return this.callSuper(thing, character, interaction);
+            },
+            
+            getSoundForInteraction: function(thing, character, interaction) {
+                const sounds = this.callSuper(thing, character, interaction);
+                if (sounds) return sounds;
+                
+                if (interaction.id === INTERACTION_ID_ENTER) return [[1, '*whoosh*', 2]];
+                return null;
+            },
+            
+            doInteraction: function(thing, character, interaction) {
+                if (interaction.id === INTERACTION_ID_ENTER) return this.doInteractionEnter(thing, character, interaction);
+                return this.callSuper(thing, character, interaction);
+            },
+            
+            doInteractionEnter: function(thing, character, interaction) {
+                const destination = thing.getStateByName(STATE_DESTINATION);
+                
+                if (destination) {
+                    character.doMove(
+                        destination, null, 
+                        'teleport-leave', 'teleport-arrive', 
+                        () => {thing.doExpositionBeforeInteraction(character, interaction, true);},
+                        () => {thing.doExpositionAfterInteraction(character, interaction, true);}
+                    );
+                } else {
+                    thing.doExpositionAfterInteraction(character, interaction, false);
+                }
+            },
+            
+            doExpositionBeforeInteraction: function(thing, character, interaction, willSucceed) {
+                if (willSucceed && interaction.id === INTERACTION_ID_ENTER) {
+                    const thingName = thing.getName();
+                    character.sendExposition('You enter the ' + thingName + ' and your essence is torn apart. You are transported through higher dimensions for what seems an eternity. Until finally...', 'narrative');
+                    character.getCell().sendExposition(character.getName() + ' enters the ' + thingName + '.', 'visual', character);
+                    return;
+                }
+                this.callSuper(thing, character, interaction, willSucceed);
+            },
+            
+            doExpositionAfterInteraction: function(thing, character, interaction, succeeded) {
+                if (interaction.id === INTERACTION_ID_ENTER) {
+                    const thingName = thing.getName();
+                    if (succeeded) {
+                        character.sendExposition('You emerge from the ' + thingName + ' somewhere else.', 'narrative');
+                        character.getCell().sendExposition(character.getName() + ' emerges from the ' + thingName + '.', 'visual', character);
+                    } else {
+                        character.sendExposition('You ' + interaction.label + ' the ' + thingName + ' and nothing happens.', 'narrative');
+                    }
+                    return;
+                }
+                this.callSuper(thing, character, interaction, succeeded);
+            }
+        }),
+        
+        ChargeableTeleportTemplate = new JSModule('ChargeableTeleportTemplate', {
+            include:[ChargeableTemplate, TeleportTemplate],
+            
+            doInteractionEnter: function(thing, character, interaction) {
+                let charges = thing.getStateByName(STATE_CHARGES) ?? 0;
+                if (charges > 0) {
+                    thing.setStateByName(STATE_CHARGES, --charges);
+                    this.callSuper(thing, character, interaction);
+                    this.handleDepletion(thing, character, interaction);
+                } else {
+                    thing.doExpositionAfterInteraction(character, interaction, false);
+                }
+            }
+        }),
         
         Thing = new JSClass('Thing', Eventable, {
             // Accessors ///////////////////////////////////////////////////////
@@ -302,175 +564,14 @@
         INTERACTION_ROTATE_COUNTER_CLOCKWISE:INTERACTION_ROTATE_COUNTER_CLOCKWISE,
         INTERACTION_UNLOCK:INTERACTION_UNLOCK,
         
-        TeleportTemplate: new JSModule('TeleportTemplate', {
-            init: function(attrs) {
-                attrs.states ??= [];
-                attrs.states[STATE_DESTINATION] = 'string';
-                
-                this.callSuper(attrs);
-            },
-            
-            // Methods /////////////////////////////////////////////////////////
-            getInteractions: function(thing, character, adjacent) {
-                const retval = this.callSuper(thing, character, adjacent);
-                if (adjacent) {
-                    return retval;
-                } else {
-                    return this.addInteractionToReturnValue(thing, character, INTERACTION_ENTER, retval);
-                }
-            },
-            
-            getLockPropertyForInteraction: function(thing, character, interaction) {
-                if (interaction.id === INTERACTION_ID_ENTER) return 'lockMove';
-                return this.callSuper(thing, character, interaction);
-            },
-            
-            getSoundForInteraction: function(thing, character, interaction) {
-                const sounds = this.callSuper(thing, character, interaction);
-                if (sounds) return sounds;
-                
-                if (interaction.id === INTERACTION_ID_ENTER) return [[1, '*whoosh*', 2]];
-                return null;
-            },
-            
-            doInteraction: function(thing, character, interaction) {
-                if (interaction.id === INTERACTION_ID_ENTER) return this.doInteractionEnter(thing, character, interaction);
-                return this.callSuper(thing, character, interaction);
-            },
-            
-            doInteractionEnter: function(thing, character, interaction) {
-                const destination = thing.getStateByName(STATE_DESTINATION);
-                
-                if (destination) {
-                    character.doMove(
-                        destination, null, 
-                        'teleport-leave', 'teleport-arrive', 
-                        () => {thing.doExpositionBeforeInteraction(character, interaction, true);},
-                        () => {thing.doExpositionAfterInteraction(character, interaction, true);}
-                    );
-                } else {
-                    thing.doExpositionAfterInteraction(character, interaction, false);
-                }
-            },
-            
-            doExpositionBeforeInteraction: function(thing, character, interaction, willSucceed) {
-                if (willSucceed && interaction.id === INTERACTION_ID_ENTER) {
-                    const thingName = thing.getName();
-                    character.sendExposition('You enter the ' + thingName + ' and your essence is torn apart. You are transported through higher dimensions for what seems an eternity. Until finally...', 'narrative');
-                    character.getCell().sendExposition(character.getName() + ' enters the ' + thingName + '.', 'visual', character);
-                    return;
-                }
-                this.callSuper(thing, character, interaction, willSucceed);
-            },
-            
-            doExpositionAfterInteraction: function(thing, character, interaction, succeeded) {
-                if (interaction.id === INTERACTION_ID_ENTER) {
-                    const thingName = thing.getName();
-                    if (succeeded) {
-                        character.sendExposition('You emerge from the ' + thingName + ' somewhere else.', 'narrative');
-                        character.getCell().sendExposition(character.getName() + ' emerges from the ' + thingName + '.', 'visual', character);
-                    } else {
-                        character.sendExposition('You ' + interaction.label + ' the ' + thingName + ' and nothing happens.', 'narrative');
-                    }
-                    return;
-                }
-                this.callSuper(thing, character, interaction, succeeded);
-            }
-        }),
+        ChargeableTemplate:ChargeableTemplate,
+        EatableTemplate:EatableTemplate,
         
-        /** A Thing that an Entity can "eat". */
-        EatableTemplate: new JSModule('EatableTemplate', {
-            // Methods /////////////////////////////////////////////////////////
-            getInteractions: function(thing, character, adjacent) {
-                return this.addInteractionToReturnValue(thing, character, INTERACTION_EAT, this.callSuper(thing, character, adjacent));
-            },
-            getLockPropertyForInteraction: function(thing, character, interaction) {
-                if (interaction.id === INTERACTION_ID_EAT) return 'lockAct';
-                return this.callSuper(thing, character, interaction);
-            },
-            getSoundForInteraction: function(thing, character, interaction) {
-                const sounds = this.callSuper(thing, character, interaction);
-                if (sounds) return sounds;
-                
-                if (interaction.id === INTERACTION_ID_EAT) return [[1.0, '*munch*', 1<<2]];
-                return null;
-            },
-            
-            doInteraction: function(thing, character, interaction) {
-                if (interaction.id === INTERACTION_ID_EAT) return this.doInteractionEat(thing, character, interaction);
-                return this.callSuper(thing, character, interaction);
-            },
-            
-            doExpositionAfterInteraction: function(thing, character, interaction, succeeded) {
-                if (succeeded) {
-                    if (interaction.id === INTERACTION_ID_EAT) {
-                        const thingName = thing.getSimpleName();
-                        character.sendExposition('You ' + interaction.label + ' the ' + thingName + '.', 'narrative');
-                        character.getCell().sendExposition(character.getName() + ' ' + interaction.label  + 's the ' + thingName + '.', 'visual', character);
-                    }
-                }
-                this.callSuper(thing, character, interaction, succeeded);
-            },
-            
-            doInteractionEat: (thing, character, interaction) => {/** Subclasses to implement. */}
-        }),
+        FoodTemplate:FoodTemplate,
+        ChargeableFoodTemplate:ChargeableFoodTemplate,
         
-        /** A Thing that contains zero or more charges. */
-        ChargeableTemplate: new JSModule('ChargeableTemplate', {
-            init: function(attrs) {
-                attrs.states ??= [];
-                attrs.states[STATE_CHARGES] = 'int';
-                
-                this.callSuper(attrs);
-            },
-            
-            setChargeWeight: function(v) {this.set('chargeWeight', v, true);},
-            getChargeWeight: function(thing, character) {return this.chargeWeight;},
-            
-            setChargeVolume: function(v) {this.set('chargeVolume', v, true);},
-            getChargeVolume: function(thing, character) {return this.chargeVolume;},
-            
-            setChargeMax: function(v) {this.set('chargeMax', v, true);},
-            getChargeMax: function(thing, character) {return this.chargeMax;},
-            
-            setDestroyWhenDepleted: function(v) {this.set('destroyWhenDepleted', v, true);},
-            getDestroyWhenDepleted: function(thing, character) {return this.destroyWhenDepleted;},
-            
-            getWeight: function(thing, character) {
-                const baseWeight = this.callSuper(thing, character),
-                    chargeWeight = this.getChargeWeight();
-                if (baseWeight == null && chargeWeight == null) {
-                    return null;
-                } else {
-                    return baseWeight + (thing.getStateByName(STATE_CHARGES) ?? 0) * (chargeWeight ?? 0);
-                }
-            },
-            
-            getVolume: function(thing, character) {
-                return this.callSuper(thing, character) + 
-                    (thing.getStateByName(STATE_CHARGES) ?? 0) * this.getChargeVolume();
-            },
-            
-            describe: function(thing, character) {
-                const charges = thing.getStateByName(STATE_CHARGES) ?? 0;
-                return this.callSuper(thing, character) + ' (' + charges + ' ' + pluralize(charges, 'charge') + ')';
-            },
-            
-            handleDepletion: function(thing, character, interaction) {
-                const charges = thing.getStateByName(STATE_CHARGES) ?? 0;
-                if (charges === 0 && this.getDestroyWhenDepleted()) {
-                    const id = thing.getId();
-                    if (thing.isA(pkg.item.Item)) {
-                        // Item case
-                        thing.getInventory().removeItemById(id);
-                    } else if (thing.isA(pkg.fixture.CommonFixtureModel)) {
-                        // Fixture case
-                        thing.getThingContainer().removeFixtureById(id);
-                    }
-                    thing.destroy();
-                }
-            }
-        }),
+        TeleportTemplate:TeleportTemplate,
+        ChargeableTeleportTemplate:ChargeableTeleportTemplate,
         
         material:MATERIALS
     };
