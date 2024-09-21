@@ -111,14 +111,15 @@
         
         destroyThing = thing => {
             const id = thing.getId();
+            let removedThing;
             if (thing.isA(pkg.item.Item)) {
                 // Item case
-                thing.getInventory().removeItemById(id);
+                removedThing = thing.getInventory().removeItemById(id);
             } else if (thing.isA(pkg.fixture.CommonFixtureModel)) {
                 // Fixture case
-                thing.getThingContainer().removeFixtureById(id);
+                removedThing = thing.getThingContainer().removeFixtureById(id);
             }
-            thing.destroy();
+            removedThing?.destroy();
         },
         
         ThingTemplate = new JSClass('ThingTemplate', Eventable, {

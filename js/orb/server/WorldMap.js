@@ -34,10 +34,14 @@ const orb = global.orb,
     
     cells = {},
     
+    notifyForVisualChange = modelObj => {
+        if (isReady && modelObj.inited) modelObj.getCell()?.notifyAllVisualChangeListenersThatCellChanged();
+    },
+    
     FixtureModel = new JSClass('FixtureModel', CommonFixtureModel, {
         setStateByName: function(stateName, value) {
             this.callSuper(stateName, value);
-            if (this.inited) this.getCell()?.notifyAllVisualChangeListenersThatCellChanged();
+            notifyForVisualChange(this);
         },
         
         updateFromData: function(datum) {
@@ -49,7 +53,15 @@ const orb = global.orb,
     FaceModel = new JSClass('FaceModel', CommonFaceModel, {
         setC: function(v) {
             this.callSuper(v);
-            if (this.inited) this.getCell()?.notifyAllVisualChangeListenersThatCellChanged();
+            notifyForVisualChange(this);
+        },
+        
+        // Fixtures //
+        notifyForAddFixture: function(fixture) {
+            notifyForVisualChange(this);
+        },
+        notifyForRemoveFixture: function(fixture) {
+            notifyForVisualChange(this);
         }
     }),
     
@@ -112,39 +124,47 @@ const orb = global.orb,
         
         setC: function(v) {
             this.callSuper(v);
-            if (this.inited) this.notifyAllVisualChangeListenersThatCellChanged();
+            notifyForVisualChange(this);
         },
         
         setN: function(v) {
             this.callSuper(v);
-            if (this.inited) this.notifyAllVisualChangeListenersThatCellChanged();
+            notifyForVisualChange(this);
         },
         setS: function(v) {
             this.callSuper(v);
-            if (this.inited) this.notifyAllVisualChangeListenersThatCellChanged();
+            notifyForVisualChange(this);
         },
         setE: function(v) {
             this.callSuper(v);
-            if (this.inited) this.notifyAllVisualChangeListenersThatCellChanged();
+            notifyForVisualChange(this);
         },
         setW: function(v) {
             this.callSuper(v);
-            if (this.inited) this.notifyAllVisualChangeListenersThatCellChanged();
+            notifyForVisualChange(this);
         },
         setT: function(v) {
             this.callSuper(v);
-            if (this.inited) this.notifyAllVisualChangeListenersThatCellChanged();
+            notifyForVisualChange(this);
         },
         setB: function(v) {
             this.callSuper(v);
-            if (this.inited) this.notifyAllVisualChangeListenersThatCellChanged();
+            notifyForVisualChange(this);
+        },
+        
+        // Fixtures //
+        notifyForAddFixture: function(fixture) {
+            notifyForVisualChange(this);
+        },
+        notifyForRemoveFixture: function(fixture) {
+            notifyForVisualChange(this);
         },
         
         // Entities //
         getEntitiesMap: function() {return this.entities ??= new Map();},
         addEntity: function(entity) {
             this.getEntitiesMap().set(entity.getId(), entity);
-            if (this.inited) this.notifyAllVisualChangeListenersThatCellChanged();
+            notifyForVisualChange(this);
         },
         removeEntity: function(entity) {return this.removeEntityById(entity.getId());},
         removeEntityById: function(entityId) {
@@ -152,7 +172,7 @@ const orb = global.orb,
                 removedEntity = entities.get(entityId);
             if (removedEntity) {
                 entities.delete(entityId);
-                if (this.inited) this.notifyAllVisualChangeListenersThatCellChanged();
+                notifyForVisualChange(this);
                 return removedEntity;
             }
         },
@@ -194,21 +214,17 @@ const orb = global.orb,
         removeAuditoryChangeListener: function(character) {this.getAuditoryChangeListeners().delete(character);},
         
         notifyAllVisualChangeListenersThatCellChanged: function() {
-            if (isReady) {
-                const self = this,
-                    locId = self.locId;
-                for (const character of self.getVisualChangeListeners()) {
-                    sendCellDataMsgToCharacter(character, {[locId]:self.getAsData({character:character})});
-                }
+            const self = this,
+                locId = self.locId;
+            for (const character of self.getVisualChangeListeners()) {
+                sendCellDataMsgToCharacter(character, {[locId]:self.getAsData({character:character})});
             }
         },
         /*notifyAllAuditoryChangeListenersThatCellChanged: function() {
-            if (isReady) {
-                const self = this,
-                    locId = self.locId;
-                for (const character of self.getAuditoryChangeListeners()) {
-                    sendCellDataMsgToCharacter(character, {[locId]:self.getAsData({character:character})});
-                }
+            const self = this,
+                locId = self.locId;
+            for (const character of self.getAuditoryChangeListeners()) {
+                sendCellDataMsgToCharacter(character, {[locId]:self.getAsData({character:character})});
             }
         },*/
         

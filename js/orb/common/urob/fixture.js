@@ -51,6 +51,12 @@
         
         getWorldMap = () => worldMap ??= require('../../server/WorldMap.js'),
         
+        broadcastSound = (thing, character, interaction) => {
+            const worldMap = getWorldMap(),
+                {volume, sound} = worldMap.selectSoundRandomly(thing.getSoundForInteraction(character, interaction));
+            if (sound) worldMap.broadcastSound(thing, 'fixture', sound, volume);
+        },
+        
         IMAGE_PREFIX = '/img/fixture/',
         
         fixtures = new Map(),
@@ -126,6 +132,7 @@
                             const fixtureName = fixture.getSimpleName();
                             character.sendExposition('You ' + interaction.label + ' the ' + fixtureName + '.', 'narrative');
                             character.getCell().sendExposition(character.getName() + ' ' + interaction.label + 'ed the ' + fixtureName + '.', 'visual', character);
+                            broadcastSound(fixture, character, interaction);
                             return;
                     }
                 }
@@ -138,6 +145,7 @@
                             const fixtureName = fixture.getSimpleName();
                             character.sendExposition('You ' + interaction.label + ' the ' + fixtureName + '.', 'narrative');
                             character.getCell().sendExposition(character.getName() + ' ' + interaction.label + 'ed the ' + fixtureName + '.', 'visual', character);
+                            broadcastSound(fixture, character, interaction);
                             return;
                     }
                 }
@@ -190,6 +198,7 @@
                             const fixtureName = fixture.getSimpleName();
                             character.sendExposition('You ' + interaction.label + ' the ' + fixtureName + '.', 'narrative');
                             character.getCell().sendExposition(character.getName() + ' ' + interaction.label + 'ed the ' + fixtureName + '.', 'visual', character);
+                            broadcastSound(fixture, character, interaction);
                             return;
                     }
                 }
@@ -250,6 +259,7 @@
                         const fixtureName = fixture.getSimpleName();
                         character.sendExposition('You rotate the ' + fixtureName + ' ' + directionTxt + '.', 'narrative');
                         character.getCell().sendExposition(character.getName() + ' rotates the ' + fixtureName + ' ' + directionTxt + '.', 'visual', character);
+                        broadcastSound(fixture, character, interaction);
                     };
                     switch (interaction.id) {
                         case INTERACTION_ID_ROTATE_CLOCKWISE: expositionFunc('clockwise'); return;
@@ -400,6 +410,7 @@
                             const fixtureName = fixture.getSimpleName();
                             character.sendExposition('You ' + interaction.label + ' the ' + fixtureName + '.', 'narrative');
                             character.getCell().sendExposition(character.getName() + ' ' + interaction.label + 's the ' + fixtureName + '.', 'visual', character);
+                            broadcastSound(fixture, character, interaction);
                             return;
                     }
                 }
@@ -413,6 +424,7 @@
                         case INTERACTION_ID_DESCEND:
                             const fixtureName = fixture.getSimpleName();
                             character.getCell().sendExposition(character.getName() + ' comes ' + (interaction.id === INTERACTION_ID_ASCEND ? 'up' : 'down') + ' the ' + fixtureName + '.', 'visual', character);
+                            broadcastSound(fixture, character, interaction);
                             return;
                     }
                 }
@@ -543,16 +555,7 @@
             
             // Methods /////////////////////////////////////////////////////////
             doInteraction: function(character, interaction) {
-                const failureMsg = this.getTemplateObject().doInteraction(this, character, interaction);
-                
-                // Make sound if successful
-                if (!failureMsg && !this.destroyed) {
-                    const worldMap = getWorldMap(),
-                        {volume, sound} = worldMap.selectSoundRandomly(this.getSoundForInteraction(character, interaction));
-                    if (sound) worldMap.broadcastSound(this, 'fixture', sound, volume);
-                }
-                
-                return failureMsg;
+                return this.getTemplateObject().doInteraction(this, character, interaction);
             },
             
             affectValue: function(attrName, value) {

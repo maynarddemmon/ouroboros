@@ -57,6 +57,7 @@
             getFixturesMap: function() {return this.fixtures ??= new Map();},
             addFixture: function(fixture) {
                 this.getFixturesMap().set(fixture.getId(), fixture);
+                this.notifyForAddFixture(fixture);
             },
             removeFixture: function(fixture) {return this.removeFixtureById(fixture.getId());},
             removeFixtureById: function(fixtureId) {
@@ -64,9 +65,13 @@
                     removedFixture = fixtures.get(fixtureId);
                 if (removedFixture) {
                     fixtures.delete(fixtureId);
+                    this.notifyForRemoveFixture(removedFixture);
                     return removedFixture;
                 }
             },
+            
+            notifyForAddFixture: fixture => {/* Subclasses to implement as needed. */},
+            notifyForRemoveFixture: fixture => {/* Subclasses to implement as needed. */},
             
             getFixtureInteractions: function(character, adjacent) {
                 let retval;
@@ -98,13 +103,24 @@
             
             updateFromData: function(datum) {
                 this.callSuper?.(datum);
-                const fixturesData = datum.fix;
+                const fixturesData = datum.fix,
+                    addedFixtureIds = new Set();
                 if (fixturesData != null) {
                     for (const fixtureDatum of fixturesData) {
                         fixtureDatum.thingContainer = this;
                         this.addFixture((new CommonCellModel.FIXTURE_MODEL_CLASS()).updateFromData(fixtureDatum));
+                        addedFixtureIds.add(fixtureDatum.id);
                     }
                 }
+                
+                // Handle removals
+                const fixtures = this.fixtures;
+                if (fixtures?.size > 0) {
+                    for (const fixtureId of fixtures.keys()) {
+                        if (!addedFixtureIds.has(fixtureId)) this.removeFixtureById(fixtureId);
+                    }
+                }
+                
                 return this;
             }
         }),
