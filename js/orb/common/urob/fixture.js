@@ -17,6 +17,7 @@
             facing:{NORTH, SOUTH, EAST, WEST},
             thing:{
                 ThingTemplate, Thing, TeleportTemplate, ChargeableFoodTemplate,
+                ChargeRecoveryTemplate,
                 STATE_OPEN, STATE_LOCKED, STATE_FACING, STATE_STAIR_DIRECTION,
                 
                 INTERACTION_ID_ASCEND,
@@ -79,7 +80,9 @@
             affectValue: (fixture, attrName, value) => value,
             
             // Client Only
-            getUrl: (fixture, character) => IMAGE_PREFIX + 'box.png'
+            getUrl: function(fixture, character) {
+                return IMAGE_PREFIX + this.getSimpleName() + '.png';
+            }
         }),
         
         OpenableFixture = new JSModule('OpenableFixture', {
@@ -292,9 +295,7 @@
                     [0.9, '*scraping*', 1<<4],  // 30% chance
                     [1.0, '*scratching*', 1<<2] // 10% chance
                 ];
-            },
-            
-            getUrl: (fixture, character) => IMAGE_PREFIX + 'statue.png'
+            }
         }),
         
         DoorFixtureTemplate = new JSClass('DoorFixtureTemplate', FixtureTemplate, {
@@ -337,9 +338,7 @@
         }),
         
         PortalFixtureTemplate = new JSClass('PortalFixtureTemplate', FixtureTemplate, {
-            include:[TeleportTemplate],
-            
-            getUrl: (fixture, character) => IMAGE_PREFIX + 'portal.png'
+            include:[TeleportTemplate]
         }),
         
         ChargeableFoodFixtureTemplate = new JSClass('ChargeableFoodFixtureTemplate', FixtureTemplate, {
@@ -467,16 +466,24 @@
             
             puddle_1:new ChargeableFoodFixtureTemplate({
                 name:'puddle', destroyWhenDepleted:true, material:'water',
-                volume:0, chargeVolume:10, maxCharges:9000, sustenance:5,
+                volume:0, chargeVolume:10, chargeMax:9000, sustenance:5,
                 interactionLabels:{eat:'drink'},
                 soundsByInteractionId:{eat:[[1.0, '*slurp*', 1<<2]]}
             }),
             fountain_1:new ChargeableFoodFixtureTemplate({
-                name:'fountain', destroyWhenDepleted:false, material:'stone',
-                volume:100000, chargeVolume:10, maxCharges:18000, sustenance:5,
+                name:'fountain', destroyWhenDepleted:false, material:'limestone',
+                volume:100000, chargeVolume:10, chargeMax:18000, sustenance:5,
+                interactionLabels:{eat:'drink'},
+                soundsByInteractionId:{eat:[[1.0, '*slurp*', 1<<2]]},
+                recoveryAmount:1, updateQueueIdx:0
+            }, [ChargeRecoveryTemplate]),
+            fountain_2:new ChargeableFoodFixtureTemplate({
+                name:'fountain', destroyWhenDepleted:false, material:'granite',
+                volume:100000, chargeVolume:10, chargeMax:18000, sustenance:5,
                 interactionLabels:{eat:'drink'},
                 soundsByInteractionId:{eat:[[1.0, '*slurp*', 1<<2]]}
             }),
+            
             
             // Stairs
             stair_1:new StairFixtureTemplate({name:'spiral stairs'}),
@@ -492,7 +499,7 @@
                 }
             }]),
             
-            crate_1:new FixtureTemplate({name:'wooden crate'}),
+            crate_1:new FixtureTemplate({name:'box', material:'pine'}),
         },
         
         getTemplate = fixtureTemplateId => templates[fixtureTemplateId],

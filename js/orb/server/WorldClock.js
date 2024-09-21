@@ -8,7 +8,10 @@ const orb = global.orb,
     worldEventHandler = require('./WorldEventHandler.js'),
     {drainOutgoingMessages} = require('./AccountService.js'),
     
-    {greek:{ATTR_TIME}} = global.urob,
+    {
+        greek:{ATTR_TIME},
+        time:{WORLD_TIME_COUNTS}
+    } = global.urob,
     
     FILENAME_WORLD_CLOCK = 'world_clock',
     
@@ -16,6 +19,12 @@ const orb = global.orb,
     HP_RECOVERY_FREQ = 293,
     MAGOS_RECOVERY_FREQ = 59,
     PSYCHE_RECOVERY_FREQ = 109,
+    
+    TIME_COUNT_0 = WORLD_TIME_COUNTS[0],
+    TIME_COUNT_1 = TIME_COUNT_0 * WORLD_TIME_COUNTS[1],
+    TIME_COUNT_2 = TIME_COUNT_1 * WORLD_TIME_COUNTS[2],
+    TIME_COUNT_3 = TIME_COUNT_2 * WORLD_TIME_COUNTS[3],
+    TIME_COUNT_4 = TIME_COUNT_3 * WORLD_TIME_COUNTS[4],
     
     NOW = -1, // Constant indicating the "now" queue.
     NEXT = -2, // Constant indicating the "next" queue.
@@ -28,6 +37,8 @@ const orb = global.orb,
         magos:new Set(),
         psyche:new Set()
     },
+    
+    periodicQueues = [new Set(), new Set(), new Set(), new Set(), new Set()],
     
     getTickTime = when => {
         let tickTime;
@@ -93,6 +104,23 @@ const orb = global.orb,
         if (now % PSYCHE_RECOVERY_FREQ === 0) processRecQueue('psyche');
         if (now % HP_RECOVERY_FREQ === 0) processRecQueue('hp');
         
+        // Handle Periodic Queues
+        if (now % TIME_COUNT_0 === 0) {
+            processPeriodicQueue(0, now);
+            if (now % TIME_COUNT_1 === 0) {
+                processPeriodicQueue(1, now);
+                if (now % TIME_COUNT_2 === 0) {
+                    processPeriodicQueue(2, now);
+                    if (now % TIME_COUNT_3 === 0) {
+                        processPeriodicQueue(3, now);
+                        if (now % TIME_COUNT_4 === 0) {
+                            processPeriodicQueue(4, now);
+                        }
+                    }
+                }
+            }
+        }
+        
         // Send outgoing messages
         drainOutgoingMessages(now);
         
@@ -107,6 +135,14 @@ const orb = global.orb,
         console.log('  process recovery queue:', statNameForRecovery, queue.size); // DEBUG
         for (const entity of queue) {
             if (entity.doStatRecovery(statNameForRecovery)) queue.delete(entity);
+        }
+    },
+    
+    processPeriodicQueue = (queueIdx, now) => {
+        const queue = periodicQueues[queueIdx];
+        console.log('  process queue:', queueIdx, queue.size); // DEBUG
+        for (const thing of queue) {
+            if (thing.notifyPeriodically(queueIdx, now)) queue.delete(thing);
         }
     },
     
@@ -168,5 +204,13 @@ module.exports = {
     },
     removeFromRecQueue: (entity, statName) => {
         recQueues[statName]?.delete(entity);
+    },
+    
+    // Periodic Queues
+    addToPeriodicQueue: (queueId, thing) => {
+        periodicQueues[queueId]?.add(thing);
+    },
+    removeFromPeriodicQueue: (queueId, thing) => {
+        periodicQueues[queueId]?.delete(thing);
     },
 };

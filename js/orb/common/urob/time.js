@@ -1,10 +1,16 @@
 (pkg => {
-    const WORLD_TIME_COUNTS = [
-            100, // Spoke
-            36,  // Wheel
-            24,  // Wolchen
-            6,   // Season
-            8    // Year
+    const 
+        COUNT_SPOKE = 100,
+        COUNT_WHEEL = 36,
+        COUNT_WOLCHEN = 24,
+        COUNT_SEASON = 6,
+        COUNT_YEAR = 8,
+        WORLD_TIME_COUNTS = [
+            COUNT_SPOKE,
+            COUNT_WHEEL,
+            COUNT_WOLCHEN,
+            COUNT_SEASON,
+            COUNT_YEAR
             // Age
         ],
         
@@ -31,6 +37,14 @@
         };
     
     pkg.time = {
+        COUNT_SPOKE:COUNT_SPOKE,
+        COUNT_WHEEL:COUNT_WHEEL,
+        COUNT_WOLCHEN:COUNT_WOLCHEN,
+        COUNT_SEASON:COUNT_SEASON,
+        COUNT_YEAR:COUNT_YEAR,
+        
+        WORLD_TIME_COUNTS:WORLD_TIME_COUNTS,
+        
         worldTimeToParts: (time, format) => {
             const parts = [];
             if (time == null) return format ? '' : parts;

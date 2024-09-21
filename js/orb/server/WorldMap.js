@@ -40,8 +40,9 @@ const orb = global.orb,
     
     FixtureModel = new JSClass('FixtureModel', CommonFixtureModel, {
         setStateByName: function(stateName, value) {
-            this.callSuper(stateName, value);
-            notifyForVisualChange(this);
+            const changed = this.callSuper(stateName, value);
+            if (changed) notifyForVisualChange(this);
+            return changed;
         },
         
         updateFromData: function(datum) {

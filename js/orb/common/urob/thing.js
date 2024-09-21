@@ -1,6 +1,8 @@
 (pkg => {
-    let tym, JS, worldMap;
-    if (typeof module === 'object' && module.exports) {
+    const IS_NODEJS = typeof module === 'object' && module.exports;
+    
+    let tym, JS, worldMap, worldClock;
+    if (IS_NODEJS) {
         const imported = require('../../../../lib/tym.js');
         JS = imported.JS;
         tym = imported.tym;
@@ -13,6 +15,7 @@
         {Module:JSModule, Class:JSClass} = JS,
         
         getWorldMap = () => worldMap ??= require('../../server/WorldMap.js'),
+        getWorldClock = () => worldClock ??= require('../../server/WorldClock.js'),
         
         {
             pluralize, getPhraseWithArticle
@@ -140,6 +143,9 @@
             setMaterial: function(v) {this.set('material', v, true);},
             getMaterial: function(thing, character) {return this.material;},
             
+            setUpdateQueueIdx: function(v) {this.set('updateQueueIdx', v, true);},
+            getUpdateQueueIdx: function(thing, character) {return this.updateQueueIdx;},
+            
             setInteractionLabels: function(v) {this.set('interactionLabels', v, true);},
             getInteractionLabels: function(thing, character) {return this.interactionLabels;},
             
@@ -148,6 +154,8 @@
             
             
             // Methods /////////////////////////////////////////////////////////
+            notifyPeriodically: (thing, queueIdx, now) => {/** Subclasses to implement as needed. */},
+            
             describe: function(thing, character, isAppend) {
                 return isAppend ? thing.getName(character) : getPhraseWithArticle(thing.getName(character));
             },
@@ -199,7 +207,7 @@
             getChargeVolume: function(thing, character) {return this.chargeVolume;},
             
             setChargeMax: function(v) {this.set('chargeMax', v, true);},
-            getChargeMax: function(thing, character) {return this.chargeMax;},
+            getChargeMax: function(thing) {return this.chargeMax;},
             
             setDestroyWhenDepleted: function(v) {this.set('destroyWhenDepleted', v, true);},
             getDestroyWhenDepleted: function(thing, character) {return this.destroyWhenDepleted;},
@@ -227,6 +235,18 @@
             handleDepletion: function(thing, character, interaction) {
                 const charges = thing.getStateByName(STATE_CHARGES) ?? 0;
                 if (charges === 0 && this.getDestroyWhenDepleted()) destroyThing(thing);
+            }
+        }),
+        
+        ChargeRecoveryTemplate = new JSModule('ChargeRecoveryTemplate', {
+            setRecoveryAmount: function(v) {this.set('recoveryAmount', v, true);},
+            getRecoveryAmount: function(thing) {return this.recoveryAmount;},
+            
+            notifyPeriodically: function(thing, queueIdx, now) {
+                const charges = thing.getStateByName(STATE_CHARGES),
+                    chargeMax = this.getChargeMax() ?? Number.MAX_SAFE_INTEGER,
+                    recoveryAmount = this.getRecoveryAmount(this);
+                thing.setStateByName(STATE_CHARGES, Math.max(0, Math.min(charges + recoveryAmount, chargeMax)));
             }
         }),
         
@@ -457,12 +477,29 @@
             },
             getMaterialObject: function() {return MATERIALS[this.getMaterial()];},
             
+            setUpdateQueueIdx: function(v) {
+                this.set('u', v, true);
+                this.reregisterForPeriodicUpdates();
+            },
+            getUpdateQueueIdx: function(character) {
+                return this.u != null ? this.u : this.getTemplateObject().getUpdateQueueIdx(this, character);
+            },
+            
             setTemplate: function(v) {this.set('t', v, true);},
             getTemplate: function() {return this.t;},
             getTemplateObject: () => {/** Subclasses must implement. */},
             
             getStateObject: function() {return this.state ??= {};},
-            setStateByName: function(stateName, value) {this.getStateObject()[stateName] = value;},
+            setStateByName: function(stateName, value) {
+                const stateObj = this.getStateObject(),
+                    curValue = stateObj[stateName];
+                if (value === curValue) {
+                    return false;
+                } else {
+                    stateObj[stateName] = value;
+                    return true;
+                }
+            },
             getStateByName: function(stateName) {return this.getStateObject()[stateName];},
             
             getCell: () => {/** Subclasses must implement. */},
@@ -494,6 +531,29 @@
             },
             
             
+            // Periodic Events
+            notifyPeriodically: function(queueIdx, now) {
+                return this.getTemplateObject().notifyPeriodically(this, queueIdx, now);
+            },
+            reregisterForPeriodicUpdates: function() {
+                if (!IS_NODEJS) return;
+                
+                const existingQueueIdx = this._PQI,
+                    newQueueIdx = this.getUpdateQueueIdx();
+                if (existingQueueIdx) this.stopNotifyPeriodically(existingQueueIdx);
+                if (newQueueIdx >= 0) {
+                    this._PQI = newQueueIdx;
+                    this.startNotifyPeriodically(newQueueIdx);
+                }
+            },
+            startNotifyPeriodically: function(queueIdx) {
+                if (IS_NODEJS) getWorldClock().addToPeriodicQueue(queueIdx, this);
+            },
+            stopNotifyPeriodically: function(queueIdx) {
+                if (IS_NODEJS) getWorldClock().removeFromPeriodicQueue(queueIdx, this);
+            },
+            
+            
             // Persistence and Serialization ///////////////////////////////////
             getAsData: function(cfg) {
                 const retval = {
@@ -504,7 +564,7 @@
                 if (this.state != null) retval.state = this.state;
                 
                 // Serialize overridden attributes.
-                for (const attrName of ['n','w','v','m']) {
+                for (const attrName of ['n','w','v','m','u']) {
                     if (this[attrName] != null) retval[attrName] = this[attrName];
                 }
                 
@@ -521,6 +581,11 @@
                 if (datum.w != null) this.setWeight(datum.w);
                 if (datum.v != null) this.setVolume(datum.v);
                 if (datum.m != null) this.setMaterial(datum.m);
+                if (datum.u != null) {
+                    this.setUpdateQueueIdx(datum.u);
+                } else {
+                    this.reregisterForPeriodicUpdates();
+                }
                 
                 return this;
             }
@@ -566,6 +631,7 @@
         INTERACTION_UNLOCK:INTERACTION_UNLOCK,
         
         ChargeableTemplate:ChargeableTemplate,
+        ChargeRecoveryTemplate:ChargeRecoveryTemplate,
         EatableTemplate:EatableTemplate,
         
         FoodTemplate:FoodTemplate,

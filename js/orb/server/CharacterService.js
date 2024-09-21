@@ -103,8 +103,9 @@ const orb = global.orb,
         },
         
         setStateByName: function(stateName, value) {
-            this.callSuper(stateName, value);
-            if (this.inited) this.getInventory().notifyForUpdate(this);
+            const changed = this.callSuper(stateName, value);
+            if (changed && this.inited) this.getInventory().notifyForUpdate(this);
+            return changed;
         }
     }),
     
