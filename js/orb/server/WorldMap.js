@@ -15,8 +15,7 @@ const orb = global.orb,
         fixture:{CommonFixtureModel},
         greek:{TYPE_CELL_DATA, TYPE_SOUND, TYPE_EXPOSITION, TYPE_ALTER_INVENTORY},
         map:{makeMapsFromData, getMapById, getAsData:getMapsAsData},
-        cell:{CommonFaceModel, CommonCellModel},
-        inventory:{Inventory}
+        cell:{CommonFaceModel, CommonCellModel}
     } = global.urob,
     
     {addMessageToUser} = require('./AccountService.js'),
@@ -66,10 +65,9 @@ const orb = global.orb,
         }
     }),
     
-    notifyForInventoryAction = (inventory, item, action) => {
+    notifyForInventoryAction = (cell, item, action) => {
         if (isReady) {
-            const cell = inventory.getCell(),
-                cellId = cell.getId();
+            const cellId = cell.getId();
             for (const character of cell.getVisualChangeListeners()) {
                 sendMsgToCharacter(character, TYPE_ALTER_INVENTORY, {
                     inventoryType:'cell',
@@ -81,7 +79,7 @@ const orb = global.orb,
         }
     },
     
-    InventoryModel = new JSClass('InventoryModel', Inventory, {
+    CellModel = new JSClass('CellModel', CommonCellModel, {
         init: function(attrs) {
             // All CellModels will have the same configuration for inventory
             attrs.maxCapacity = 1000;
@@ -91,35 +89,7 @@ const orb = global.orb,
             this.callSuper(attrs);
         },
         
-        notifyForAddItem: function(item) {notifyForInventoryAction(this, item, 'add');},
-        notifyForUpdateItem: function(item) {notifyForInventoryAction(this, item, 'update');},
-        notifyForRemoveItem: function(item) {notifyForInventoryAction(this, item, 'remove');},
         
-        getAsData: function(cfg) {
-            const retval = this.callSuper(cfg);
-            
-            // All CellModels will have the same configuration for inventory so don't write the
-            // details if we're saving to disk.
-            if (cfg?.isSave) {
-                delete retval.mc;
-                delete retval.mw;
-                delete retval.mv;
-            }
-            
-            return retval;
-        },
-        
-        updateFromData: function(datum) {
-            // Don't change the values hard-coded in the init function.
-            datum.mc = this.maxCapacity;
-            datum.mw = this.maxWeight;
-            datum.mv = this.maxVolume;
-            
-            this.callSuper(datum);
-        }
-    }),
-    
-    CellModel = new JSClass('CellModel', CommonCellModel, {
         // Accessors ///////////////////////////////////////////////////////////
         getAnotherCell: locId => getCell(locId),
         
@@ -152,6 +122,11 @@ const orb = global.orb,
             this.callSuper(v);
             notifyForVisualChange(this);
         },
+        
+        // Inventory //
+        notifyForAddItem: function(item) {notifyForInventoryAction(this, item, 'add');},
+        notifyForUpdateItem: function(item) {notifyForInventoryAction(this, item, 'update');},
+        notifyForRemoveItem: function(item) {notifyForInventoryAction(this, item, 'remove');},
         
         // Fixtures //
         notifyForAddFixture: function(fixture) {
@@ -256,14 +231,30 @@ const orb = global.orb,
             const retval = this.callSuper?.(cfg) ?? {};
             
             // Don't save empty inventories to disk under any circumstances.
-            if (
-                cfg?.isSave && retval.inv &&
-                (!retval.inv.it || retval.inv.it.length === 0)
-            ) {
-                delete retval.inv;
+            const inv = retval.inv;
+            if (cfg?.isSave && inv) {
+                if (!inv.it || inv.it.length === 0) {
+                    delete retval.inv;
+                } else {
+                    // All CellModels will have the same configuration for inventory so don't 
+                    // write the details if we're saving to disk.
+                    delete inv.mc;
+                    delete inv.mw;
+                    delete inv.mv;
+                }
             }
             
             return retval;
+        },
+        
+        updateFromData: function(datum) {
+            // Don't change the values hard-coded in the init function.
+            const invDatum = datum.inv ?? {};
+            invDatum.mc = this.maxCapacity;
+            invDatum.mw = this.maxWeight;
+            invDatum.mv = this.maxVolume;
+            
+            return this.callSuper(datum);
         }
     }),
     
@@ -557,5 +548,4 @@ const orb = global.orb,
     };
 
 CommonCellModel.FACE_MODEL_CLASS = FaceModel;
-CommonCellModel.INVENTORY_MODEL_CLASS = InventoryModel;
 CommonCellModel.FIXTURE_MODEL_CLASS = FixtureModel;

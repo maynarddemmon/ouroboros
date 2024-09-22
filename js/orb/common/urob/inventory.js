@@ -17,7 +17,7 @@
         ERR_MAX_WEIGHT_EXCEEDED = -2,
         ERR_MAX_VOLUME_EXCEEDED = -3,
         
-        Inventory = new JSClass('Inventory', Eventable, {
+        Inventory = new JSModule('Inventory', {
             extend: {
                 ITEM_MODEL_CLASS:null
             },
@@ -32,12 +32,6 @@
             
             
             // Accessors ///////////////////////////////////////////////////////
-            getCell: function() {return this.getOwner().getCell();},
-            
-            setOwner: function(v) {this._owner = v;},
-            getOwner: function() {return this._owner;},
-            isOwner: function(ownerToTest) {return ownerToTest?.getId() === this._owner?.getId()},
-            
             // The maximum number of items the inventory can contain.
             setMaxCapacity: function(v) {this.set('maxCapacity', v, true);},
             getMaxCapacity: function(fixture, character) {return this.maxCapacity;},
@@ -132,7 +126,9 @@
             
             // Persistence and Serialization ///////////////////////////////////
             getAsData: function(cfg) {
-                const retval = {
+                const retval = this.callSuper?.(cfg) ?? {};
+                
+                const inv = retval.inv = {
                     mc:this.maxCapacity,
                     mw:this.maxWeight,
                     mv:this.maxVolume
@@ -146,28 +142,33 @@
                         itemsData.push(items[itemId].getAsData(cfg));
                     }
                 }
-                if (itemsData) retval.it = itemsData;
+                if (itemsData) inv.it = itemsData;
+                
                 return retval;
             },
             
             updateFromData: function(datum) {
-                this._loading = true;
+                this.callSuper?.(datum);
                 
-                this.setMaxCapacity(datum.mc ?? 0);
-                this.setMaxVolume(datum.mv ?? 0);
-                this.setMaxWeight(datum.mw ?? 0);
                 
-                const itemData = datum.it;
+                this._loadingInventory = true;
+                
+                const invDatum = datum.inv ?? {};
+                this.setMaxCapacity(invDatum.mc ?? 0);
+                this.setMaxVolume(invDatum.mv ?? 0);
+                this.setMaxWeight(invDatum.mw ?? 0);
+                
+                const itemData = invDatum.it;
                 if (itemData) {
                     for (const itemDatum of itemData) {
                         this.addItem(this.makeItemFromData(itemDatum));
                     }
                 }
                 
-                this._loading = false;
+                this._loadingInventory = false;
             },
             
-            isNotLoadingInventory: function() {return this._loading !== true;}
+            isNotLoadingInventory: function() {return this._loadingInventory !== true;}
         });
     
     pkg.inventory = {
@@ -175,43 +176,6 @@
         ERR_MAX_CAPACITY_EXCEEDED:ERR_MAX_CAPACITY_EXCEEDED,
         ERR_MAX_WEIGHT_EXCEEDED:ERR_MAX_WEIGHT_EXCEEDED,
         ERR_MAX_VOLUME_EXCEEDED:ERR_MAX_VOLUME_EXCEEDED,
-        
-        InventoryContainer: new JSModule('InventoryContainer', {
-            getInventoryClass: () => Inventory,
-            getInventory: function() {
-                return this._inventory ??= new (this.getInventoryClass())({owner:this});
-            },
-            
-            
-            // Inventory Wrapper Functions
-            addItem: function(item) {return this.getInventory().addItem(item);},
-            updateItem: function(itemDatum) {return this.getInventory().updateItem(itemDatum);},
-            getItem: function(itemId) {return this.getInventory().getItem(itemId);},
-            getAllItems: function() {return this.getInventory().getAllItems();},
-            removeItemById: function(itemId) {return this.getInventory().removeItemById(itemId);},
-            makeItemFromData: function(itemDatum) {return this.getInventory().makeItemFromData(itemDatum);},
-            
-            getMaxCapacity: function() {return this.getInventory().getMaxCapacity();},
-            getMaxWeight: function() {return this.getInventory().getMaxWeight();},
-            getMaxVolume: function() {return this.getInventory().getMaxVolume();},
-            getTotalCapacity: function() {return this.getInventory().getTotalCapacity();},
-            getTotalWeight: function() {return this.getInventory().getTotalWeight();},
-            getTotalVolume: function() {return this.getInventory().getTotalVolume();},
-            
-            // Persistence and Serialization ///////////////////////////////////
-            getAsData: function(cfg) {
-                const retval = this.callSuper?.(cfg) ?? {},
-                    inventory = this._inventory;
-                if (inventory) retval.inv = inventory.getAsData(cfg);
-                return retval;
-            },
-            
-            updateFromData: function(datum) {
-                this.callSuper?.(datum);
-                const inventoryData = datum.inv;
-                if (inventoryData) this.getInventory().updateFromData(inventoryData);
-            }
-        }),
         
         Inventory:Inventory
     };

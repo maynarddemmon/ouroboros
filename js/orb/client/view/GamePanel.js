@@ -102,11 +102,10 @@
         
         doXLink = (type, targetObj, interaction) => {
             if (targetObj) {
-                const targetId = targetObj.getId(),
-                    interactionId = interaction.id;
+                const targetId = targetObj.getId();
                 let doXFuncName,
                     cooldownName;
-                switch (targetObj.getLockPropertyForInteraction(character, interactionId)) {
+                switch (targetObj.getLockPropertyForInteraction(character, interaction)) {
                     case 'lockAct':
                         doXFuncName = 'doAction';
                         cooldownName = 'action';
@@ -121,7 +120,7 @@
                         break;
                 }
                 
-                if (!character[doXFuncName](type, {targetId:targetId, interactionId:interactionId})) {
+                if (!character[doXFuncName](type, {targetId:targetId, interactionId:interaction.id})) {
                     gameMap.animateEntity(character.getId());
                     gamePanel.appendToChatLog('<i>You must wait for your ' + cooldownName + ' cooldown before you can ' + interaction.label + ' the ' + targetObj.getName(character) + '.</i>');
                 }

@@ -34,7 +34,7 @@
             if (sound) worldMap.broadcastSound(item, 'item', sound, volume);
         },
         
-        isItemInCharacterInventory = (item, character) => item.getInventory().isOwner(character),
+        isItemInCharacterInventory = (item, character) => item.getInventory() === character,
         
         ItemTemplate = new JSClass('ItemTemplate', ThingTemplate, {
             getCapacityNeeded: function(item, character) {return 1;},
@@ -95,7 +95,7 @@
             
             doInteractionPickUp: (item, character, interaction) => {
                 const characterCell = character.getCell(),
-                    itemCell = item.getInventory().getOwner();
+                    itemCell = item.getInventory();
                 if (characterCell && itemCell && characterCell === itemCell) {
                     switch(character.addItem(item)) {
                         case ERR_ITEM_NOT_FOUND:
@@ -116,7 +116,7 @@
             
             doInteractionDrop: (item, character, interaction) => {
                 const characterCell = character.getCell(),
-                    itemOwner = item.getInventory().getOwner();
+                    itemOwner = item.getInventory();
                 if (characterCell && itemOwner && character === itemOwner) {
                     switch(characterCell.addItem(item)) {
                         case ERR_ITEM_NOT_FOUND:

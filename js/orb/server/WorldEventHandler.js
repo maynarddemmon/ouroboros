@@ -298,7 +298,7 @@ const orb = global.orb,
                         }
                         
                         if (fixture && matchedInteraction) {
-                            return fixture.getLockPropertyForInteraction(character, interactionId) ?? 'lockAct';
+                            return fixture.getLockPropertyForInteraction(character, matchedInteraction) ?? 'lockAct';
                         } else {
                             addMessageToUser(username, {type:TYPE_ACTION_FAILED, code:ACTION_ERROR_CODES.ACTION_NOT_ALLOWED});
                         }
@@ -338,7 +338,7 @@ const orb = global.orb,
                         }
                         
                         if (item && matchedInteraction) {
-                            return item.getLockPropertyForInteraction(character, interactionId) ?? 'lockAct';
+                            return item.getLockPropertyForInteraction(character, matchedInteraction) ?? 'lockAct';
                         } else {
                             addMessageToUser(username, {type:TYPE_ACTION_FAILED, code:ACTION_ERROR_CODES.ACTION_NOT_ALLOWED});
                         }

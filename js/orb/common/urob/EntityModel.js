@@ -14,7 +14,7 @@
         {floor:mathFloor, ceil:mathCeil, sqrt:mathSqrt} = Math,
         
         {
-            inventory:{InventoryContainer}
+            inventory:{Inventory}
         } = pkg,
         
         PERM_CREATOR = pkg.permission.PERM_CREATOR,
@@ -26,7 +26,7 @@
         DERIVED_STAT_NAMES = ['soma','end','endRec','hp','hpRec','pneuma','magos','magosRec','psyche','psycheRec'],
         
         CommonEntityModelMixin = new JSModule('CommonEntityModelMixin', {
-            include:[InventoryContainer],
+            include:[Inventory],
             
             
             // Class Methods and Attributes ////////////////////////////////////
@@ -51,8 +51,6 @@
             
             
             // Accessors ///////////////////////////////////////////////////////
-            getInventoryClass: () => CommonEntityModelMixin.INVENTORY_MODEL_CLASS,
-            
             setId: function(v) {this.set('id', v, true);},
             getId: function() {return this.id;},
             
@@ -103,7 +101,7 @@
             canReact: function() {return this.lockAct <= this.getWorldClockNow();},
             canFree: function() {return this.lockFree <= this.getWorldClockNow();},
             
-            getSightDistance: () => 3,
+            getSightDistance: () => 4,
             getHearDistance: () => 9, // Maximum so sound propogation can handle things.
             
             

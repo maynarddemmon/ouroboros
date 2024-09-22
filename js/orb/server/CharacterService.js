@@ -21,8 +21,8 @@ const orb = global.orb,
             CommonEntityModelMixin, CommonCharacterModelMixin, experienceToLevel,
             CORE_STAT_NAMES, ABILITY_NAMES, DERIVED_STAT_NAMES
         },
-        inventory:{Inventory},
-        item:{Item}
+        item:{Item},
+        inventory:{Inventory}
     } = global.urob,
     
     {getNow} = require('./WorldClock.js'),
@@ -63,9 +63,21 @@ const orb = global.orb,
         include:[DerivedMaxStatModelMixin]
     }),
     
-    notifyForInventoryAction = (inventory, item, action) => {
-        const entity = inventory.getOwner(),
-            username = entity.isA(Character) ? entity.getUserId() : null;
+    ItemModel = new JSClass('ItemModel', Item, {
+        updateFromData: function(datum) {
+            datum.id ??= orb.getItemGuid();
+            this.callSuper(datum);
+        },
+        
+        setStateByName: function(stateName, value) {
+            const changed = this.callSuper(stateName, value);
+            if (changed && this.inited) this.getInventory().notifyForUpdateItem(this);
+            return changed;
+        }
+    }),
+    
+    notifyForInventoryAction = (entity, item, action) => {
+        const username = entity.isA(Character) ? entity.getUserId() : null;
         if (username) {
             getAccountService().addMessageToUser(username, {type:TYPE_ALTER_INVENTORY, msg:{
                 inventoryType:'character',
@@ -75,39 +87,6 @@ const orb = global.orb,
             }});
         }
     },
-    
-    InventoryModel = new JSClass('InventoryModel', Inventory, {
-        notifyForAddItem: function(item) {notifyForInventoryAction(this, item, 'add');},
-        notifyForUpdateItem: function(item) {notifyForInventoryAction(this, item, 'update');},
-        notifyForRemoveItem: function(item) {notifyForInventoryAction(this, item, 'remove');},
-        
-        getAsData: function(cfg) {
-            const retval = this.callSuper(cfg);
-            
-            // When saving to disk, remove mw, mv and mc since those will all be calculated during 
-            // updateFromData for Entitites and this Inventory is only for use with Entitites.
-            if (cfg?.isSave) {
-                delete retval.mw;
-                delete retval.mv;
-                delete retval.mc;
-            }
-            
-            return retval;
-        }
-    }),
-    
-    ItemModel = new JSClass('ItemModel', Item, {
-        updateFromData: function(datum) {
-            datum.id ??= orb.getItemGuid();
-            this.callSuper(datum);
-        },
-        
-        setStateByName: function(stateName, value) {
-            const changed = this.callSuper(stateName, value);
-            if (changed && this.inited) this.getInventory().notifyForUpdate(this);
-            return changed;
-        }
-    }),
     
     EntityModel = new JSClass('EntityModel', Eventable, {
         include:[CommonEntityModelMixin],
@@ -345,6 +324,11 @@ const orb = global.orb,
             }
         },
         
+        // Inventory //
+        notifyForAddItem: function(item) {notifyForInventoryAction(this, item, 'add');},
+        notifyForUpdateItem: function(item) {notifyForInventoryAction(this, item, 'update');},
+        notifyForRemoveItem: function(item) {notifyForInventoryAction(this, item, 'remove');},
+        
         
         // Persistence and Serialization ///////////////////////////////////////
         getAsData: function(cfg) {
@@ -356,6 +340,16 @@ const orb = global.orb,
                     }
                 }
             }
+            
+            // When saving to disk, remove mw, mv and mc since those will all be calculated during 
+            // updateFromData for Entitites and this Inventory is only for use with Entitites.
+            const inv = retval.inv;
+            if (cfg?.isSave) {
+                delete inv.mw;
+                delete inv.mv;
+                delete inv.mc;
+            }
+            
             return retval;
         },
         
@@ -693,5 +687,4 @@ const orb = global.orb,
         }
     };
 
-CommonEntityModelMixin.INVENTORY_MODEL_CLASS = InventoryModel;
 Inventory.ITEM_MODEL_CLASS = ItemModel;

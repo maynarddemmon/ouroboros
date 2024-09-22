@@ -20,7 +20,7 @@
                 isValidCompassFacing, getOppositeCompassFacing
             },
             composition:{CompositionTemplateProxyMixin},
-            inventory:{InventoryContainer}
+            inventory:{Inventory}
         } = pkg,
         
         AffectableValuesMixin = new JSModule('AffectableValuesMixin', {
@@ -133,7 +133,7 @@
         },
         
         CommonCellModel = new JSClass('CommonCellModel', Eventable, {
-            include:[FixtureContainerMixin, InventoryContainer, CompositionTemplateProxyMixin],
+            include:[FixtureContainerMixin, Inventory, CompositionTemplateProxyMixin],
             
             extend: {
                 // Set by the client and server so the appropriate face class is instantated.
@@ -141,8 +141,6 @@
                 INVENTORY_MODEL_CLASS:null,
                 FIXTURE_MODEL_CLASS:null
             },
-            
-            getInventoryClass: () => CommonCellModel.INVENTORY_MODEL_CLASS,
             
             setLocId: function(v) {
                 if (this.locId !== v) {

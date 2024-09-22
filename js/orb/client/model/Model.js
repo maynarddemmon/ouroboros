@@ -15,7 +15,6 @@
                 CORE_STAT_NAMES, ABILITY_NAMES, DERIVED_STAT_NAMES
             },
             cell:{CommonFaceModel, CommonCellModel},
-            inventory:{Inventory},
             fixture:{CommonFixtureModel, clearFixtureCache},
             item:{Item, clearItemCache}
         } = urob,
@@ -40,34 +39,15 @@
         
         characters = [],
         
-        notifyForCellInventoryAction = (inventory, item) => {
-            if (inventory.getOwner() === model.getCharacterInPlay()?.getCell()) pkg.gamePanel.updateCellInventory();
+        notifyForCellInventoryAction = (cell, item) => {
+            if (cell === model.getCharacterInPlay()?.getCell()) pkg.gamePanel.updateCellInventory();
         },
-        
-        CellInventoryModel = new JSClass('CellInventoryModel', Inventory, {
-            init: function(attrs) {
-                // cell inventory on client side should not enforce any restrictions so max everything.
-                attrs.maxCapacity = attrs.maxWeight = attrs.maxVolume = Number.MAX_SAFE_INTEGER;
-                this.callSuper(attrs);
-            },
-            
-            notifyForAddItem: function(item) {notifyForCellInventoryAction(this, item);},
-            notifyForUpdateItem: function(item) {notifyForCellInventoryAction(this, item);},
-            notifyForRemoveItem: function(item) {notifyForCellInventoryAction(this, item);}
-        }),
-        
-        notifyForEntityInventoryAction = (inventory, item) => {
-            if (inventory.getOwner() === model.getCharacterInPlay()) pkg.gamePanel.updateCharacterInventory();
-        },
-        
-        EntityInventoryModel = new JSClass('EntityInventoryModel', Inventory, {
-            notifyForAddItem: function(item) {notifyForEntityInventoryAction(this, item);},
-            notifyForUpdateItem: function(item) {notifyForEntityInventoryAction(this, item);},
-            notifyForRemoveItem: function(item) {notifyForEntityInventoryAction(this, item);}
-        }),
         
         CellModel = new JSClass('CellModel', CommonCellModel, {
             init: function(attrs) {
+                // cell inventory on client side should not enforce any restrictions so max everything.
+                attrs.maxCapacity = attrs.maxWeight = attrs.maxVolume = Number.MAX_SAFE_INTEGER;
+                
                 this.partsSeen = new Set();
                 this.callSuper(attrs);
             },
@@ -91,6 +71,11 @@
                 return this.hasBeenSeen() || this.partHasBeenSeen(part);
             },
             
+            // Inventory //
+            notifyForAddItem: function(item) {notifyForCellInventoryAction(this, item);},
+            notifyForUpdateItem: function(item) {notifyForCellInventoryAction(this, item);},
+            notifyForRemoveItem: function(item) {notifyForCellInventoryAction(this, item);},
+            
             
             // Persistence and Serialization ///////////////////////////////////
             updateFromData: function(datum) {
@@ -99,6 +84,10 @@
                 return this;
             }
         }),
+        
+        notifyForEntityInventoryAction = (entity, item) => {
+            if (entity === model.getCharacterInPlay()) pkg.gamePanel.updateCharacterInventory();
+        },
         
         EntityModel = new JSClass('EntityModel', Eventable, {
             include:[CommonEntityModelMixin],
@@ -121,6 +110,11 @@
             getCell: function() {
                 return model.getCellByLocArr(this.getLocArr());
             },
+            
+            // Inventory //
+            notifyForAddItem: function(item) {notifyForEntityInventoryAction(this, item);},
+            notifyForUpdateItem: function(item) {notifyForEntityInventoryAction(this, item);},
+            notifyForRemoveItem: function(item) {notifyForEntityInventoryAction(this, item);},
             
             
             // Persistence and Serialization ///////////////////////////////////
@@ -310,8 +304,6 @@
         });
     
     CommonCellModel.FACE_MODEL_CLASS = CommonFaceModel;
-    CommonCellModel.INVENTORY_MODEL_CLASS = CellInventoryModel;
     CommonCellModel.FIXTURE_MODEL_CLASS = CommonFixtureModel;
-    CommonEntityModelMixin.INVENTORY_MODEL_CLASS = EntityInventoryModel;
     Inventory.ITEM_MODEL_CLASS = Item;
 })(orb);
