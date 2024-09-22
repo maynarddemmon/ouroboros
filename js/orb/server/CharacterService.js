@@ -77,9 +77,9 @@ const orb = global.orb,
     },
     
     InventoryModel = new JSClass('InventoryModel', Inventory, {
-        notifyForAdd: function(item) {notifyForInventoryAction(this, item, 'add');},
-        notifyForUpdate: function(item) {notifyForInventoryAction(this, item, 'update');},
-        notifyForRemove: function(item) {notifyForInventoryAction(this, item, 'remove');},
+        notifyForAddItem: function(item) {notifyForInventoryAction(this, item, 'add');},
+        notifyForUpdateItem: function(item) {notifyForInventoryAction(this, item, 'update');},
+        notifyForRemoveItem: function(item) {notifyForInventoryAction(this, item, 'remove');},
         
         getAsData: function(cfg) {
             const retval = this.callSuper(cfg);

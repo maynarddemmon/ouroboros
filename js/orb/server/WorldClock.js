@@ -140,7 +140,7 @@ const orb = global.orb,
     
     processPeriodicQueue = (queueIdx, now) => {
         const queue = periodicQueues[queueIdx];
-        console.log('  process queue:', queueIdx, queue.size); // DEBUG
+        console.log('  process periodic queue:', queueIdx, queue.size); // DEBUG
         for (const thing of queue) {
             if (thing.notifyPeriodically(queueIdx, now)) queue.delete(thing);
         }

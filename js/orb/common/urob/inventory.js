@@ -67,7 +67,7 @@
                 const item = this.getItem(itemDatum.id);
                 if (item) {
                     item.updateFromData(itemDatum);
-                    if (this.isNotLoading()) this.notifyForUpdate(item);
+                    if (this.isNotLoadingInventory()) this.notifyForUpdateItem(item);
                     return item;
                 }
             },
@@ -99,7 +99,7 @@
                         item.setInventory(this);
                     }
                     
-                    if (this.isNotLoading()) this.notifyForAdd(item);
+                    if (this.isNotLoadingInventory()) this.notifyForAddItem(item);
                     
                     return true;
                 }
@@ -119,15 +119,15 @@
                     this.totalVolume -= item.getVolume();
                     delete this._items[itemId];
                     
-                    if (this.isNotLoading()) this.notifyForRemove(item);
+                    if (this.isNotLoadingInventory()) this.notifyForRemoveItem(item);
                     
                     return item;
                 }
             },
             
-            notifyForAdd: item => {/* Subclasses to implement as needed. */},
-            notifyForUpdate: item => {/* Subclasses to implement as needed. */},
-            notifyForRemove: item => {/* Subclasses to implement as needed. */},
+            notifyForAddItem: item => {/* Subclasses to implement as needed. */},
+            notifyForUpdateItem: item => {/* Subclasses to implement as needed. */},
+            notifyForRemoveItem: item => {/* Subclasses to implement as needed. */},
             
             
             // Persistence and Serialization ///////////////////////////////////
@@ -167,7 +167,7 @@
                 this._loading = false;
             },
             
-            isNotLoading: function() {return this._loading !== true;}
+            isNotLoadingInventory: function() {return this._loading !== true;}
         });
     
     pkg.inventory = {
@@ -191,6 +191,12 @@
             removeItemById: function(itemId) {return this.getInventory().removeItemById(itemId);},
             makeItemFromData: function(itemDatum) {return this.getInventory().makeItemFromData(itemDatum);},
             
+            getMaxCapacity: function() {return this.getInventory().getMaxCapacity();},
+            getMaxWeight: function() {return this.getInventory().getMaxWeight();},
+            getMaxVolume: function() {return this.getInventory().getMaxVolume();},
+            getTotalCapacity: function() {return this.getInventory().getTotalCapacity();},
+            getTotalWeight: function() {return this.getInventory().getTotalWeight();},
+            getTotalVolume: function() {return this.getInventory().getTotalVolume();},
             
             // Persistence and Serialization ///////////////////////////////////
             getAsData: function(cfg) {

@@ -222,7 +222,7 @@
         },
         
         getLocItemInfo = () => {
-            const items = character.getCell().getInventory().getAllItems();
+            const items = character.getCell().getAllItems();
             if (Object.keys(items).length > 0) {
                 const accum = [];
                 for (const itemId in items) accum.push('<li>' + getItemClause(items[itemId], character) + '</li>');
@@ -547,12 +547,11 @@
         }, 50),
         
         updateCharacterInventory: debounce(() => {
-            const inventory = character.getInventory(),
-                items = inventory.getAllItems(),
+            const items = character.getAllItems(),
                 accum = [];
             for (const label of ['Capacity','Weight','Volume']) {
-                const total = inventory['total' + label],
-                    max = inventory['max' + label];
+                const total = character.get('total' + label),
+                    max = character.get('max' + label);
                 accum.push(label + ': ' + formatNumber(total, 2) + '/' + formatNumber(max, 2) + ' ' + formatAsPercentage(total/max));
             }
             

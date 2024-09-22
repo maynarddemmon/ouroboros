@@ -51,9 +51,9 @@
                 this.callSuper(attrs);
             },
             
-            notifyForAdd: function(item) {notifyForCellInventoryAction(this, item);},
-            notifyForUpdate: function(item) {notifyForCellInventoryAction(this, item);},
-            notifyForRemove: function(item) {notifyForCellInventoryAction(this, item);}
+            notifyForAddItem: function(item) {notifyForCellInventoryAction(this, item);},
+            notifyForUpdateItem: function(item) {notifyForCellInventoryAction(this, item);},
+            notifyForRemoveItem: function(item) {notifyForCellInventoryAction(this, item);}
         }),
         
         notifyForEntityInventoryAction = (inventory, item) => {
@@ -61,9 +61,9 @@
         },
         
         EntityInventoryModel = new JSClass('EntityInventoryModel', Inventory, {
-            notifyForAdd: function(item) {notifyForEntityInventoryAction(this, item);},
-            notifyForUpdate: function(item) {notifyForEntityInventoryAction(this, item);},
-            notifyForRemove: function(item) {notifyForEntityInventoryAction(this, item);}
+            notifyForAddItem: function(item) {notifyForEntityInventoryAction(this, item);},
+            notifyForUpdateItem: function(item) {notifyForEntityInventoryAction(this, item);},
+            notifyForRemoveItem: function(item) {notifyForEntityInventoryAction(this, item);}
         }),
         
         CellModel = new JSClass('CellModel', CommonCellModel, {
