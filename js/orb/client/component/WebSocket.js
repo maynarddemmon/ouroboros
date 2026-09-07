@@ -201,7 +201,7 @@
                         return true;
                     });
                 });
-            };
+            }
         },
         
         notifyUserOfFailure = function(msg) {
@@ -465,7 +465,7 @@
                 } else if (action === 'update') {
                     inventoryContainer.updateItem(itemDatum);
                 } else if (action === 'remove') {
-                    inventoryContainer.removeItemById(itemDatum.id)
+                    inventoryContainer.removeItemById(itemDatum.id);
                 } else {
                     console.log('unexpected action', action);
                     return;
@@ -545,5 +545,5 @@
             
             return websocket;
         }
-    }
+    };
 })(orb);

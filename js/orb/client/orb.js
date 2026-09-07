@@ -1,6 +1,7 @@
-(global.BABEL = myt.I18N).setDictionary(LOCALE_JSON, LOCALE);
-
-orb = (() => {
+(global => {
+    (global.BABEL = myt.I18N).setDictionary(global.LOCALE_JSON, global.LOCALE);
+    BABEL.setLocale(global.LOCALE);
+    
     let growlManager;
     
     const I18N = BABEL.get,
@@ -17,6 +18,9 @@ orb = (() => {
         makeTagFunc = FontAwesome.makeTag.bind(FontAwesome),
         
         pkg = {
+            /** A version number based on the time this distribution of orb was created. */
+            version:NaN, // <<< BUILD_VERSION_THIS
+            
             // Convienent References
             app:null,
             websocket:null,
@@ -187,5 +191,5 @@ orb = (() => {
     
     ModalPanel.PADDING_Y = ModalPanel.MARGIN_LEFT = ModalPanel.MARGIN_TOP = THEME.padding;
     
-    return pkg;
-})();
+    global.orb = pkg;
+})(globalThis);

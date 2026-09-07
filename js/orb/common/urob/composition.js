@@ -5,8 +5,8 @@
         JS = imported.JS;
         tym = imported.tym;
     } else {
-        JS = global.JS;
-        tym = global.myt;
+        JS = globalThis.JS;
+        tym = globalThis.myt;
     }
     
     const IMAGE_PREFIX = '/img/tile/',
@@ -201,4 +201,4 @@
         getTemplates: () => templates,
         getTemplate: getTemplate
     };
-})(global.urob);
+})(globalThis.urob);

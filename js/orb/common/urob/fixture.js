@@ -5,8 +5,8 @@
         JS = imported.JS;
         tym = imported.tym;
     } else {
-        JS = global.JS;
-        tym = global.myt;
+        JS = globalThis.JS;
+        tym = globalThis.myt;
     }
     
     const {I18N:{get:I18N}, Eventable} = tym,
@@ -209,7 +209,7 @@
             }
         }),
         
-        /** A fixture with a non-interactive "facing". */
+        /*  A fixture with a non-interactive "facing". */
         FaceableFixture = new JSModule('FaceableFixture', {
             init: function(attrs) {
                 attrs.states ??= [];
@@ -223,7 +223,7 @@
             }
         }),
         
-        /** A fixture that can be rotated (generally used with a facing). */
+        /*  A fixture that can be rotated (generally used with a facing). */
         RotatableFixture = new JSModule('RotatableFixture', {
             include:[FaceableFixture],
             
@@ -304,7 +304,7 @@
             init: function(attrs) {
                 attrs.adjacentSupported ??= true;
                 attrs.effects ??= [];
-                attrs.effects.push('solidity','opacity','damping')
+                attrs.effects.push('solidity','opacity','damping');
                 
                 this.callSuper(attrs);
             },
@@ -583,4 +583,4 @@
         getTemplates: () => templates,
         getTemplate: getTemplate
     };
-})(global.urob);
+})(globalThis.urob);

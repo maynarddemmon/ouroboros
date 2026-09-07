@@ -53,7 +53,7 @@
             new pkg.LobbyPanel(appView, {panelId:PANEL_ID_LOBBY});
             new pkg.GamePanel(appView, {panelId:PANEL_ID_GAME});
             
-            global.hideSpinner();
+            globalThis.hideSpinner();
             
             appView.selectPanel(orb.authenticated ? PANEL_ID_LOBBY : PANEL_ID_AUTH);
         },

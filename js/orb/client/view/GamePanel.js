@@ -15,13 +15,13 @@
         myLocItemInfo,
         inventoryInfo,
         
-        levelGuage,
-        somaGuage,
-        hpGuage,
-        endGuage,
-        pneumaGuage,
-        magosGuage,
-        psycheGuage,
+        levelGauge,
+        somaGauge,
+        hpGauge,
+        endGauge,
+        pneumaGauge,
+        magosGauge,
+        psycheGauge,
         
         characterDetailsTxt,
         alterCellBtn,
@@ -59,12 +59,12 @@
             fixture:{getFixtureById},
             item:{getItemById},
             map:{getMapById}
-        } = global.urob,
+        } = globalThis.urob,
         
         {
             model,
             TextBtn, TranslucentSquareBtn, componentUtil, FormInputText,
-            BaseRadialGuage,
+            BaseRadialGauge,
             theme:{padding, spacing, cornerRadius, colorBgF},
             cfg:{mapRangeOffset, cellSize, entitySizeM}
         } = pkg,
@@ -374,7 +374,7 @@
             rightOverlay.setHeight(overlayHeight);
         },
         
-        StatGuage = new JSClass('StatGuage', BaseRadialGuage, {
+        StatGauge = new JSClass('StatGauge', BaseRadialGauge, {
             initNode: function(parent, attrs) {
                 this.characterAttr = attrs.characterAttr;
                 this.recoveryAttr = attrs.recoveryAttr;
@@ -398,7 +398,7 @@
                 return 'Your ' + attrLabel + 
                     ' is at ' + value + '/' + maxValue + 
                     ' - ' + formatAsPercentage(value/maxValue) +
-                    (recoveryAttr ? ' Your ' + attrLabel + ' recovery is ' + character[recoveryAttr].value + '.' : '')
+                    (recoveryAttr ? ' Your ' + attrLabel + ' recovery is ' + character[recoveryAttr].value + '.' : '');
             },
             
             setupConstraint: function() {
@@ -471,6 +471,36 @@
                     this.labelView?.setText(v);
                 }
             }
+        }),
+        
+        ExpositoryTextMixin = new JS.Module('ExpositoryTextMixin', {
+            include: [SizeToParent],
+            
+            initNode: function(parent, attrs) {
+                attrs.noMarkup = false;
+                
+                attrs.x ??= spacing;
+                attrs.percentOfParentWidth ??= 100;
+                attrs.percentOfParentWidthOffset ??= -2*spacing;
+                attrs.domClass ??= 'expository';
+                attrs.whiteSpace ??= 'normal';
+                
+                this.callSuper(parent, attrs);
+            }
+        }),
+        
+        ExpositoryText = new JSClass('ExpositoryText', Text, {
+            include: [ExpositoryTextMixin]
+        }),
+        
+        ExpositoryPaddedText = new JSClass('ExpositoryPaddedText', PaddedText, {
+            include: [ExpositoryTextMixin],
+            
+            initNode: function(parent, attrs) {
+                attrs.padding ??= padding;
+                
+                this.callSuper(parent, attrs);
+            }
         });
     
     pkg.GamePanel = new JSClass('GamePanel', pkg.BaseStackablePanel, {
@@ -505,13 +535,13 @@
                 
                 characterTab.setText(pkg.FA_CHARACTER + ' ' + character.getName());
                 
-                for (const guage of [levelGuage, somaGuage, hpGuage, endGuage, pneumaGuage, magosGuage, psycheGuage]) guage.setupConstraint();
+                for (const guage of [levelGauge, somaGauge, hpGauge, endGauge, pneumaGauge, magosGauge, psycheGauge]) guage.setupConstraint();
                 gamePanel.constrain('updateCharacterDetails', [character, 'qui']);
                 gamePanel.attachToDom(GlobalKeys, '_keyDown', 'keydown', true);
                 
                 gamePanel.updateCharacterInventory();
             } else {
-                for (const guage of [levelGuage, somaGuage, hpGuage, endGuage, pneumaGuage, magosGuage, psycheGuage]) guage?.teardownConstraint();
+                for (const guage of [levelGauge, somaGauge, hpGauge, endGauge, pneumaGauge, magosGauge, psycheGauge]) guage?.teardownConstraint();
                 gamePanel.releaseConstraint('updateCharacterDetails');
                 gamePanel.detachFromDom(GlobalKeys, '_keyDown', 'keydown', true);
                 if (gameMap) {
@@ -571,7 +601,9 @@
         doFixtureLink: (fixtureId, interaction) => doXLink(TYPE_INTERACT_WITH_FIXTURE, getFixtureById(fixtureId), interaction),
         doItemLink: (itemId, interaction) => doXLink(TYPE_INTERACT_WITH_ITEM, getItemById(itemId), interaction),
         
-        /** @private */
+        /** @private
+            @param {!Object} event - The key down event.
+            @returns {boolean} */
         _keyDown: event => {
             const domEvent = event.value,
                 srcView = M.DomObserver.getSourceViewFromEvent(domEvent);
@@ -626,23 +658,9 @@
                 tabId:'location', text:pkg.FA_LOCATION + ' Location'
             });
             
-            myLocInfo = new Text(locationTab, {
-                x:spacing, whiteSpace:'normal',
-                percentOfParentWidth:100, percentOfParentWidthOffset:-2*spacing,
-                domClass:'expository'
-            }, [SizeToParent]);
-            
-            myLocEntityInfo = new Text(locationTab, {
-                x:spacing, whiteSpace:'normal',
-                percentOfParentWidth:100, percentOfParentWidthOffset:-2*spacing,
-                domClass:'expository'
-            }, [SizeToParent]);
-            
-            myLocItemInfo = new Text(locationTab, {
-                x:spacing, whiteSpace:'normal',
-                percentOfParentWidth:100, percentOfParentWidthOffset:-2*spacing,
-                domClass:'expository'
-            }, [SizeToParent]);
+            myLocInfo = new ExpositoryText(locationTab);
+            myLocEntityInfo = new ExpositoryText(locationTab);
+            myLocItemInfo = new ExpositoryText(locationTab);
             
             new SpacedLayout(locationTab, {axis:'y', inset:spacing, spacing:spacing});
             
@@ -652,11 +670,9 @@
                 noWrapperContainer:true, bgColor:'#333'
             });
             
-            msgLog = new PaddedText(chatTab, {
-                percentOfParentWidth:100, layoutHint:1, padding:spacing, text:'',
-                whiteSpace:'normal', overflow:'autoy', userUnselectable:false,
-                domClass:'expository'
-            }, [SizeToParent, {
+            msgLog = new ExpositoryPaddedText(chatTab, {
+                x:0, layoutHint:1, text:'', overflow:'autoy', userUnselectable:false
+            }, [{
                 appendMsg: function(msg) {
                     this.setText(this.text + msg + '<br>');
                     const ide = this.getIDE();
@@ -763,11 +779,7 @@
                 tabId:'inventory', text:pkg.FA_INVENTORY + ' Inventory'
             });
             
-            inventoryInfo = new Text(inventoryTab, {
-                x:spacing, whiteSpace:'normal',
-                percentOfParentWidth:100, percentOfParentWidthOffset:-2*spacing,
-                domClass:'expository'
-            }, [SizeToParent]);
+            inventoryInfo = new ExpositoryText(inventoryTab);
             
             leftPanel.restoreState(['location', 'chat']);
         },
@@ -837,7 +849,7 @@
             // Left Overlay
             leftOverlay = new VerticalOverlay(gamePanel, {insets:4});
             
-            levelGuage = new BaseRadialGuage(leftOverlay, {
+            levelGauge = new BaseRadialGauge(leftOverlay, {
                 x:1, pointerEvents:'auto', radius:13, thickness:4,
                 color:'#090', borderColor:'#030', bgColor:'#0008'
             }, [{
@@ -856,18 +868,18 @@
             }]);
             
             new View(leftOverlay, {height:8}); // Spacer
-            hpGuage = new StatGuage(leftOverlay, {color:'#c00', borderColor:'#300', characterAttr:'hp', recoveryAttr:'hpRec'});
-            endGuage = new StatGuage(leftOverlay, {color:'#cc0', borderColor:'#330', characterAttr:'end', recoveryAttr:'endRec'});
-            somaGuage = new StatGuage(leftOverlay, {color:'#c93', borderColor:'#633', characterAttr:'soma'});
+            hpGauge = new StatGauge(leftOverlay, {color:'#c00', borderColor:'#300', characterAttr:'hp', recoveryAttr:'hpRec'});
+            endGauge = new StatGauge(leftOverlay, {color:'#cc0', borderColor:'#330', characterAttr:'end', recoveryAttr:'endRec'});
+            somaGauge = new StatGauge(leftOverlay, {color:'#c93', borderColor:'#633', characterAttr:'soma'});
             new View(leftOverlay, {height:4}); // Spacer
-            psycheGuage = new StatGuage(leftOverlay, {color:'#09f', borderColor:'#036', characterAttr:'psyche', recoveryAttr:'psycheRec'});
-            magosGuage = new StatGuage(leftOverlay, {color:'#c0c', borderColor:'#303', characterAttr:'magos', recoveryAttr:'magosRec'});
-            pneumaGuage = new StatGuage(leftOverlay, {color:'#93c', borderColor:'#336', characterAttr:'pneuma'});
+            psycheGauge = new StatGauge(leftOverlay, {color:'#09f', borderColor:'#036', characterAttr:'psyche', recoveryAttr:'psycheRec'});
+            magosGauge = new StatGauge(leftOverlay, {color:'#c0c', borderColor:'#303', characterAttr:'magos', recoveryAttr:'magosRec'});
+            pneumaGauge = new StatGauge(leftOverlay, {color:'#93c', borderColor:'#336', characterAttr:'pneuma'});
             
             new View(leftOverlay, {height:4}); // Spacer
             
             const makeCooldown = (propTargetName, readyIcon) => {
-                new pkg.CharacterCooldownRadialGuage(leftOverlay, {
+                new pkg.CharacterCooldownRadialGauge(leftOverlay, {
                     x:1, propTargetName:propTargetName, cooldownName:I18N('cooldownName-' + propTargetName),
                     pointerEvents:'auto', readyIcon:readyIcon
                 });

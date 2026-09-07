@@ -1,7 +1,7 @@
 (pkg => {
     const mathAbs = Math.abs,
         
-        /** The following are concentric rings of x,y offsets form an origin cell. The rings and
+        /*  The following are concentric rings of x,y offsets form an origin cell. The rings and
             circles can be used to find other cells relative to an origin cell.
             
             The numbers below correspond to the RING_X defined afterwards.
@@ -129,7 +129,7 @@
         CIRCLE_8 = [...CIRCLE_7, ...RING_8],
         CIRCLE_9 = [...CIRCLE_8, ...RING_9],
         
-        /** These are "paths" to walk from an origin cell that correspond to what a character
+        /*  These are "paths" to walk from an origin cell that correspond to what a character
             could see. They are used to determine if the character's view is blocked or not.
             The paths are for 1/8 of a circle so the will need to be flipped/translated to cover
             the entire circle. The definitions below are based on arc of the circle between the
@@ -199,7 +199,7 @@
             ]
         ];
         
-    /** Get the visibility path to use based on the x,y offset of the cell to check
+    /*  Get the visibility path to use based on the x,y offset of the cell to check
         visiblit for relative to an origin cell. The various parameters are used to
         transform the lookup for the appropraite 1/8 segment of the circle. */
     pkg.getVisibilityPath = (x, y, isPosX, isPosY, isYgtX, isYgtNegX) => {
@@ -252,4 +252,4 @@
     };
     
     pkg.cellOffsetsByDistance = [CIRCLE_0,CIRCLE_1,CIRCLE_2,CIRCLE_3,CIRCLE_4,CIRCLE_5,CIRCLE_6,CIRCLE_7,CIRCLE_8,CIRCLE_9];
-})(global.urob);
+})(globalThis.urob);

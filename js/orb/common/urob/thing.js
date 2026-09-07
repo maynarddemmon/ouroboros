@@ -7,8 +7,8 @@
         JS = imported.JS;
         tym = imported.tym;
     } else {
-        JS = global.JS;
-        tym = global.myt;
+        JS = globalThis.JS;
+        tym = globalThis.myt;
     }
     
     const {Eventable} = tym,
@@ -154,7 +154,7 @@
             
             
             // Methods /////////////////////////////////////////////////////////
-            notifyPeriodically: (thing, queueIdx, now) => {/** Subclasses to implement as needed. */},
+            notifyPeriodically: (thing, queueIdx, now) => {/* Subclasses to implement as needed. */},
             
             describe: function(thing, character, isAppend) {
                 return isAppend ? thing.getName(character) : getPhraseWithArticle(thing.getName(character));
@@ -191,7 +191,7 @@
             doExpositionAfterInteraction: (thing, character, interaction, succeeded) => {},
         }),
         
-        /** A Thing that contains zero or more charges. */
+        /*  A Thing that contains zero or more charges. */
         ChargeableTemplate = new JSModule('ChargeableTemplate', {
             init: function(attrs) {
                 attrs.states ??= [];
@@ -250,7 +250,7 @@
             }
         }),
         
-        /** A Thing that an Entity can "eat". */
+        /*  A Thing that an Entity can "eat". */
         EatableTemplate = new JSModule('EatableTemplate', {
             // Methods /////////////////////////////////////////////////////////
             getInteractions: function(thing, character, adjacent) {
@@ -284,7 +284,7 @@
                 this.callSuper(thing, character, interaction, succeeded);
             },
             
-            doInteractionEat: (thing, character, interaction) => {/** Subclasses to implement. */}
+            doInteractionEat: (thing, character, interaction) => {/* Subclasses to implement. */}
         }),
         
         FoodTemplate = new JSModule('FoodTemplate', {
@@ -487,7 +487,7 @@
             
             setTemplate: function(v) {this.set('t', v, true);},
             getTemplate: function() {return this.t;},
-            getTemplateObject: () => {/** Subclasses must implement. */},
+            getTemplateObject: () => {/* Subclasses must implement. */},
             
             getStateObject: function() {return this.state ??= {};},
             setStateByName: function(stateName, value) {
@@ -502,7 +502,7 @@
             },
             getStateByName: function(stateName) {return this.getStateObject()[stateName];},
             
-            getCell: () => {/** Subclasses must implement. */},
+            getCell: () => {/* Subclasses must implement. */},
             
             
             // Methods /////////////////////////////////////////////////////////
@@ -642,4 +642,4 @@
         
         material:MATERIALS
     };
-})(global.urob);
+})(globalThis.urob);

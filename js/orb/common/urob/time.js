@@ -58,4 +58,4 @@
             return format ? formatWorldTimeParts(parts) : parts;
         }
     };
-})(global.urob);
+})(globalThis.urob);

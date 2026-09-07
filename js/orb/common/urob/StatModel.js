@@ -5,8 +5,8 @@
         JS = imported.JS;
         tym = imported.tym;
     } else {
-        JS = global.JS;
-        tym = global.myt;
+        JS = globalThis.JS;
+        tym = globalThis.myt;
     }
     
     const {Eventable} = tym,
@@ -16,7 +16,7 @@
         
         getWorldClock = () => worldClock ??= require('../../server/WorldClock.js'),
         
-        /** A stat on an object. Enforces min and max values and provides a way to temporarily
+        /*  A stat on an object. Enforces min and max values and provides a way to temporarily
             adjust the effective value. */
         StatModel = new JSClass('StatModel', Eventable, {
             // FIXME: adjustements to min, max, value
@@ -139,7 +139,7 @@
             
             
             // Methods /////////////////////////////////////////////////////////
-            notifyForChange: () => {/** Subclasses must implement. */},
+            notifyForChange: () => {/* Subclasses must implement. */},
             
             
             // Persistence and Serialization ///////////////////////////////////
@@ -233,4 +233,4 @@
             }
         })
     };
-})(global.urob);
+})(globalThis.urob);

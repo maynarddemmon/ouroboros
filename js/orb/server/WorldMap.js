@@ -1,6 +1,6 @@
 let isReady = false;
 
-const orb = global.orb,
+const orb = globalThis.orb,
     
     objectKeys = Object.keys,
     
@@ -16,7 +16,7 @@ const orb = global.orb,
         greek:{TYPE_CELL_DATA, TYPE_SOUND, TYPE_EXPOSITION, TYPE_ALTER_INVENTORY},
         map:{makeMapsFromData, getMapById, getAsData:getMapsAsData},
         cell:{CommonFaceModel, CommonCellModel}
-    } = global.urob,
+    } = globalThis.urob,
     
     {addMessageToUser} = require('./AccountService.js'),
     

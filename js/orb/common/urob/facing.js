@@ -52,4 +52,4 @@
             return getOppositeCompassFacing(compassDirection);
         }
     };
-})(global.urob);
+})(globalThis.urob);

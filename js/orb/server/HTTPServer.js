@@ -12,7 +12,7 @@ const fs = require('fs'),
     {
         IS_PROD, CACHE_BUST, httpPort, socketUrl, sessionSecret,
         makePath, readDataFile, saveDataToFile
-    } = global.orb,
+    } = globalThis.orb,
     
     accountService = require('./AccountService.js'),
     

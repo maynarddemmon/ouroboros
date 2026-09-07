@@ -1,6 +1,6 @@
 let characterService;
 
-const orb = global.orb,
+const orb = globalThis.orb,
     
     {addMessageToUser, getAccountByUsername} = require('./AccountService.js'),
     worldMap = require('./WorldMap.js'),
@@ -23,7 +23,7 @@ const orb = global.orb,
             TYPE_ALTER_CHARACTER,
             TYPE_INTERACT_WITH_FIXTURE, TYPE_INTERACT_WITH_ITEM
         }
-    } = global.urob,
+    } = globalThis.urob,
     
     getCharacterService = () => characterService ??= require('./CharacterService.js'),
     

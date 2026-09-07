@@ -66,4 +66,4 @@
             FREE_NOT_ALLOWED:2,
         },
     };
-})(global.urob);
+})(globalThis.urob);

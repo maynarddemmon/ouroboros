@@ -7,8 +7,8 @@
         JS = imported.JS;
         tym = imported.tym;
     } else {
-        JS = global.JS;
-        tym = global.myt;
+        JS = globalThis.JS;
+        tym = globalThis.myt;
     }
     
     const maps = new Map(),
@@ -151,4 +151,4 @@
         
         CommonMapModel:CommonMapModel
     };
-})(global.urob);
+})(globalThis.urob);

@@ -3,7 +3,7 @@ let socketServer;
 const 
     live = (resolve, reject) => {
         const ws = require('ws'),
-            {maxCharactersPerUser, socketPort} = global.orb,
+            {maxCharactersPerUser, socketPort} = globalThis.orb,
             accountService = require('./AccountService.js'),
             characterService = require('./CharacterService.js'),
             {doEventNext, doEventNow, getTick, getNow} = require('./WorldClock.js'),
@@ -12,7 +12,7 @@ const
             {
                 greek,
                 account:{FIELD_WEBSOCKET}
-            } = global.urob,
+            } = globalThis.urob,
             ATTR_TIME = greek.ATTR_TIME,
             
             doEventNextHandler = (username, type, msg) => {

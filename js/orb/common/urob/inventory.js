@@ -5,8 +5,8 @@
         JS = imported.JS;
         tym = imported.tym;
     } else {
-        JS = global.JS;
-        tym = global.myt;
+        JS = globalThis.JS;
+        tym = globalThis.myt;
     }
     
     const {Eventable} = tym,
@@ -179,4 +179,4 @@
         
         Inventory:Inventory
     };
-})(global.urob);
+})(globalThis.urob);

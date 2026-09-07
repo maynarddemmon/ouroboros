@@ -1,4 +1,4 @@
-(() => {
+(global => {
     const IS_NODEJS = typeof module === 'object' && module.exports;
     
     let tym, JS;
@@ -171,7 +171,7 @@
                         if (lcWord.endsWith('y')) return word.slice(0, -1) + 'ies';
                         return word + 's';
                     }
-                }
+                };
             })(),
             
             getArticle: getArticle,
@@ -227,4 +227,4 @@
         require('./urob/EntityModel.js');
         require('./urob/CellModel.js');
     }
-})();
+})(globalThis);

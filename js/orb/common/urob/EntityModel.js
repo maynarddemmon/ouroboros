@@ -5,8 +5,8 @@
         JS = imported.JS;
         tym = imported.tym;
     } else {
-        JS = global.JS;
-        tym = global.myt;
+        JS = globalThis.JS;
+        tym = globalThis.myt;
     }
     
     const JSModule = JS.Module,
@@ -129,7 +129,7 @@
             },
             
             updateFromData: function(datum) {
-                this.callSuper?.(datum) ?? {};
+                this.callSuper?.(datum);
                 
                 if (datum.id != null) this.setId(datum.id);
                 if (datum.name != null) this.setName(datum.name);
@@ -202,4 +202,4 @@
             }
         })
     };
-})(global.urob);
+})(globalThis.urob);

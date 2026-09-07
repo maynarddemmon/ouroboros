@@ -1,4 +1,4 @@
-LOCALE_JSON = {
+globalThis.LOCALE_JSON = {
     'changePassword':'Change Password',
     'create':'Create',
     'delete':'Delete',

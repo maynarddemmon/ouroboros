@@ -5,8 +5,8 @@
         JS = imported.JS;
         tym = imported.tym;
     } else {
-        JS = global.JS;
-        tym = global.myt;
+        JS = globalThis.JS;
+        tym = globalThis.myt;
     }
     
     const {Eventable} = tym,
@@ -68,7 +68,7 @@
             },
             
             // Server Only
-            /** Optionally returns an error message. */
+            /*  Optionally returns an error message. */
             doInteraction: function(item, character, interaction) {
                 switch (interaction.id) {
                     case INTERACTION_ID_PICK_UP: return this.doInteractionPickUp(item, character, interaction);
@@ -221,7 +221,7 @@
             getTemplateObject: function() {return getTemplate(this.getTemplate());},
             
             setInventory: function(v) {this._inventory = v;},
-            getInventory: function() {return this._inventory},
+            getInventory: function() {return this._inventory;},
             
             setCapacityNeeded: function(v) {this.set('c', v, true);},
             getCapacityNeeded: function(character) {
@@ -253,4 +253,4 @@
         getTemplates: () => templates,
         getTemplate: getTemplate
     };
-})(global.urob);
+})(globalThis.urob);

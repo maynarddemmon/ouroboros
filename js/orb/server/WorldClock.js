@@ -3,7 +3,7 @@ let now, // The current tick count of the world clock
     Interval,
     eventLog;
 
-const orb = global.orb,
+const orb = globalThis.orb,
     {getEventLog} = require('./LoggingService.js'),
     worldEventHandler = require('./WorldEventHandler.js'),
     {drainOutgoingMessages} = require('./AccountService.js'),
@@ -11,7 +11,7 @@ const orb = global.orb,
     {
         greek:{ATTR_TIME},
         time:{WORLD_TIME_COUNTS}
-    } = global.urob,
+    } = globalThis.urob,
     
     FILENAME_WORLD_CLOCK = 'world_clock',
     

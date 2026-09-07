@@ -20,17 +20,15 @@ const _startup = () => {
 		orb.username = {{USERNAME}};
 		orb.authenticated = orb.username ? true : false;
 		new orb.App(getElem('appDiv'));
-	},
-	global = window,
-	LOCALE = 'en';
-let _ready,
-	LOCALE_JSON;
+	};
+globalThis.LOCALE = 'en';
+let _ready;
 writeScript('i18n/client-'+LOCALE);
 if ({{IS_PROD}}) {
 	writeScript('lib/ouroboros-client.min');
 	_ready = _startup;
 } else {
-	global.ORB_ROOT = './js/orb/client/';
+	globalThis.ORB_ROOT = './js/orb/client/';
 	writeScript('lib/loader-browser.min');
 	writeScript('js/orb/client/manifest');
 	_ready = () => {JS.require('orb.all', _startup)};

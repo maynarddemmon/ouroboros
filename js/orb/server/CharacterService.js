@@ -1,7 +1,7 @@
 let accountService,
     worldMap;
 
-const orb = global.orb,
+const orb = globalThis.orb,
     
     {
         JS:{Class:JSClass, Module:JSModule}, 
@@ -23,7 +23,7 @@ const orb = global.orb,
         },
         item:{Item},
         inventory:{Inventory}
-    } = global.urob,
+    } = globalThis.urob,
     
     {getNow} = require('./WorldClock.js'),
     

@@ -1,5 +1,5 @@
 const ARGS = process.argv,
-    orb = global.orb = require('./orb.js'),
+    orb = globalThis.orb = require('./orb.js'),
     JSON5 = require('json5');
 
 // Load Config Files before anything else is required.
@@ -24,7 +24,7 @@ const loggingService = require('./LoggingService.js'),
     
     {
         greek:{TYPE_WARNING, TYPE_SERVERINFO}
-    } = global.urob,
+    } = globalThis.urob,
     
     msgAllAccounts = (msg, msgType=TYPE_WARNING, connectedOnly=true) => {
         accountService[connectedOnly ? 'addMessageToAllConnectedAccounts' : 'addMessageToAllAccounts']({type:msgType, msg:msg});

@@ -12,7 +12,7 @@
         
         {
             greek:{TYPE_ENTER_WORLD, TYPE_CREATE_CHARACTER, TYPE_DELETE_CHARACTER}
-        } = global.urob,
+        } = globalThis.urob,
         
         {
             model,
@@ -408,4 +408,4 @@
         
         _updateCharacterContainer: M.debounce(refreshLobby, 100)
     });
-})(orb);
+})(globalThis.orb);

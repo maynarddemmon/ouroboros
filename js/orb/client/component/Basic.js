@@ -198,7 +198,7 @@
         include:[pkg.TranslucentBtn]
     });
     
-    pkg.BaseRadialGuage = new JSClass('BaseRadialGuage', M.RadialGuage, {
+    pkg.BaseRadialGauge = new JSClass('BaseRadialGauge', M.RadialGauge, {
         initNode: function(parent, attrs) {
             attrs.radius ??= 18;
             attrs.borderColor ??= '#999';
@@ -208,7 +208,7 @@
         }
     });
     
-    pkg.BaseCTRadialGuage = new JSClass('BaseCTRadialGuage', M.ColorThresholdRadialGuage, {
+    pkg.BaseCTRadialGauge = new JSClass('BaseCTRadialGauge', M.ColorThresholdRadialGauge, {
         initNode: function(parent, attrs) {
             attrs.thresholds ??= [
                 {color:colorFgSuccess, value:0.5},
@@ -219,7 +219,7 @@
         }
     });
     
-    pkg.CharacterCooldownRadialGuage = new JSClass('CharacterCooldownRadialGuage', pkg.BaseRadialGuage, {
+    pkg.CharacterCooldownRadialGauge = new JSClass('CharacterCooldownRadialGauge', pkg.BaseRadialGauge, {
         initNode: function(parent, attrs) {
             attrs.radius ??= 16;
             attrs.thickness ??= 1;
@@ -326,5 +326,5 @@
                 socketConnectedBtn.syncTo(pkg.websocket, 'onWebsocketStatus', 'status');
             }
         },
-    }
+    };
 })(orb);

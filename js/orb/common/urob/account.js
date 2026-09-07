@@ -15,4 +15,4 @@
     pkg.permission = {
         PERM_CREATOR:PERM_CREATOR
     };
-})(global.urob);
+})(globalThis.urob);

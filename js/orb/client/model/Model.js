@@ -17,7 +17,7 @@
             cell:{CommonFaceModel, CommonCellModel},
             fixture:{CommonFixtureModel, clearFixtureCache},
             item:{Item, clearItemCache}
-        } = urob,
+        } = globalThis.urob,
         
         getCellData = () => cellData ??= {},
         
@@ -306,4 +306,4 @@
     CommonCellModel.FACE_MODEL_CLASS = CommonFaceModel;
     CommonCellModel.FIXTURE_MODEL_CLASS = CommonFixtureModel;
     Inventory.ITEM_MODEL_CLASS = Item;
-})(orb);
+})(globalThis.orb);

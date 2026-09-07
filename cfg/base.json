@@ -1,7 +1,7 @@
 {
     "httpPort":8080,
     "socketPort":8081,
-    "socketUrl":"ws://localhost:8081",
+    "socketUrl":"ws://192.168.68.106:8081",
     
     /* The maximum number of failed auth attempts. */
     "authFailLimit":12,

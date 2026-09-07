@@ -3,7 +3,7 @@ let accessLog,
     accountUnlockerIntervalId = null;
 
 const {scryptSync} = require('crypto'),
-    orb = global.orb,
+    orb = globalThis.orb,
     {salt, authFailLimit, accountUnlockerInterval} = orb,
     
     {
