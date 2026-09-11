@@ -1,3 +1,5 @@
+*.sublime-*
+
 /logs
 /data
 /cfg/override.json
